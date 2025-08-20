@@ -1,0 +1,45 @@
+<!-- Layout de pantalla completa 65% (foto) / 35% (panel) -->
+<div class="login-layout">
+  <!-- LADO IZQUIERDO (FOTO) -->
+  <section class="left">
+    <!-- La imagen se referencia desde HTML -->
+    <img class="bg-photo" src="/images/fondolog.png" alt="Fondo hilos">
+    <!-- Título centrado sobre la foto (una sola línea) -->
+    <h1 class="brand">La Original</h1>
+  </section>
+
+  <!-- LADO DERECHO (PANEL ROSA) -->
+  <section class="right">
+    <!-- CARD -->
+    <div class="card">
+      <!-- Avatar completamente DENTRO del card -->
+      <div class="avatar">
+        <img class="avatar-img" src="/icons/a.png" alt="Usuario">
+      </div>
+
+      <h2 class="card-title">Iniciar Sesión</h2>
+
+      <label class="form-label" for="user">Usuario</label>
+      <input
+        id="user"
+        class="input"
+        type="text"
+        placeholder="Usuario"
+        [(ngModel)]="username"
+      />
+
+      <label class="form-label" for="pass">Contraseña</label>
+      <input
+        id="pass"
+        class="input"
+        type="password"
+        placeholder="Contraseña"
+        [(ngModel)]="password"
+      />
+
+      <button class="btn-primary" type="button" (click)="onLogin()">Iniciar sesión</button>
+
+      <p *ngIf="errorMessage" style="color:red; margin-top:12px;">{{ errorMessage }}</p>
+    </div>
+  </section>
+</div>
