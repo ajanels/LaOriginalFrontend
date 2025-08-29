@@ -10,41 +10,38 @@ import Swal from 'sweetalert2';
   standalone: true,
   imports: [FormsModule, CommonModule],
   templateUrl: './login.html',
-  styleUrls: ['./login.css']
+  styleUrls: ['./login.css'],
 })
 export class LoginComponent {
-  username: string = '';
-  password: string = '';
-  errorMessage: string = '';
+  username = '';
+  password = '';
+  errorMessage = '';
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private auth: AuthService, private router: Router) {}
 
   onLogin() {
     this.errorMessage = '';
 
-    // Mostrar pantalla de carga mientras valida
     Swal.fire({
       title: 'Validando credenciales...',
       allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
+      didOpen: () => Swal.showLoading(),
     });
 
-    this.authService.login(this.username, this.password).subscribe({
-      next: (res) => {
-        localStorage.setItem('token', res.token);
-        localStorage.setItem('loginSuccess', 'true'); // 👉 Bandera para Home
-
-        Swal.close(); // cerramos loading
-
-        // Redirigimos directamente al home
-        this.router.navigate(['/home']);
+    this.auth.login(this.username, this.password).subscribe({
+      next: (ok) => {
+        Swal.close();
+        if (ok) {
+          localStorage.setItem('loginSuccess', 'true');
+          this.router.navigate(['/home']);
+        } else {
+          this.errorMessage = 'No se pudo iniciar sesión.';
+        }
       },
       error: () => {
         Swal.close();
         this.errorMessage = 'Credenciales incorrectas, inténtelo de nuevo.';
-      }
+      },
     });
   }
 }

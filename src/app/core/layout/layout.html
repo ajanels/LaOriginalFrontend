@@ -1,0 +1,61 @@
+<div class="layout-root">
+  <!-- Navbar -->
+  <app-navbar (toggleSidebar)="toggleSidebar()"></app-navbar>
+
+  <!-- Grid principal -->
+  <div class="shell" [class.is-collapsed]="collapsed()">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+      <div class="side-head">
+        <button class="toggle"
+                type="button"
+                (click)="toggleSidebar()"
+                [title]="collapsed() ? 'Expandir menú' : 'Contraer menú'">
+          <span class="material-icons">
+            {{ collapsed() ? 'chevron_right' : 'chevron_left' }}
+          </span>
+        </button>
+      </div>
+
+      <ul class="menu">
+        <li *ngFor="let item of menu">
+          <!-- Item simple -->
+          <ng-container *ngIf="!item.children; else group">
+            <a [routerLink]="item.route"
+               routerLinkActive="active"
+               class="menu-item">
+              <span class="icon material-icons">{{ item.icon || 'chevron_right' }}</span>
+              <span class="label">{{ item.label }}</span>
+            </a>
+          </ng-container>
+
+          <!-- Grupo -->
+          <ng-template #group>
+            <button class="menu-item" type="button" (click)="toggleGroup(item)">
+              <span class="icon material-icons">{{ item.icon || 'folder' }}</span>
+              <span class="label">{{ item.label }}</span>
+              <span class="spacer"></span>
+              <span class="icon material-icons rotate" [class.open]="item.expanded">expand_more</span>
+            </button>
+
+            <ul class="submenu" *ngIf="item.expanded">
+              <li *ngFor="let sub of item.children">
+                <a [routerLink]="sub.route" routerLinkActive="active" class="menu-item sub">
+                  <span class="icon material-icons muted">fiber_manual_record</span>
+                  <span class="label">{{ sub.label }}</span>
+                </a>
+              </li>
+            </ul>
+          </ng-template>
+        </li>
+      </ul>
+    </aside>
+
+    <!-- Workspace -->
+    <main class="workspace">
+      <div class="workspace-inner">
+        <router-outlet></router-outlet>
+      </div>
+    </main>
+  </div>
+</div>

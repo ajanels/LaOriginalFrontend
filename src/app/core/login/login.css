@@ -1,13 +1,4 @@
-/* ───────────────────────────────────────────────────────────────
-   Paleta guía (comentario):
-   Rosa claro: #F7D1EE
-   Rosa medio: #F0BCE5
-   Fucsia:     #FF00B8
-   Violeta:    #D35CE6
-   Gradiente derecha: #EF64DF → #E44CD9 → #D047CF
-   ───────────────────────────────────────────────────────────────*/
 
-/* ============= Layout de pantalla completa (65/35) ============= */
 html, body {
   height: 100%;
   margin: 0;
@@ -16,7 +7,7 @@ html, body {
   display: flex;
   width: 100vw;
   height: 100vh;
-  overflow: hidden;                 /* sin scroll */
+  overflow: hidden;                
   margin: 0;
 }
 
@@ -28,7 +19,7 @@ html, body {
 }
 .bg-photo {
   position: absolute;
-  inset: 0;                         /* top/right/bottom/left:0 */
+  inset: 0;                        
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -58,7 +49,6 @@ html, body {
   background: linear-gradient(180deg, #EF64DF 0%, #E44CD9 55%, #D047CF 100%);
 }
 
-/* ============= Card (más alto, avatar dentro) ============= */
 .card {
   width: min(560px, 86%);
   min-height: 68vh;
@@ -93,7 +83,6 @@ html, body {
   text-align: center;
 }
 
-/* ============= Formulario (labels + inputs) ============= */
 .form-label {
   width: 65%;
   margin: 14px auto 6px;
@@ -117,7 +106,6 @@ html, body {
 }
 .input::placeholder { color: #6E6E6E; }
 
-/* ============= Botón principal ============= */
 .btn-primary {
   width: clamp(260px, 48%, 360px);
   height: 54px;
@@ -134,7 +122,6 @@ html, body {
 .btn-primary:hover  { filter: brightness(1.06); transform: translateY(-1px); }
 .btn-primary:active { transform: translateY(0); }
 
-/* ============= Responsivo ============= */
 @media (max-width: 1200px) {
   .card { min-height: 70vh; }
   .brand { font-size: clamp(48px, 8.5vw, 120px); }
@@ -144,6 +131,6 @@ html, body {
 }
 
 .my-swal {
-  font-size: 20px !important;    /* agranda texto */
-  padding: 30px !important;      /* más espacio */
+  font-size: 20px !important;    
+  padding: 30px !important;      
 }

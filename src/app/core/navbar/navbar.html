@@ -1,1 +1,20 @@
-<p>navbar works!</p>
+<header class="navbar navbar--xl">
+  <div class="brand">La Original</div>
+
+  <div class="grow"></div>
+
+  <div class="userarea userarea--xl">
+    <div class="avatar" *ngIf="displayPhoto; else initialsTpl">
+      <img [src]="photo!" alt="Foto de perfil" (error)="photoFail()" />
+    </div>
+    <ng-template #initialsTpl>
+      <div class="avatar initials">{{ initial }}</div>
+    </ng-template>
+
+    <span class="username">{{ name | titlecase }}</span>
+
+    <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión" title="Cerrar sesión">
+      <span class="material-icons">logout</span>
+    </button>
+  </div>
+</header>
