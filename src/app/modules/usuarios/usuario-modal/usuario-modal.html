@@ -1,0 +1,260 @@
+<!-- overlay SIEMPRE visible (también en view) -->
+<div class="overlay" (click)="cancel()"></div>
+
+<!-- contenedor: drawer a la derecha cuando isView; modal centrado si no -->
+<div class="container" [class.drawer]="isView" (click)="cancel()">
+  <div class="panel" (click)="$event.stopPropagation()">
+    <div class="panel-head">
+      <h2>{{ isView ? 'Detalle de usuario' : (isCreate ? 'Crear usuario' : 'Editar usuario') }}</h2>
+      <button class="icon" (click)="cancel()" aria-label="Cerrar">
+        <span class="material-icons">close</span>
+      </button>
+    </div>
+
+    <!-- Vista de solo lectura (drawer) -->
+    <div *ngIf="isView && usuario" class="view">
+      <div class="avatar">
+        <img *ngIf="photoPreview; else ph" [src]="photoPreview" alt="Foto" />
+        <ng-template #ph><div class="placeholder">{{ usuario.primerNombre.charAt(0) }}</div></ng-template>
+      </div>
+      <dl>
+        <div><dt>Nombre</dt><dd>{{usuario.primerNombre}} {{usuario.segundoNombre}}</dd></div>
+        <div><dt>Apellido</dt><dd>{{usuario.primerApellido}} {{usuario.segundoApellido}}</dd></div>
+        <div><dt>Usuario</dt><dd>{{usuario.username}}</dd></div>
+        <div><dt>Rol</dt><dd>{{ $any(usuario).rol?.nombre || '—' }}</dd></div>
+        <div><dt>Teléfono</dt><dd>{{usuario.celular}}</dd></div>
+        <div><dt>Estado</dt><dd>{{usuario.estado}}</dd></div>
+        <div><dt>NIT</dt><dd>{{usuario.nit}}</dd></div>
+        <div><dt>CUI</dt><dd>{{usuario.cui}}</dd></div>
+        <div><dt>Email</dt><dd>{{usuario.email}}</dd></div>
+        <div><dt>Dirección</dt><dd>{{usuario.direccion}}</dd></div>
+      </dl>
+      <div class="panel-actions">
+        <button class="ghost" (click)="cancel()">Cerrar</button>
+      </div>
+    </div>
+
+    <!-- Formulario create/edit (modal centrado) -->
+    <form *ngIf="!isView" [formGroup]="form" (ngSubmit)="save()" class="grid">
+
+      <!-- === Sección: Datos personales === -->
+      <div class="section-title">Datos personales</div>
+
+      <label>
+        Primer Nombre*
+        <input
+          formControlName="primerNombre"
+          placeholder="Ej. Juan"
+          [ngClass]="{ error: form.get('primerNombre')?.invalid && form.get('primerNombre')?.touched }" />
+        <small class="error" *ngIf="form.get('primerNombre')?.hasError('required') && form.get('primerNombre')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="(form.get('primerNombre')?.hasError('minlength') || form.get('primerNombre')?.hasError('maxlength')) && form.get('primerNombre')?.touched">
+          Debe tener entre 2 y 50 caracteres
+        </small>
+      </label>
+
+      <label>
+        Segundo Nombre
+        <input
+          formControlName="segundoNombre"
+          placeholder="Ej. Carlos"
+          [ngClass]="{ error: form.get('segundoNombre')?.invalid && form.get('segundoNombre')?.touched }" />
+        <small class="error" *ngIf="form.get('segundoNombre')?.hasError('maxlength') && form.get('segundoNombre')?.touched">
+          Máx. 50 caracteres
+        </small>
+      </label>
+
+      <label>
+        Primer Apellido*
+        <input
+          formControlName="primerApellido"
+          placeholder="Ej. Pérez"
+          [ngClass]="{ error: form.get('primerApellido')?.invalid && form.get('primerApellido')?.touched }" />
+        <small class="error" *ngIf="form.get('primerApellido')?.hasError('required') && form.get('primerApellido')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="(form.get('primerApellido')?.hasError('minlength') || form.get('primerApellido')?.hasError('maxlength')) && form.get('primerApellido')?.touched">
+          Debe tener entre 2 y 50 caracteres
+        </small>
+      </label>
+
+      <label>
+        Segundo Apellido
+        <input
+          formControlName="segundoApellido"
+          placeholder="Ej. López"
+          [ngClass]="{ error: form.get('segundoApellido')?.invalid && form.get('segundoApellido')?.touched }" />
+        <small class="error" *ngIf="form.get('segundoApellido')?.hasError('maxlength') && form.get('segundoApellido')?.touched">
+          Máx. 50 caracteres
+        </small>
+      </label>
+
+      <label>
+        NIT*
+        <input
+          formControlName="nit"
+          placeholder="123456789"
+          [ngClass]="{ error: form.get('nit')?.invalid && form.get('nit')?.touched }" />
+        <small class="error" *ngIf="form.get('nit')?.hasError('required') && form.get('nit')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="form.get('nit')?.hasError('pattern') && form.get('nit')?.touched">
+          Debe tener exactamente 9 dígitos
+        </small>
+      </label>
+
+      <label>
+        CUI*
+        <input
+          formControlName="cui"
+          placeholder="1234567890123"
+          [ngClass]="{ error: form.get('cui')?.invalid && form.get('cui')?.touched }" />
+        <small class="error" *ngIf="form.get('cui')?.hasError('required') && form.get('cui')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="form.get('cui')?.hasError('pattern') && form.get('cui')?.touched">
+          Debe tener exactamente 13 dígitos
+        </small>
+      </label>
+
+      <label>
+        Fecha de nacimiento*
+        <input
+          type="date"
+          formControlName="fechaNacimiento"
+          [ngClass]="{ error: form.get('fechaNacimiento')?.invalid && form.get('fechaNacimiento')?.touched }" />
+        <small class="error" *ngIf="form.get('fechaNacimiento')?.hasError('required') && form.get('fechaNacimiento')?.touched">
+          Campo requerido
+        </small>
+      </label>
+
+      <label>
+        Fecha de ingreso*
+        <input
+          type="date"
+          formControlName="fechaIngreso"
+          [ngClass]="{ error: form.get('fechaIngreso')?.invalid && form.get('fechaIngreso')?.touched }" />
+        <small class="error" *ngIf="form.get('fechaIngreso')?.hasError('required') && form.get('fechaIngreso')?.touched">
+          Campo requerido
+        </small>
+      </label>
+
+      <label>
+        Género*
+        <select
+          formControlName="genero"
+          [ngClass]="{ error: form.get('genero')?.invalid && form.get('genero')?.touched }">
+          <option>Masculino</option>
+          <option>Femenino</option>
+          <option>Otro</option>
+          <option>Prefiero no decir</option>
+        </select>
+        <small class="error" *ngIf="form.get('genero')?.hasError('required') && form.get('genero')?.touched">
+          Seleccione una opción
+        </small>
+      </label>
+
+      <!-- === Sección: Datos de contacto === -->
+      <div class="section-title">Datos de contacto</div>
+
+      <label>
+        Celular*
+        <input
+          formControlName="celular"
+          placeholder="23456789"
+          [ngClass]="{ error: form.get('celular')?.invalid && form.get('celular')?.touched }" />
+        <small class="error" *ngIf="form.get('celular')?.hasError('required') && form.get('celular')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="form.get('celular')?.hasError('pattern') && form.get('celular')?.touched">
+          Debe iniciar con 2–7 y tener 8 dígitos
+        </small>
+      </label>
+
+      <label>
+        Dirección*
+        <input
+          formControlName="direccion"
+          placeholder="Calle…"
+          [ngClass]="{ error: form.get('direccion')?.invalid && form.get('direccion')?.touched }" />
+        <small class="error" *ngIf="form.get('direccion')?.hasError('required') && form.get('direccion')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="(form.get('direccion')?.hasError('minlength') || form.get('direccion')?.hasError('maxlength')) && form.get('direccion')?.touched">
+          Debe tener entre 10 y 120 caracteres
+        </small>
+      </label>
+
+      <label>
+        Email*
+        <input
+          formControlName="email"
+          type="email"
+          placeholder="correo@dominio.com"
+          [ngClass]="{ error: form.get('email')?.invalid && form.get('email')?.touched }" />
+        <small class="error" *ngIf="form.get('email')?.hasError('required') && form.get('email')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="form.get('email')?.hasError('email') && form.get('email')?.touched">
+          Formato de correo inválido
+        </small>
+      </label>
+
+      <!-- === Sección: Datos del sistema === -->
+      <div class="section-title">Datos del sistema</div>
+
+      <label>
+        Estado*
+        <select
+          formControlName="estado"
+          [ngClass]="{ error: form.get('estado')?.invalid && form.get('estado')?.touched }">
+          <option>Activo</option>
+          <option>Inactivo</option>
+          <option>Suspendido</option>
+        </select>
+        <small class="error" *ngIf="form.get('estado')?.hasError('required') && form.get('estado')?.touched">
+          Seleccione un estado
+        </small>
+      </label>
+
+      <label>
+        Rol*
+        <select
+          formControlName="rolId"
+          [ngClass]="{ error: form.get('rolId')?.invalid && form.get('rolId')?.touched }">
+          <option [ngValue]="null" disabled>Seleccione…</option>
+          <option *ngFor="let r of roles" [ngValue]="r.id">{{ r.nombre }}</option>
+        </select>
+        <small class="error" *ngIf="form.get('rolId')?.hasError('required') && form.get('rolId')?.touched">
+          Seleccione un rol
+        </small>
+      </label>
+
+      <label *ngIf="isCreate">
+        Contraseña*
+        <input
+          formControlName="password"
+          type="password"
+          placeholder="••••••••"
+          [ngClass]="{ error: form.get('password')?.invalid && form.get('password')?.touched }" />
+        <small class="error" *ngIf="form.get('password')?.hasError('required') && form.get('password')?.touched">
+          Campo requerido
+        </small>
+        <small class="error" *ngIf="form.get('password')?.hasError('pattern') && form.get('password')?.touched">
+          Mín. 8 caracteres con mayúscula, minúscula, número y símbolo
+        </small>
+      </label>
+
+      <label>
+        Foto
+        <input type="file" (change)="onFile($event)" accept="image/*" />
+      </label>
+
+      <div class="panel-actions full-width">
+        <button type="button" class="ghost" (click)="cancel()">Cancelar</button>
+        <button type="submit" class="primary">Guardar</button>
+      </div>
+    </form>
+  </div>
+</div>

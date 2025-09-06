@@ -1,0 +1,123 @@
+<div class="page">
+  <div class="head">
+    <h1>Usuarios</h1>
+
+    <div class="actions">
+      <!-- Filtro: búsqueda -->
+      <div class="search">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          [ngModel]="q()"
+          (ngModelChange)="q.set($event)"
+          placeholder="Buscar…"
+          aria-label="Buscar usuario"
+        />
+      </div>
+
+      <!-- Filtro: estado -->
+      <select
+        class="filter"
+        [ngModel]="estado()"
+        (ngModelChange)="estado.set($event)"
+        aria-label="Filtrar por estado">
+        <option value="">Estado: Todos</option>
+        <option value="Activo">Activo</option>
+        <option value="Inactivo">Inactivo</option>
+        <option value="Suspendido">Suspendido</option>
+      </select>
+
+      <!-- Filtro: rol -->
+      <select
+        class="filter"
+        [ngModel]="rolId()"
+        (ngModelChange)="rolId.set($event)"
+        aria-label="Filtrar por rol">
+        <option [ngValue]="null">Rol: Todos</option>
+        <option *ngFor="let r of roles()" [ngValue]="r.id">{{ r.nombre }}</option>
+      </select>
+
+      <!-- Tamaño de página -->
+      <select
+        class="filter"
+        [ngModel]="pageSize()"
+        (ngModelChange)="changePageSize($event)"
+        aria-label="Cambiar tamaño de página">
+        <option [ngValue]="10">10 / pág</option>
+        <option [ngValue]="20">20 / pág</option>
+        <option [ngValue]="50">50 / pág</option>
+      </select>
+
+      <button class="primary" (click)="openCreate()">
+        <span class="material-icons" aria-hidden="true">person_add</span>
+        Nuevo
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrapper" *ngIf="!loading(); else loadingTpl">
+      <table class="grid" *ngIf="paged().length; else emptyTpl">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Apellido</th>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Teléfono</th>
+            <th>Estado</th>
+            <th class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let u of paged()">
+            <td>{{ u.primerNombre }} {{ u.segundoNombre }}</td>
+            <td>{{ u.primerApellido }} {{ u.segundoApellido }}</td>
+            <td class="mono">{{ u.username }}</td>
+            <td><span class="role-pill">{{ u.rol?.nombre || '—' }}</span></td>
+            <td>{{ u.celular }}</td>
+            <td>
+              <span class="state-pill" [class.activo]="u.estado==='Activo'"
+                                      [class.inactivo]="u.estado==='Inactivo'"
+                                      [class.suspendido]="u.estado==='Suspendido'">
+                {{ u.estado }}
+              </span>
+            </td>
+            <td class="acts">
+              <button class="icon" (click)="openView(u)" aria-label="Ver">
+                <span class="material-icons">visibility</span>
+              </button>
+              <button class="icon" (click)="openEdit(u)" aria-label="Editar">
+                <span class="material-icons">edit</span>
+              </button>
+              <button class="icon danger" (click)="remove(u)" aria-label="Eliminar">
+                <span class="material-icons">delete</span>
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Paginación -->
+      <div class="pager" *ngIf="totalPages() > 1">
+        <button class="ghost" (click)="prevPage()" [disabled]="page()===1" aria-label="Página anterior">
+          <span class="material-icons">chevron_left</span>
+        </button>
+        <span>Página {{ page() }} / {{ totalPages() }}</span>
+        <button class="ghost" (click)="nextPage()" [disabled]="page()===totalPages()" aria-label="Página siguiente">
+          <span class="material-icons">chevron_right</span>
+        </button>
+      </div>
+    </div>
+
+    <ng-template #loadingTpl><div class="empty">Cargando…</div></ng-template>
+    <ng-template #emptyTpl><div class="empty">No hay usuarios con los filtros seleccionados</div></ng-template>
+  </div>
+</div>
+
+<!-- Modal -->
+<app-usuario-modal
+  *ngIf="show()"
+  [mode]="mode()"
+  [usuario]="current()"
+  (closed)="onClose($event)">
+</app-usuario-modal>

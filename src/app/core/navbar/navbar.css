@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 0 36px;
+  padding-inline: var(--page-pad);     /* responsivo */
   background: #ffffff;
   border-radius: 20px;
   border: 1px solid #eef1f5;
@@ -10,14 +10,23 @@
     0 10px 24px rgba(15, 23, 42, 0.05),
     0 2px 6px rgba(15, 23, 42, 0.04);
 }
-.navbar--xl { height: 96px; }         
+.navbar--xl { height: 96px; }
 
 .grow { flex: 1; }
 
+/* Centrado interno opcional si usas wrapper .navbar__inner en el HTML */
+.navbar__inner{
+  max-width: var(--container-max);
+  margin-inline: auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
 
 .brand {
-  font-family: "Berkshire Swash", "Inter", serif;  
-  font-weight: 400;                                
+  font-family: "Berkshire Swash", "Inter", serif;
+  font-weight: 400;
   font-size: 68px;
   line-height: 1;
   letter-spacing: 0.2px;
@@ -28,7 +37,6 @@
 @media (max-width: 900px) {
   .brand { font-size: 32px; }
 }
-
 
 /* ====== ZONA DE USUARIO ====== */
 .userarea {
@@ -43,7 +51,7 @@
 .userarea--xl { padding: 12px 16px; }
 
 .avatar {
-  width: 64px;                         
+  width: 64px;
   height: 64px;
   border-radius: 50%;
   overflow: hidden;
@@ -56,9 +64,8 @@
 .avatar img { width: 100%; height: 100%; object-fit: cover; }
 .avatar.initials { background: #e9ddff; color: #5b29a6; font-size: 24px; }
 
-
 .username {
-  font-size: 22px;                    
+  font-size: 22px;
   font-weight: 700;
   color: #3b3f46;
   max-width: 260px;
@@ -67,11 +74,10 @@
   white-space: nowrap;
 }
 
-
 .logout-btn {
   border: 0;
   background: #ffffff;
-  width: 48px;                         
+  width: 48px;
   height: 48px;
   border-radius: 12px;
   display: flex; align-items: center; justify-content: center;

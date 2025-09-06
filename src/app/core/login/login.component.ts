@@ -1,9 +1,10 @@
+// src/app/core/login/login.component.ts
 import { Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { AuthService } from '../../services/auth.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
+import { AuthService, LoginResponse } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
@@ -16,12 +17,18 @@ export class LoginComponent {
   username = '';
   password = '';
   errorMessage = '';
+  loading = false;
 
   constructor(private auth: AuthService, private router: Router) {}
 
   onLogin() {
     this.errorMessage = '';
+    if (!this.username || !this.password) {
+      this.errorMessage = 'Ingresa usuario y contraseña.';
+      return;
+    }
 
+    this.loading = true;
     Swal.fire({
       title: 'Validando credenciales...',
       allowOutsideClick: false,
@@ -29,18 +36,20 @@ export class LoginComponent {
     });
 
     this.auth.login(this.username, this.password).subscribe({
-      next: (ok) => {
+      next: (_res: LoginResponse) => {
+        this.loading = false;
         Swal.close();
-        if (ok) {
-          localStorage.setItem('loginSuccess', 'true');
-          this.router.navigate(['/home']);
-        } else {
-          this.errorMessage = 'No se pudo iniciar sesión.';
-        }
+        this.router.navigate(['/home']);
       },
-      error: () => {
+      error: (err) => {
+        this.loading = false;
         Swal.close();
-        this.errorMessage = 'Credenciales incorrectas, inténtelo de nuevo.';
+        const msg =
+          err?.error?.detail ||
+          err?.error?.title ||
+          err?.error ||
+          'Credenciales incorrectas, inténtelo de nuevo.';
+        this.errorMessage = typeof msg === 'string' ? msg : 'Error de autenticación';
       },
     });
   }

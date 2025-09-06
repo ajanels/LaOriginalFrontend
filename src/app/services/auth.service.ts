@@ -1,150 +1,120 @@
-import { Injectable } from '@angular/core';
+import { Injectable, computed, signal, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import {
-  BehaviorSubject,
-  Observable,
-  of,
-  switchMap,
-  tap,
-  catchError,
-  map,
-} from 'rxjs';
+import { Observable, tap } from 'rxjs';
+import { environment } from '../../environments/environment';
 
-export interface UserLite {
+export interface AuthUser {
+  id?: number;
+  username?: string;
+  email?: string;
+  rol?: { id: number; nombre: string } | null;
+
   PrimerNombre?: string;
   primerNombre?: string;
-  firstName?: string;
-  given_name?: string;
   nombre?: string;
-  name?: string;
-
   FotoUrl?: string;
   fotoUrl?: string;
-  fotoURL?: string;
-  photoUrl?: string;
-  avatarUrl?: string;
   picture?: string;
   imageUrl?: string;
 
-  [k: string]: any;
+  // compat con back/formatos antiguos
+  RolId?: number;    rolId?: number;
+  RolNombre?: string; rolNombre?: string;
 }
 
-interface LoginResponse {
-  token: string;
-  user?: UserLite;
-  usuario?: UserLite;
-  data?: any;
+export interface LoginRequest {
+  usernameOrEmail?: string;
+  username?: string;
+  email?: string;
+  password: string;
 }
+
+export interface LoginResponse {
+  token: string;
+  expiresIn?: number;
+  user?: AuthUser;
+}
+
+const TOKEN_KEY = 'laoriginal.jwt';
+const USER_KEY  = 'laoriginal.user';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private API_BASE = 'https://localhost:7140/api';
-  private AUTH_URL = `${this.API_BASE}/Auth`;
+  private http = inject(HttpClient);
 
-  private TOKEN_KEY = 'authToken';
-  private USER_KEY  = 'authUser';
+  private API_BASE = environment.apiBase;
+  private AUTH_URL = `${this.API_BASE}/auth`;
 
-  private _user$ = new BehaviorSubject<UserLite | null>(this.readUser());
-  user$ = this._user$.asObservable();
+  private _token = signal<string | null>(this.loadToken());
+  private _user  = signal<AuthUser | null>(this.loadUser());
 
-  private logPayloadOnce = false;
+  token      = computed(() => this._token());
+  user       = computed(() => this._user());
+  isLoggedIn = computed(() => !!this._token());
 
-  constructor(private http: HttpClient) {
-    const stored = this.readUser();
-    if (stored) {
-      const norm = this.normalizeUser(stored);
-      if (norm) this.setUser(norm);
-    }
+  // ===== LOGIN =====
+  login(body: LoginRequest): Observable<LoginResponse>;
+  login(username: string, password: string): Observable<LoginResponse>;
+  login(a: LoginRequest | string, b?: string): Observable<LoginResponse> {
+    const uoe = typeof a === 'string' ? a : (a.usernameOrEmail ?? a.username ?? a.email ?? '');
+    const pwd = typeof a === 'string' ? (b as string) : a.password;
 
-    if (!this._user$.value && this.getToken()) {
-      const u = this.userFromToken(this.getToken()!);
-      if (u) this.setUser(u);
-    }
-  }
+    const payload: LoginRequest = { usernameOrEmail: uoe, username: uoe, email: uoe, password: pwd };
 
-  login(username: string, password: string): Observable<boolean> {
-    return this.http.post<LoginResponse>(`${this.AUTH_URL}/login`, { username, password }).pipe(
+    return this.http.post<LoginResponse>(`${this.AUTH_URL}/login`, payload).pipe(
       tap(res => {
-        if (res?.token) {
-          localStorage.setItem(this.TOKEN_KEY, res.token);
-          const raw = res.user ?? res.usuario ?? this.userFromToken(res.token) ?? null;
-          const u = this.normalizeUser(raw);
-          if (u) this.setUser(u);
+        if (res?.token) this.setToken(res.token);
+        if (res?.user) {
+          this.setUser(this.normalizeUser(res.user));
+        } else {
+          this.me().subscribe({ next: u => this.setUser(this.normalizeUser(u)) });
         }
-      }),
-      switchMap(() => {
-        if (this._user$.value) return of(true);
-        return this.fetchProfile().pipe(
-          tap(u => u && this.setUser(this.normalizeUser(u)!)),
-          map(() => true),
-          catchError(() => of(true))
-        );
       })
     );
   }
 
-  private fetchProfile(): Observable<UserLite> {
-    const token = this.getToken();
-    if (!token) return of(null as unknown as UserLite);
-    const headers = new HttpHeaders({ Authorization: `Bearer ${token}` });
-    return this.http.get<UserLite>(`${this.AUTH_URL}/me`, { headers });
+  me(): Observable<AuthUser> {
+    return this.http.get<AuthUser>(`${this.AUTH_URL}/me`, { headers: this.authHeaders() });
   }
-
-  getToken(): string | null { return localStorage.getItem(this.TOKEN_KEY); }
-  isAuthenticated(): boolean { return !!this.getToken(); }
 
   logout(): void {
-    localStorage.removeItem(this.TOKEN_KEY);
-    localStorage.removeItem(this.USER_KEY);
-    this._user$.next(null);
+    this.setToken(null);
+    this.setUser(null);
   }
 
+  // ===== ROLES =====
+  hasRole(...rolesPermitidos: string[]): boolean {
+    const actual = this.getCurrentRole();
+    if (!actual) return false;
+    return rolesPermitidos.map(r => this.normalizeRole(r)).includes(actual);
+  }
 
-  private normalizeUser(u: any | null): UserLite | null {
-    if (!u) return null;
-
-    const first =
-      u.PrimerNombre ??
-      u.primerNombre ??
-      u.firstName ??
-      u.given_name ??
-      u.nombre ??
-      u.name ??
+  getCurrentRole(): string {
+    const u = this._user();
+    const nombre =
+      u?.rol?.nombre ??
+      (u as any)?.RolNombre ?? (u as any)?.rolNombre ?? // ← camelCase / PascalCase
       '';
-
-    const photo =
-      u.FotoUrl ??
-      u.fotoUrl ??
-      u.fotoURL ??
-      u.photoUrl ??
-      u.avatarUrl ??
-      u.picture ??
-      u.imageUrl ??
-      null;
-
-    const normalized: UserLite = { ...u };
-    if (first) normalized.PrimerNombre = String(first).trim().split(/\s+/)[0];
-    if (photo) normalized.FotoUrl = photo;
-
-    return normalized;
+    return this.normalizeRole(nombre);
   }
 
-  getFirstName(u: UserLite | null = this._user$.value): string {
+  private normalizeRole(r?: string): string {
+    if (!r) return '';
+    const plain = r.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
+    if (plain === 'administrador') return 'admin';
+    return plain; // admin, vendedor, etc.
+  }
+
+  // ===== Helpers UI =====
+  getFirstName(u: AuthUser | null = this._user()): string {
     if (!u) return '';
-    const full =
-      u.PrimerNombre ??
-      u.primerNombre ??
-      u.firstName ??
-      u.given_name ??
-      u.nombre ??
-      u.name ??
-      '';
+    const full = u.PrimerNombre ?? u.primerNombre ?? u.nombre ?? u.username ?? '';
     return full ? String(full).trim().split(/\s+/)[0] : '';
   }
 
-  getPhotoUrl(u: UserLite | null = this._user$.value): string | null {
+  getPhotoUrl(u: AuthUser | null = this._user()): string | null {
     if (!u) return null;
-    const keys = ['FotoUrl','fotoUrl','fotoURL','photoUrl','avatarUrl','picture','imageUrl'] as const;
+    const keys = ['FotoUrl', 'fotoUrl', 'picture', 'imageUrl'] as const;
     for (const k of keys) {
       const v = (u as any)[k];
       if (typeof v === 'string' && v.trim()) return v;
@@ -152,53 +122,42 @@ export class AuthService {
     return null;
   }
 
-  setUser(u: UserLite) {
-    localStorage.setItem(this.USER_KEY, JSON.stringify(u));
-    this._user$.next(u);
+  // ===== Storage =====
+  private setToken(t: string | null) {
+    this._token.set(t);
+    try { t ? localStorage.setItem(TOKEN_KEY, t) : localStorage.removeItem(TOKEN_KEY); } catch {}
+  }
+  private setUser(u: AuthUser | null) {
+    this._user.set(u);
+    try { u ? localStorage.setItem(USER_KEY, JSON.stringify(u)) : localStorage.removeItem(USER_KEY); } catch {}
+  }
+  private loadToken(): string | null {
+    try { return localStorage.getItem(TOKEN_KEY); } catch { return null; }
+  }
+  private loadUser(): AuthUser | null {
+    try { const raw = localStorage.getItem(USER_KEY); return raw ? JSON.parse(raw) as AuthUser : null; } catch { return null; }
+  }
+  private authHeaders(): HttpHeaders {
+    const t = this._token();
+    return new HttpHeaders(t ? { Authorization: `Bearer ${t}` } : {});
   }
 
-  private readUser(): UserLite | null {
-    const raw = localStorage.getItem(this.USER_KEY);
-    return raw ? JSON.parse(raw) : null;
-  }
+  // ===== Normalización del user =====
+  private normalizeUser(u: AuthUser): AuthUser {
+    const first = u.PrimerNombre ?? u.primerNombre ?? u.nombre ?? u.username ?? '';
+    const foto  = u.FotoUrl ?? u.fotoUrl ?? u.picture ?? u.imageUrl ?? null;
 
-  private userFromToken(token: string): UserLite | null {
-    try {
-      const p: any = this.decodeJwt(token);
+    // lee rol de: u.rol || (RolNombre/rolNombre + RolId/rolId)
+    const rawName = (u as any).RolNombre ?? (u as any).rolNombre ?? null;
+    const rawId   = (u as any).RolId     ?? (u as any).rolId     ?? null;
 
-      if (!this.logPayloadOnce) {
-        this.logPayloadOnce = true;
-        console.debug('[Auth] JWT payload:', p);
-      }
+    const rol = u.rol ?? (rawName ? { id: Number(rawId ?? 0), nombre: String(rawName) } : null);
 
-      const given =
-        p?.PrimerNombre ??
-        p?.primerNombre ??
-        p?.firstName ??
-        p?.given_name ??
-        p?.nombre ??
-        p?.name ??
-        p?.unique_name ??
-        p?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/givenname'] ??
-        p?.['http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name'];
-
-      const picture = p?.picture || p?.FotoUrl || p?.fotoUrl || null;
-
-      if (!given && !picture) return null;
-
-      const first = given ? String(given).trim().split(/\s+/)[0] : '';
-      return this.normalizeUser({ PrimerNombre: first, FotoUrl: picture || undefined });
-    } catch {
-      return null;
-    }
-  }
-
-  private decodeJwt<T = any>(jwt: string): T {
-    const part = jwt.split('.')[1];
-    if (!part) throw new Error('Invalid JWT');
-    const base64 = part.replace(/-/g, '+').replace(/_/g, '/');
-    const padded = base64 + '==='.slice((base64.length + 3) % 4);
-    const json = atob(padded);
-    return JSON.parse(json) as T;
+    return {
+      ...u,
+      PrimerNombre: first ? String(first).split(/\s+/)[0] : undefined,
+      FotoUrl: foto ?? undefined,
+      rol
+    };
   }
 }

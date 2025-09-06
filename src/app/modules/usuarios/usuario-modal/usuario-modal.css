@@ -1,0 +1,221 @@
+:root {
+  --modal-z: 4000;
+  --radius: 16px;
+}
+
+/* Capa oscura */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, .45);
+  z-index: 10000;
+}
+
+/* Contenedor del modal */
+.container {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10001;
+}
+
+/* Panel */
+.panel {
+  position: relative;
+  z-index: 10002;
+  background: #fff;
+  max-height: 98vh;
+  overflow-y: auto;
+  border-radius: var(--radius);
+}
+
+/* Drawer (detalle) a la derecha */
+.container.drawer {
+  justify-content: flex-end;
+  align-items: stretch;
+  padding: 0;
+}
+.container.drawer .panel {
+  width: min(560px, 96vw);
+  height: 100%;
+  border-radius: var(--radius) 0 0 var(--radius);
+}
+
+/* Cabezal */
+.panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px 18px;
+  border-bottom: 1px solid #eee;
+}
+.panel-head h2 {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+.panel-head .icon {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  width: 36px;
+  height: 36px;
+  border-radius: 999px;
+}
+.panel-head .icon:hover {
+  background: #f3f3f5;
+}
+
+/* === Grid del formulario === */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  padding: 16px 18px 20px;
+}
+.grid label {
+  display: grid;
+  gap: 4px;
+  font-weight: 600;
+  color: #333;
+}
+.grid input,
+.grid select {
+  height: 40px;
+  border-radius: 10px;
+  border: 1px solid #ddd;
+  padding: 0 12px;
+  outline: none;
+}
+.grid input:focus,
+.grid select:focus {
+  border-color: #b07ad9;
+  box-shadow: 0 0 0 3px rgba(176, 122, 217, .15);
+}
+
+/* === Validaciones visuales === */
+input.error, select.error {
+  border-color: #e53935 !important;
+  box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.15) !important;
+}
+small.error {
+  color: #e53935;
+  font-size: 12px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* === Sección por bloques === */
+.section-title {
+  grid-column: 1 / -1;
+  font-size: 16px;
+  font-weight: bold;
+  margin-top: 10px;
+  padding: 4px 0;
+  border-bottom: 1px solid #ddd;
+  color: #555;
+}
+
+/* Acciones */
+.panel-actions {
+  padding: 14px 18px 18px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #f2f2f4;
+}
+.panel-actions.full-width {
+  grid-column: 1 / -1;
+  justify-content: flex-end;
+}
+button.primary {
+  background: #7a2ea8;
+  color: #fff;
+  border: 0;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+button.primary:hover {
+  filter: brightness(1.05);
+}
+button.ghost {
+  background: transparent;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 10px 16px;
+  cursor: pointer;
+}
+button.ghost:hover {
+  background: #f7f7f8;
+}
+
+/* Vista de detalles (drawer) */
+.view {
+  padding: 16px 18px 20px;
+}
+.view .avatar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.view .avatar img {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  object-fit: cover;
+}
+.view .avatar .placeholder {
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  background: #eee;
+  color: #666;
+  font-weight: 800;
+  font-size: 20px;
+}
+.view dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 14px;
+}
+.view dl > div {
+  border: 1px solid #eee;
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: #fafafa;
+}
+.view dt {
+  font-size: 12px;
+  color: #777;
+  margin-bottom: 6px;
+}
+.view dd {
+  margin: 0;
+  color: #222;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 720px) {
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .view dl {
+    grid-template-columns: 1fr;
+  }
+  .container.drawer .panel {
+    width: 100%;
+    border-radius: 0;
+  }
+}

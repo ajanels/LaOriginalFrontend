@@ -19,7 +19,6 @@
 
       <ul class="menu">
         <li *ngFor="let item of menu">
-          <!-- Item simple -->
           <ng-container *ngIf="!item.children; else group">
             <a [routerLink]="item.route"
                routerLinkActive="active"
@@ -29,8 +28,7 @@
             </a>
           </ng-container>
 
-          <!-- Grupo -->
-          <ng-template #group>
+            <ng-template #group>
             <button class="menu-item" type="button" (click)="toggleGroup(item)">
               <span class="icon material-icons">{{ item.icon || 'folder' }}</span>
               <span class="label">{{ item.label }}</span>

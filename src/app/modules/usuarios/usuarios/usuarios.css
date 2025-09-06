@@ -1,0 +1,97 @@
+.page { display: flex; flex-direction: column; gap: 16px; }
+
+.head {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 12px; padding-right: 8px;
+}
+.head h1 { font-size: 24px; margin: 0; }
+
+.actions { display: flex; align-items: center; gap: 10px; }
+
+.search {
+  display: flex; align-items: center; gap: 6px;
+  background: #fff; border: 1px solid #e5e5e5; border-radius: 12px;
+  padding: 6px 10px;
+}
+.search input {
+  border: 0; outline: 0; min-width: 240px; background: transparent;
+}
+
+/* Filtros */
+.filter {
+  height: 36px; border-radius: 10px; border: 1px solid #e5e5e5;
+  background: #fff; padding: 0 10px; outline: none;
+}
+
+button.primary {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 0; padding: 8px 14px; border-radius: 12px;
+  background: #7a2ea8; color: #fff; cursor: pointer; font-weight: 600;
+}
+
+.card {
+  background: #fff; border: 1px solid #eee; border-radius: 16px;
+  padding: 10px;
+}
+
+.table-wrapper { overflow-x: auto; }
+
+table.grid {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  min-width: 900px;
+}
+.grid thead th {
+  text-align: left; font-weight: 700; font-size: 13px; color: #5c5c5c;
+  padding: 10px; border-bottom: 1px solid #eee; white-space: nowrap;
+}
+.grid tbody td {
+  padding: 10px; border-bottom: 1px solid #f3f3f3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color:#555; }
+
+.role-pill {
+  background: #f1ecf7; color: #6b2f99; padding: 4px 8px; border-radius: 999px; font-size: 12px;
+}
+
+.state-pill {
+  padding: 4px 8px; border-radius: 999px; font-size: 12px; border: 1px solid transparent;
+}
+.state-pill.activo { background: #eaf7ef; color:#2e7d32; border-color:#cdecd6; }
+.state-pill.inactivo { background: #f7f7f7; color:#666; border-color:#eee; }
+.state-pill.suspendido { background: #fde9eb; color:#d33; border-color:#f6c7cd; }
+
+.acts-col { width: 140px; }
+.acts {
+  display: flex; align-items: center; gap: 6px;
+}
+button.icon {
+  border: 0; background: #f6f3f7; color: #6b2f99; border-radius: 10px;
+  padding: 6px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+}
+button.icon .material-icons { font-size: 18px; }
+button.icon.danger { background: #fde9eb; color: #d33; }
+
+.empty {
+  text-align: center; color: #8a8a8a; padding: 24px;
+}
+
+/* Pager */
+.pager {
+  display: flex; align-items: center; gap: 10px; padding: 10px;
+  justify-content: flex-end;
+}
+button.ghost {
+  background: transparent; border: 1px solid #e5e5e5; border-radius: 10px;
+  padding: 6px 10px; cursor: pointer;
+}
+button.ghost:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Responsivo cabecera */
+@media (max-width: 1000px) {
+  .head { flex-direction: column; align-items: stretch; gap: 10px; }
+  .actions { flex-wrap: wrap; gap: 8px; }
+  .search input { min-width: 0; width: 100%; }
+}

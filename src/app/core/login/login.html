@@ -1,16 +1,16 @@
-<div class="login-layout">
-  <section class="left">
-    <img class="bg-photo" src="/images/fondolog.png" alt="Fondo hilos">
+<form class="login-layout" (ngSubmit)="onLogin()">
+  <section class="left" aria-hidden="true">
+    <img class="bg-photo" src="/images/fondolog.png" alt="" />
     <h1 class="brand">La Original</h1>
   </section>
 
   <section class="right">
-    <div class="card">
+    <div class="card" role="group" aria-labelledby="loginTitle">
       <div class="avatar">
-        <img class="avatar-img" src="/icons/a.png" alt="Usuario">
+        <img class="avatar-img" src="/icons/a.png" alt="Logo de La Original" />
       </div>
 
-      <h2 class="card-title">Iniciar Sesión</h2>
+      <h2 id="loginTitle" class="card-title">Iniciar Sesión</h2>
 
       <label class="form-label" for="user">Usuario</label>
       <input
@@ -19,6 +19,9 @@
         type="text"
         placeholder="Usuario"
         [(ngModel)]="username"
+        name="username"
+        autocomplete="username"
+        required
       />
 
       <label class="form-label" for="pass">Contraseña</label>
@@ -28,11 +31,18 @@
         type="password"
         placeholder="Contraseña"
         [(ngModel)]="password"
+        name="password"
+        autocomplete="current-password"
+        required
       />
 
-      <button class="btn-primary" type="button" (click)="onLogin()">Iniciar sesión</button>
+      <button class="btn-primary" type="submit" [disabled]="loading">
+        {{ loading ? 'Ingresando…' : 'Iniciar sesión' }}
+      </button>
 
-      <p *ngIf="errorMessage" style="color:red; margin-top:12px;">{{ errorMessage }}</p>
+      <p *ngIf="errorMessage" style="color:red; margin-top:12px;">
+        {{ errorMessage }}
+      </p>
     </div>
   </section>
-</div>
+</form>

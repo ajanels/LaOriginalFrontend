@@ -3,8 +3,24 @@ html, body, app-root {
   height: 100%;
   margin: 0;
   overflow: hidden;
-   font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+:root {
+  /* layout scale */
+  --container-max: 1200px;            /* ancho máx. del contenido */
+  --page-pad: clamp(12px, 2vw, 24px); /* padding lateral responsivo */
+
+  /* navbar & sidebar */
+  --navbar-h: 96px;                    /* altura real del navbar */
+  --sidebar-w: 280px;
+  --sidebar-w-collapsed: 92px;
+
+  /* UI */
+  --card-bg: #fff;
+  --card-br: 14px;
+  --card-shadow: 0 6px 24px rgba(0,0,0,.06);
 }
