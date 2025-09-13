@@ -1,0 +1,162 @@
+<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-roles">
+  <!-- Título -->
+  <div class="head-title">
+    <h1 id="title-roles">Roles</h1>
+  </div>
+
+  <!-- Filtros + crear -->
+  <div class="head">
+    <div class="actions">
+      <div class="search" aria-label="Buscar roles">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          type="text"
+          inputmode="search"
+          placeholder="Busca por nombre…"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+          autocomplete="off" />
+      </div>
+
+      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+
+      <select class="filter" [(ngModel)]="itemsPorPagina" (change)="cambiarPaginacion()" aria-label="Ítems por página">
+        <option [ngValue]="5">5 / pág</option>
+        <option [ngValue]="10">10 / pág</option>
+        <option [ngValue]="25">25 / pág</option>
+        <option [ngValue]="50">50 / pág</option>
+      </select>
+    </div>
+
+    <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear rol">
+      <span class="material-icons" aria-hidden="true">add</span>
+      Nuevo rol
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando roles…</div>
+
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="grid" role="table" aria-label="Listado de roles">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of rolesFiltrados.slice(inicio, fin)">
+            <td><strong>{{ r.nombre }}</strong></td>
+            <td>{{ r.descripcion || '—' }}</td>
+            <td>
+              <span class="state-pill" [ngClass]="r.activo ? 'activo' : 'inactivo'">
+                {{ r.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <div class="acts">
+                <button class="icon edit" type="button" (click)="editarRol(r)" title="Editar {{r.nombre}}">
+                  <span class="material-icons" aria-hidden="true">edit</span>
+                </button>
+
+                <button
+                  class="icon toggle"
+                  [ngClass]="r.activo ? 'active' : 'inactive'"
+                  type="button"
+                  (click)="confirmarToggle(r)"
+                  [disabled]="cargandoFila[r.id]"
+                  [attr.aria-busy]="cargandoFila[r.id] ? 'true' : null"
+                  title="{{ r.activo ? 'Desactivar' : 'Activar' }} {{r.nombre}}">
+                  <span class="material-icons" aria-hidden="true">
+                    {{ cargandoFila[r.id] ? 'hourglass_top' : (r.activo ? 'block' : 'check_circle') }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="rolesFiltrados.length === 0">
+            <td colspan="4" class="empty">No hay roles que coincidan con el filtro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
+      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
+      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
+      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Backdrop -->
+  <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
+
+  <!-- Modal -->
+  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title">{{ editando ? 'Editar rol' : 'Nuevo rol' }}</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <form class="form" (ngSubmit)="guardar()" #formRol="ngForm" novalidate>
+          <div class="form-grid">
+            <div class="field span-2">
+              <label for="nombre">Nombre <span class="req">*</span></label>
+              <input
+                id="nombre"
+                type="text"
+                required
+                minlength="3"
+                maxlength="50"
+                [(ngModel)]="nuevo.nombre"
+                name="nombre"
+                [class.invalid]="submitted && (!nuevo.nombre || nuevo.nombre.trim().length < 3)" />
+              <small class="hint">Entre 3 y 50 caracteres.</small>
+              <div class="error" *ngIf="submitted && (!nuevo.nombre || nuevo.nombre.trim().length < 3)">El nombre es obligatorio.</div>
+            </div>
+
+            <div class="field span-2">
+              <label for="desc">Descripción</label>
+              <textarea id="desc" rows="3" maxlength="200" [(ngModel)]="nuevo.descripcion" name="descripcion"></textarea>
+            </div>
+
+            <div class="field span-2">
+              <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
+            </div>
+          </div>
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+              <button *ngIf="editando" type="button" class="danger" (click)="eliminarRol()">
+                <span class="material-icons" aria-hidden="true">delete</span>
+                Eliminar
+              </button>
+            </div>
+            <div class="right">
+              <button type="submit" class="primary" [disabled]="cargando">
+                {{ editando ? 'Guardar cambios' : 'Crear' }}
+              </button>
+            </div>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>

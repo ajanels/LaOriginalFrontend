@@ -1,0 +1,214 @@
+<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-proveedores">
+  <!-- Título -->
+  <div class="head-title">
+    <h1 id="title-proveedores">Proveedores</h1>
+  </div>
+
+  <!-- Filtros + crear -->
+  <div class="head">
+    <div class="actions">
+      <div class="search" aria-label="Buscar proveedores">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          type="text"
+          inputmode="search"
+          placeholder="Busca por nombre o NIT…"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+          autocomplete="off"
+        />
+      </div>
+
+      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+
+      <select class="filter" [(ngModel)]="itemsPorPagina" (change)="cambiarPaginacion()" aria-label="Ítems por página">
+        <option [ngValue]="5">5 / pág</option>
+        <option [ngValue]="10">10 / pág</option>
+        <option [ngValue]="25">25 / pág</option>
+        <option [ngValue]="50">50 / pág</option>
+      </select>
+    </div>
+
+    <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear proveedor">
+      <span class="material-icons" aria-hidden="true">add</span>
+      Nuevo proveedor
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando proveedores…</div>
+
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="grid" role="table" aria-label="Listado de proveedores">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>NIT</th>
+            <th>Contacto</th>
+            <th>Teléfono</th>
+            <th>Email</th>
+            <th>Estado</th>
+            <th class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of proveedoresFiltrados.slice(inicio, fin)">
+            <td><strong>{{ p.nombre }}</strong></td>
+            <td class="mono">{{ p.nit }}</td>
+            <td>{{ p.contacto || '—' }}</td>
+            <td>{{ p.telefono || '—' }}</td>
+            <td>{{ p.email || '—' }}</td>
+            <td>
+              <span class="state-pill" [ngClass]="p.activo ? 'activo' : 'inactivo'">
+                {{ p.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <div class="acts">
+                <button class="icon edit" type="button" (click)="editarProveedor(p)" title="Editar {{p.nombre}}">
+                  <span class="material-icons" aria-hidden="true">edit</span>
+                </button>
+                <button
+                  class="icon toggle"
+                  [ngClass]="p.activo ? 'active' : 'inactive'"
+                  type="button"
+                  (click)="confirmarToggle(p)"
+                  [disabled]="cargandoFila[p.id]"
+                  [attr.aria-busy]="cargandoFila[p.id] ? 'true' : null"
+                  title="{{ p.activo ? 'Desactivar' : 'Activar' }} {{p.nombre}}">
+                  <span class="material-icons" aria-hidden="true">
+                    {{ cargandoFila[p.id] ? 'hourglass_top' : (p.activo ? 'block' : 'check_circle') }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="proveedoresFiltrados.length === 0">
+            <td colspan="7" class="empty">No hay proveedores que coincidan con el filtro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
+      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
+      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
+      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Backdrop -->
+  <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
+
+  <!-- Modal -->
+  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title">{{ editando ? 'Editar proveedor' : 'Nuevo proveedor' }}</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <form class="form" (ngSubmit)="guardar()" #formProv="ngForm" novalidate>
+          <div class="form-grid">
+            <!-- Fila 1: Nombre + NIT -->
+            <div class="field">
+              <label for="nombre">Nombre <span class="req">*</span></label>
+              <input
+                id="nombre" type="text" required minlength="2" maxlength="120"
+                [(ngModel)]="nuevo.nombre" name="nombre"
+                [class.invalid]="submitted && !nuevo.nombre?.trim()" />
+              <small class="hint">Entre 2 y 120 caracteres.</small>
+              <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
+            </div>
+
+            <!-- NIT: exactamente 9 números -->
+            <div class="field">
+              <label for="nit">NIT <span class="req">*</span></label>
+              <input
+                id="nit"
+                type="text"
+                inputmode="numeric"
+                maxlength="9"
+                placeholder="9 dígitos"
+                [(ngModel)]="nuevo.nit"
+                name="nit"
+                (input)="onNitInput()"
+                [class.invalid]="submitted && !isNitValido(nuevo.nit)" />
+              <small class="hint">Exactamente 9 números.</small>
+              <div class="error" *ngIf="submitted && !isNitValido(nuevo.nit)">
+                El NIT debe tener exactamente 9 números.
+              </div>
+            </div>
+
+            <!-- Fila 2: Contacto + Teléfono -->
+            <div class="field">
+              <label for="contacto">Contacto</label>
+              <input id="contacto" type="text" maxlength="120" [(ngModel)]="nuevo.contacto" name="contacto" />
+            </div>
+
+            <div class="field">
+              <label for="telefono">Teléfono</label>
+              <input
+                id="telefono" type="text" inputmode="numeric" maxlength="8"
+                placeholder="8 dígitos"
+                [(ngModel)]="nuevo.telefono" name="telefono"
+                (input)="onTelefonoInput()" />
+              <small class="hint">Solo números (8 dígitos).</small>
+            </div>
+
+            <!-- Fila 3: Email (completa) -->
+            <div class="field span-2">
+              <label for="email">Email</label>
+              <input id="email" type="email" maxlength="120" [(ngModel)]="nuevo.email" name="email" />
+            </div>
+
+            <!-- Fila 4: Dirección (completa) -->
+            <div class="field span-2">
+              <label for="dir">Dirección</label>
+              <textarea id="dir" rows="2" maxlength="200" [(ngModel)]="nuevo.direccion" name="direccion"></textarea>
+            </div>
+
+            <!-- Fila 5: Notas (completa) -->
+            <div class="field span-2">
+              <label for="notas">Notas</label>
+              <textarea id="notas" rows="3" maxlength="200" [(ngModel)]="nuevo.notas" name="notas"></textarea>
+            </div>
+
+            <!-- Fila 6: Activo -->
+            <div class="field span-2">
+              <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
+            </div>
+          </div>
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+              <button *ngIf="editando" type="button" class="danger" (click)="eliminarProveedor()">
+                <span class="material-icons" aria-hidden="true">delete</span>
+                Eliminar
+              </button>
+            </div>
+
+            <div class="right">
+              <button type="submit" class="primary" [disabled]="cargando">
+                {{ editando ? 'Guardar cambios' : 'Crear' }}
+              </button>
+            </div>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>

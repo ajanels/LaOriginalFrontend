@@ -9,6 +9,7 @@ html, body, app-root {
   text-rendering: optimizeLegibility;
 }
 
+
 :root {
   /* layout scale */
   --container-max: 1200px;            /* ancho máx. del contenido */

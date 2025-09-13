@@ -1,1 +1,128 @@
-<p>mantenimientos works!</p>
+<div class="mant">
+  <header class="mant__head">
+    <h1 class="mant__title">Mantenimientos</h1>
+    <p class="mant__subtitle">Configura los catálogos y parámetros del sistema.</p>
+  </header>
+
+  <div class="mant__grid">
+    <!-- PANEL: SISTEMA -->
+    <section class="mant__panel">
+      <div class="mant__panelHead">
+        <h2>Sistema</h2>
+        <p>Ver y editar parámetros del sistema.</p>
+      </div>
+
+      <div class="mgrid">
+        <!-- Categorías -->
+        <article class="mcard mcard--categorias">
+          <div class="mcard__body">
+            <div class="mcard__icon">📂</div>
+            <h3 class="mcard__title">Categorías</h3>
+            <p class="mcard__desc">Clasificación de productos.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/categorias">configurar</a>
+        </article>
+
+        <!-- Marcas -->
+        <article class="mcard mcard--marcas">
+          <div class="mcard__body">
+            <div class="mcard__icon">🏷️</div>
+            <h3 class="mcard__title">Marcas</h3>
+            <p class="mcard__desc">Gestión de marcas.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/marcas">configurar</a>
+        </article>
+
+        <!-- Colores -->
+        <article class="mcard mcard--colores">
+          <div class="mcard__body">
+            <div class="mcard__icon">🎨</div>
+            <h3 class="mcard__title">Colores</h3>
+            <p class="mcard__desc">Catálogo de colores.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/colores">configurar</a>
+        </article>
+
+        <!-- Unidades de Medida -->
+        <article class="mcard mcard--unidades">
+          <div class="mcard__body">
+            <div class="mcard__icon">📏</div>
+            <h3 class="mcard__title">Unidades Medida</h3>
+            <p class="mcard__desc">Kg, m, und, etc.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/unidades-medida">configurar</a>
+        </article>
+
+        <!-- Formas de Pago -->
+        <article class="mcard mcard--pagos">
+          <div class="mcard__body">
+            <div class="mcard__icon">💳</div>
+            <h3 class="mcard__title">Formas de Pago</h3>
+            <p class="mcard__desc">Efectivo, tarjeta, transferencia.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/formas-pago">configurar</a>
+        </article>
+
+        <!-- Estados -->
+        <article class="mcard mcard--estados">
+          <div class="mcard__body">
+            <div class="mcard__icon">🔄</div>
+            <h3 class="mcard__title">Estados</h3>
+            <p class="mcard__desc">Activos / inactivos / otros.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/estados">configurar</a>
+        </article>
+
+        <!-- Clientes -->
+        <article class="mcard mcard--clientes">
+          <div class="mcard__body">
+            <div class="mcard__icon">👥</div>
+            <h3 class="mcard__title">Clientes</h3>
+            <p class="mcard__desc">Catálogo de clientes.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/clientes">configurar</a>
+        </article>
+
+        <!-- Proveedores -->
+        <article class="mcard mcard--proveedores">
+          <div class="mcard__body">
+            <div class="mcard__icon">🏢</div>
+            <h3 class="mcard__title">Proveedores</h3>
+            <p class="mcard__desc">Catálogo de proveedores.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/proveedores">configurar</a>
+        </article>
+      </div>
+    </section>
+
+    <!-- PANEL: USUARIOS -->
+    <section class="mant__panel">
+      <div class="mant__panelHead">
+        <h2>Usuarios</h2>
+        <p>Configuración de permisos y gestión de cuentas.</p>
+      </div>
+
+      <div class="mstack">
+        <!-- Usuarios -->
+        <article class="mcard mcard--usuarios">
+          <div class="mcard__body">
+            <div class="mcard__icon">👤</div>
+            <h3 class="mcard__title">Usuarios</h3>
+            <p class="mcard__desc">Gestión de cuentas.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/usuarios">configurar</a>
+        </article>
+
+        <!-- Roles -->
+        <article class="mcard mcard--roles">
+          <div class="mcard__body">
+            <div class="mcard__icon">🔐</div>
+            <h3 class="mcard__title">Roles</h3>
+            <p class="mcard__desc">Permisos y perfiles.</p>
+          </div>
+          <a class="mcard__btn" routerLink="/mantenimientos/roles">configurar</a>
+        </article>
+      </div>
+    </section>
+  </div>
+</div>

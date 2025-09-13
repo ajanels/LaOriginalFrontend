@@ -4,6 +4,7 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import Swal from 'sweetalert2';
 import { UsuariosService, Usuario } from '../../../services/usuarios.service';
 import { RolesService, Rol } from '../../../services/roles.service';
+import { HostListener } from '@angular/core';
 
 export type ModalMode = 'create' | 'edit' | 'view';
 type UsuarioWithRol = Usuario & { rolId?: number | null; rol?: { id: number; nombre: string } | null };
@@ -20,6 +21,7 @@ export class UsuarioModalComponent implements OnInit {
   @Input() usuario: UsuarioWithRol | null = null;
   @Output() closed = new EventEmitter<boolean>();
 
+  
   private fb = inject(FormBuilder);
   private api = inject(UsuariosService);
   private rolesApi = inject(RolesService);
@@ -56,10 +58,7 @@ export class UsuarioModalComponent implements OnInit {
     this.form.get('cui')?.valueChanges.subscribe(v => this.form.get('cui')?.setValue(this.onlyDigits(v, 13), { emitEvent: false }));
     this.form.get('celular')?.valueChanges.subscribe(v => this.form.get('celular')?.setValue(this.onlyDigits(v, 8), { emitEvent: false }));
 
-    this.rolesApi.list().subscribe({
-      next: list => this.roles = list,
-      error: () => Swal.fire('Error', 'No se pudieron cargar los roles', 'error')
-    });
+    this.rolesApi.list().subscribe({ next: list => this.roles = list });
 
     if (this.usuario && !this.isCreate) {
       const generoNormalizado = this.mapGeneroIn(this.usuario.genero);
@@ -93,40 +92,12 @@ export class UsuarioModalComponent implements OnInit {
     if (this.isView) this.form.disable();
   }
 
-  private onlyDigits(v: any, max: number) {
-    return (String(v ?? '').replace(/\D+/g, '').slice(0, max));
-  }
-
+  private onlyDigits(v: any, max: number) { return (String(v ?? '').replace(/\D+/g, '').slice(0, max)); }
   private mapGeneroIn(g: string | undefined): string {
     if (!g) return 'Masculino';
     if (g === 'M') return 'Masculino';
     if (g === 'F') return 'Femenino';
     return g;
-  }
-
-  private validarFechas(): boolean {
-    const fn = new Date(this.form.value.fechaNacimiento);
-    const fi = new Date(this.form.value.fechaIngreso);
-    const hoy = new Date();
-
-    const minNac = new Date('1900-01-01');
-    const minIng = new Date('1990-01-01');
-    const maxNac = new Date(hoy); maxNac.setFullYear(hoy.getFullYear() - 15);
-
-    if (!(fn >= minNac && fn <= maxNac)) {
-      Swal.fire('Fecha de nacimiento inválida', 'Debe ser >= 1900-01-01 y <= hoy - 15 años.', 'warning');
-      return false;
-    }
-    if (!(fi >= minIng && fi <= hoy)) {
-      Swal.fire('Fecha de ingreso inválida', 'Debe ser >= 1990-01-01 y <= hoy.', 'warning');
-      return false;
-    }
-    const minIngresoPorEdad = new Date(fn); minIngresoPorEdad.setFullYear(fn.getFullYear() + 15);
-    if (fi < minIngresoPorEdad) {
-      Swal.fire('Fecha de ingreso inválida', 'Debe ser al menos 15 años después de la fecha de nacimiento.', 'warning');
-      return false;
-    }
-    return true;
   }
 
   onFile(e: Event) {
@@ -139,44 +110,26 @@ export class UsuarioModalComponent implements OnInit {
     }
   }
 
-  cancel() {
-    this.closed.emit(false);
-  }
+  cancel(){ this.closed.emit(false); }
 
   async save() {
-    if (this.isView) {
-      this.closed.emit(false);
-      return;
-    }
-
-    this.form.markAllAsTouched(); // ⚠️ mostrar errores visuales
-
-    if (this.form.invalid) {
-      Swal.fire('Campos obligatorios', 'Revisa los campos resaltados en rojo', 'warning');
-      return;
-    }
-
-    if (!this.validarFechas()) return;
+    if (this.isView) { this.closed.emit(false); return; }
+    this.form.markAllAsTouched();
+    if (this.form.invalid) { Swal.fire('Campos obligatorios','Revisa los campos resaltados','warning'); return; }
 
     try {
       if (this.isCreate) {
         const fd = new FormData();
         Object.entries(this.form.value).forEach(([k, v]) => v != null && fd.append(k, String(v)));
         if (this.photoFile) fd.append('foto', this.photoFile);
-
         await this.api.create(fd).toPromise();
-        Swal.fire('Creado', 'Usuario creado correctamente', 'success');
+        Swal.fire('Creado','Usuario creado correctamente','success');
         this.closed.emit(true);
-
       } else if (this.usuario) {
         const payload = { ...this.form.value, id: this.usuario.id };
         await this.api.update(this.usuario.id, payload).toPromise();
-
-        if (this.photoFile) {
-          await this.api.uploadPhoto(this.usuario.id, this.photoFile).toPromise();
-        }
-
-        Swal.fire('Actualizado', 'Usuario actualizado correctamente', 'success');
+        if (this.photoFile) await this.api.uploadPhoto(this.usuario.id, this.photoFile).toPromise();
+        Swal.fire('Actualizado','Usuario actualizado correctamente','success');
         this.closed.emit(true);
       }
     } catch (e: any) {
@@ -185,4 +138,27 @@ export class UsuarioModalComponent implements OnInit {
       this.closed.emit(false);
     }
   }
+
+ async removeInside() {
+  if (!this.usuario) return;
+  const res = await Swal.fire({
+    icon: 'warning',
+    title: '¿Eliminar usuario?',
+    text: `${this.usuario.primerNombre} ${this.usuario.primerApellido}`,
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar'
+  });
+
+  if (!res.isConfirmed) return;
+
+  try {
+    await this.api.remove(this.usuario.id).toPromise();
+    Swal.fire('Eliminado','','success');
+    this.closed.emit(true);
+  } catch {
+    Swal.fire('Error','No se pudo eliminar','error');
+  }
+}
+
 }

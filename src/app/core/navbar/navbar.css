@@ -2,7 +2,7 @@
   display: flex;
   align-items: center;
   gap: 20px;
-  padding-inline: var(--page-pad);     /* responsivo */
+  padding-inline: var(--page-pad);    
   background: #ffffff;
   border-radius: 20px;
   border: 1px solid #eef1f5;

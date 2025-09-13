@@ -1,0 +1,159 @@
+<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-marcas">
+  <!-- Título -->
+  <div class="head-title">
+    <h1 id="title-marcas">Marcas</h1>
+  </div>
+
+  <!-- Filtros + crear -->
+  <div class="head">
+    <div class="actions">
+      <div class="search" aria-label="Buscar marcas">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          type="text"
+          inputmode="search"
+          placeholder="Busca por nombre…"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+          autocomplete="off"
+        />
+      </div>
+
+      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+
+      <select class="filter" [(ngModel)]="itemsPorPagina" (change)="cambiarPaginacion()" aria-label="Ítems por página">
+        <option [ngValue]="5">5 / pág</option>
+        <option [ngValue]="10">10 / pág</option>
+        <option [ngValue]="25">25 / pág</option>
+        <option [ngValue]="50">50 / pág</option>
+      </select>
+    </div>
+
+    <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear marca">
+      <span class="material-icons" aria-hidden="true">add</span>
+      Nueva marca
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando marcas…</div>
+
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="grid" role="table" aria-label="Listado de marcas">
+        <thead>
+          <tr>
+            <th>Nombre</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let m of marcasFiltradas.slice(inicio, fin)">
+            <td><strong>{{ m.nombre }}</strong></td>
+            <td>{{ m.descripcion || '—' }}</td>
+            <td>
+              <span class="state-pill" [ngClass]="m.activo ? 'activo' : 'inactivo'">
+                {{ m.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <div class="acts">
+                <button class="icon edit" type="button" (click)="editarMarca(m)" title="Editar {{m.nombre}}">
+                  <span class="material-icons" aria-hidden="true">edit</span>
+                </button>
+                <button
+                  class="icon toggle"
+                  [ngClass]="m.activo ? 'active' : 'inactive'"
+                  type="button"
+                  (click)="confirmarToggle(m)"
+                  [disabled]="cargandoFila[m.id]"
+                  [attr.aria-busy]="cargandoFila[m.id] ? 'true' : null"
+                  title="{{ m.activo ? 'Desactivar' : 'Activar' }} {{m.nombre}}">
+                  <span class="material-icons" aria-hidden="true">
+                    {{ cargandoFila[m.id] ? 'hourglass_top' : (m.activo ? 'block' : 'check_circle') }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="marcasFiltradas.length === 0">
+            <td colspan="4" class="empty">No hay marcas que coincidan con el filtro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
+      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
+      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
+      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
+
+  <!-- Modal -->
+  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title">{{ editando ? 'Editar marca' : 'Nueva marca' }}</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <form class="form" (ngSubmit)="guardar()" #formMarca="ngForm" novalidate>
+          <div class="form-grid">
+            <!-- Nombre -->
+            <div class="field span-2">
+              <label for="nombre">Nombre <span class="req">*</span></label>
+              <input
+                id="nombre" type="text" required minlength="2" maxlength="120"
+                [(ngModel)]="nueva.nombre" name="nombre"
+                [class.invalid]="submitted && !nueva.nombre?.trim()" />
+              <small class="hint">Entre 2 y 120 caracteres.</small>
+              <div class="error" *ngIf="submitted && !nueva.nombre?.trim()">El nombre es obligatorio.</div>
+            </div>
+
+            <!-- Descripción -->
+            <div class="field span-2">
+              <label for="desc">Descripción</label>
+              <textarea id="desc" rows="3" maxlength="200" [(ngModel)]="nueva.descripcion" name="descripcion"></textarea>
+            </div>
+
+            <!-- Activo -->
+            <div class="field span-2">
+              <label><input type="checkbox" [(ngModel)]="nueva.activo" name="activo" /> Activo</label>
+            </div>
+          </div>
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+              <button *ngIf="editando" type="button" class="danger" (click)="eliminarMarca()">
+                <span class="material-icons" aria-hidden="true">delete</span> Eliminar
+              </button>
+            </div>
+            <div class="right">
+              <button type="submit" class="primary" [disabled]="cargando">
+                {{ editando ? 'Guardar cambios' : 'Crear' }}
+              </button>
+            </div>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>

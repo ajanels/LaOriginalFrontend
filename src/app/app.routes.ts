@@ -1,92 +1,70 @@
+// src/app/app.routes.ts
 import { Routes } from '@angular/router';
 import { LoginComponent } from './core/login/login.component';
 import { LayoutComponent } from './core/layout/layout';
-import { roleGuard } from './core/auth/role.guard';
+import { authGuard, authGuardMatch } from './services/auth.guard'; // 👈 importa ambos
 
 export const routes: Routes = [
-  // Login en raíz
-  { path: '', component: LoginComponent },
+  // Raíz -> redirige al login
+  { path: '', pathMatch: 'full', redirectTo: 'login' },
 
-  // Área autenticada con Layout
+  // Página de login
+  { path: 'login', component: LoginComponent },
+
+  // Área autenticada con Layout (TODOS los hijos protegidos)
   {
     path: '',
     component: LayoutComponent,
+    canMatch: [authGuardMatch],        // 👈 evita que se cargue el layout sin login
+    canActivateChild: [authGuard],     // 👈 revalida al navegar por los hijos
     children: [
-      // Home
       {
         path: 'home',
-        loadComponent: () =>
-          import('./modules/home/home').then(m => m.HomeComponent)
+        loadComponent: () => import('./modules/home/home').then(m => m.HomeComponent)
       },
 
-      // Usuarios (solo admin — como ya lo tenías)
+      // Usuarios solo admin (usa el mismo guard con data.roles)
       {
         path: 'usuarios',
-        canActivate: [roleGuard],
-        data: { roles: ['admin'] }, // el guard mapea "Administrador" -> "admin"
+        data: { roles: ['admin'] },
         loadComponent: () =>
-          import('./modules/usuarios/usuarios/usuarios')
-            .then(m => m.UsuariosComponent),
+          import('./modules/usuarios/usuarios/usuarios').then(m => m.UsuariosComponent),
       },
 
-      // Caja
-      {
-        path: 'caja',
-        loadComponent: () =>
-          import('./modules/caja/caja').then(m => m.Caja)
-      },
+      { path: 'caja',       loadComponent: () => import('./modules/caja/caja').then(m => m.Caja) },
+      { path: 'inventario', loadComponent: () => import('./modules/inventario/inventario').then(m => m.Inventario) },
+      { path: 'ventas',     loadComponent: () => import('./modules/ventas/ventas').then(m => m.Ventas) },
 
-      // Inventario
-      {
-        path: 'inventario',
-        loadComponent: () =>
-          import('./modules/inventario/inventario').then(m => m.Inventario)
-      },
-
-      // Ventas
-      {
-        path: 'ventas',
-        loadComponent: () =>
-          import('./modules/ventas/ventas').then(m => m.Ventas)
-      },
-
-      // Pedidos (redirige /pedidos -> /pedidos/clientes)
       {
         path: 'pedidos',
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'clientes' },
-          {
-            path: 'clientes',
-            loadComponent: () =>
-              import('./modules/pedidos/clientes/clientes')
-                .then(m => m.Clientes)
-          },
-          {
-            path: 'proveedores',
-            loadComponent: () =>
-              import('./modules/pedidos/proveedores/proveedores')
-                .then(m => m.Proveedores)
-          },
+          { path: 'clientes',    loadComponent: () => import('./modules/pedidos/clientes/clientes').then(m => m.Clientes) },
+          { path: 'proveedores', loadComponent: () => import('./modules/pedidos/proveedores/proveedores').then(m => m.Proveedores) },
         ]
       },
 
-      // Reportes
-      {
-        path: 'reportes',
-        loadComponent: () =>
-          import('./modules/reportes/reportes').then(m => m.Reportes)
-      },
-       // Mantenimientos (nuevo)
+      { path: 'reportes', loadComponent: () => import('./modules/reportes/reportes').then(m => m.Reportes) },
+
       {
         path: 'mantenimientos',
         children: [
-           ]
+          { path: '',               loadComponent: () => import('./modules/mantenimientos/mantenimientos').then(m => m.Mantenimientos) },
+          { path: 'categorias',     loadComponent: () => import('./modules/mantenimientos/categorias/categorias').then(m => m.Categorias) },
+          { path: 'marcas',         loadComponent: () => import('./modules/mantenimientos/marcas/marcas').then(m => m.Marcas) },
+          { path: 'colores',        loadComponent: () => import('./modules/mantenimientos/colores/colores').then(m => m.Colores) },
+          { path: 'unidades-medida',loadComponent: () => import('./modules/mantenimientos/unidades-medida/unidades-medida').then(m => m.UnidadesMedida) },
+          { path: 'formas-pago',    loadComponent: () => import('./modules/mantenimientos/formas-pago/formas-pago').then(m => m.FormasPago) },
+          { path: 'estados',        loadComponent: () => import('./modules/mantenimientos/estados/estados').then(m => m.Estados) },
+          { path: 'clientes',       loadComponent: () => import('./modules/mantenimientos/clientes/clientes').then(m => m.Clientes) },
+          { path: 'proveedores',    loadComponent: () => import('./modules/mantenimientos/proveedores/proveedores').then(m => m.Proveedores) },
+          { path: 'roles',          loadComponent: () => import('./modules/mantenimientos/roles/roles').then(m => m.Roles) },
+        ]
       },
 
-      // por defecto dentro del layout
-      { path: '', pathMatch: 'full', redirectTo: 'home' },
+      { path: '**', redirectTo: 'home' },
     ],
   },
 
-  { path: '**', redirectTo: '' },
+  { path: '**', redirectTo: 'login' },
 ];

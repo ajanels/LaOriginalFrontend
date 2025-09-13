@@ -17,7 +17,6 @@ export interface AuthUser {
   picture?: string;
   imageUrl?: string;
 
-  // compat con back/formatos antiguos
   RolId?: number;    rolId?: number;
   RolNombre?: string; rolNombre?: string;
 }

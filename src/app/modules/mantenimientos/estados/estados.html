@@ -1,0 +1,161 @@
+<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-estados">
+  <!-- Título -->
+  <div class="head-title">
+    <h1 id="title-estados">Estados</h1>
+  </div>
+
+  <!-- Filtros + crear -->
+  <div class="head">
+    <div class="actions">
+      <div class="search" aria-label="Buscar estados">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          type="text"
+          inputmode="search"
+          placeholder="Busca por tipo o nombre…"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+          autocomplete="off"
+        />
+      </div>
+
+      <select class="filter" [(ngModel)]="filtroTipo" (change)="aplicarFiltros()" aria-label="Tipo">
+        <option value="">Todos los tipos</option>
+        <option *ngFor="let t of tiposDisponibles" [ngValue]="t">{{ t }}</option>
+      </select>
+
+      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+
+      <select class="filter" [(ngModel)]="itemsPorPagina" (change)="cambiarPaginacion()" aria-label="Ítems por página">
+        <option [ngValue]="5">5 / pág</option>
+        <option [ngValue]="10">10 / pág</option>
+        <option [ngValue]="25">25 / pág</option>
+        <option [ngValue]="50">50 / pág</option>
+      </select>
+    </div>
+
+    <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear estado">
+      <span class="material-icons" aria-hidden="true">add</span>
+      Nuevo estado
+    </button>
+  </div>
+
+  <!-- Tabla (4 columnas: Tipo, Nombre, Estado, Acciones) -->
+  <div class="card">
+    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando estados…</div>
+
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="grid" role="table" aria-label="Listado de estados">
+        <thead>
+          <tr>
+            <th>Tipo</th>
+            <th>Nombre</th>
+            <th>Estado</th>
+            <th class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of estadosFiltrados.slice(inicio, fin)">
+            <td>{{ e.tipo }}</td>
+            <td><strong>{{ e.nombre }}</strong></td>
+            <td>
+              <span class="state-pill" [ngClass]="e.activo ? 'activo' : 'inactivo'">
+                {{ e.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <div class="acts">
+                <button class="icon edit" type="button" (click)="editarEstado(e)" title="Editar {{e.nombre}}">
+                  <span class="material-icons" aria-hidden="true">edit</span>
+                </button>
+                <button class="icon toggle active" type="button" (click)="eliminarEstado(e)" title="Eliminar" [disabled]="cargandoFila[e.id]">
+                  <span class="material-icons" aria-hidden="true">
+                    {{ cargandoFila[e.id] ? 'hourglass_top' : 'delete' }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="estadosFiltrados.length === 0">
+            <td colspan="4" class="empty">No hay estados que coincidan con el filtro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
+      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
+      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
+      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Backdrop -->
+  <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
+
+  <!-- Modal -->
+  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title">{{ editando ? 'Editar estado' : 'Nuevo estado' }}</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <form class="form" (ngSubmit)="guardar()" #formEstado="ngForm" novalidate>
+          <div class="form-grid">
+            <!-- Fila 1: Tipo + Nombre -->
+            <div class="field">
+              <label for="tipo">Tipo <span class="req">*</span></label>
+              <input
+                id="tipo" type="text" required minlength="2" maxlength="60"
+                [(ngModel)]="nuevo.tipo" name="tipo"
+                [class.invalid]="submitted && !nuevo.tipo?.trim()" />
+            </div>
+
+            <div class="field">
+              <label for="nombre">Nombre <span class="req">*</span></label>
+              <input
+                id="nombre" type="text" required minlength="2" maxlength="60"
+                [(ngModel)]="nuevo.nombre" name="nombre"
+                [class.invalid]="submitted && !nuevo.nombre?.trim()" />
+            </div>
+
+            <!-- Fila 2: Notas (ancho completo) -->
+            <div class="field span-2">
+              <label for="notas">Notas</label>
+              <textarea id="notas" rows="3" maxlength="200" [(ngModel)]="nuevo.notas" name="notas"></textarea>
+            </div>
+
+            <!-- Fila 3: Activo -->
+            <div class="field span-2">
+              <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
+            </div>
+          </div>
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+              <button *ngIf="editando" type="button" class="danger" (click)="eliminarEstado(editando!)">
+                <span class="material-icons" aria-hidden="true">delete</span> Eliminar
+              </button>
+            </div>
+            <button type="submit" class="primary" [disabled]="cargando">
+              {{ editando ? 'Guardar cambios' : 'Crear' }}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>

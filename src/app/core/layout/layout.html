@@ -7,10 +7,11 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="side-head">
-        <button class="toggle"
-                type="button"
-                (click)="toggleSidebar()"
-                [title]="collapsed() ? 'Expandir menú' : 'Contraer menú'">
+        <button
+          class="toggle"
+          type="button"
+          (click)="toggleSidebar()"
+          [title]="collapsed() ? 'Expandir menú' : 'Contraer menú'">
           <span class="material-icons">
             {{ collapsed() ? 'chevron_right' : 'chevron_left' }}
           </span>
@@ -19,6 +20,7 @@
 
       <ul class="menu">
         <li *ngFor="let item of menu">
+          <!-- Ítem simple -->
           <ng-container *ngIf="!item.children; else group">
             <a [routerLink]="item.route"
                routerLinkActive="active"
@@ -28,7 +30,8 @@
             </a>
           </ng-container>
 
-            <ng-template #group>
+          <!-- Ítem con submenú -->
+          <ng-template #group>
             <button class="menu-item" type="button" (click)="toggleGroup(item)">
               <span class="icon material-icons">{{ item.icon || 'folder' }}</span>
               <span class="label">{{ item.label }}</span>
@@ -38,7 +41,9 @@
 
             <ul class="submenu" *ngIf="item.expanded">
               <li *ngFor="let sub of item.children">
-                <a [routerLink]="sub.route" routerLinkActive="active" class="menu-item sub">
+                <a [routerLink]="sub.route"
+                   routerLinkActive="active"
+                   class="menu-item sub">
                   <span class="icon material-icons muted">fiber_manual_record</span>
                   <span class="label">{{ sub.label }}</span>
                 </a>

@@ -1,0 +1,192 @@
+<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-clientes">
+  <!-- Mensajes -->
+  <div *ngIf="mensaje" class="toast ok" role="status" aria-live="polite">{{ mensaje }}</div>
+  <div *ngIf="errorMsg" class="toast err" role="alert" aria-live="assertive">{{ errorMsg }}</div>
+
+  <!-- Título -->
+  <div class="head-title">
+    <h1 id="title-clientes">Clientes</h1>
+  </div>
+
+  <!-- Filtros + crear -->
+  <div class="head">
+    <div class="actions">
+      <div class="search" aria-label="Buscar clientes">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          id="buscador"
+          type="text"
+          inputmode="search"
+          placeholder="Busca por nombre, NIT o teléfono…"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+          autocomplete="off"
+        />
+      </div>
+
+      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+
+      <select class="filter"
+        [(ngModel)]="itemsPorPagina"
+        (change)="cambiarPaginacion()"
+        aria-label="Ítems por página">
+  <option [ngValue]="5">5 / pág</option>
+  <option [ngValue]="10">10 / pág</option>
+  <option [ngValue]="25">25 / pág</option>
+  <option [ngValue]="50">50 / pág</option>
+  <option [ngValue]="100">100 / pág</option>
+</select>
+
+
+    <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear cliente">
+      <span class="material-icons" aria-hidden="true">add</span>
+      Nuevo cliente
+    </button>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando clientes…</div>
+
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="grid" role="table" aria-label="Listado de clientes">
+        <thead>
+          <tr>
+            <th></th><th>Nombre</th><th>NIT</th><th>Teléfono</th><th>Email</th><th>Dirección</th><th>Estado</th>
+            <th class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of clientesFiltrados.slice(inicio, fin); let i = index">
+            <td class="mono">{{ inicio + i + 1 }}</td>
+            <td><strong>{{ c.nombre }}</strong></td>
+            <td>{{ c.nit || '—' }}</td>
+            <td>{{ c.telefono || '—' }}</td>
+            <td>{{ c.email || '—' }}</td>
+            <td>{{ c.direccion || '—' }}</td>
+            <td>
+              <span class="state-pill" [ngClass]="c.activo ? 'activo' : 'inactivo'">
+                {{ c.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <div class="acts">
+                <button class="icon edit" type="button" (click)="editarCliente(c)" title="Editar {{c.nombre}}">
+                  <span class="material-icons" aria-hidden="true">edit</span>
+                </button>
+                <button
+                  class="icon toggle"
+                  [ngClass]="c.activo ? 'active' : 'inactive'"
+                  type="button"
+                  (click)="confirmarToggle(c)"
+                  [disabled]="cargandoFila[c.id]"
+                  [attr.aria-busy]="cargandoFila[c.id] ? 'true' : null"
+                  title="{{ c.activo ? 'Desactivar' : 'Activar' }} {{c.nombre}}">
+                  <span class="material-icons" aria-hidden="true">
+                    {{ cargandoFila[c.id] ? 'hourglass_top' : (c.activo ? 'block' : 'check_circle') }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="clientesFiltrados.length === 0">
+            <td colspan="8" class="empty">No hay clientes que coincidan con el filtro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" *ngIf="totalPaginas > 1">
+      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
+      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
+      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Backdrop -->
+  <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
+
+  <!-- Modal -->
+  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title">{{ editando ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <form class="form" (ngSubmit)="guardarCliente()" #formCli="ngForm" novalidate>
+          <div class="form-grid">
+            <!-- Fila 1: Nombre + NIT -->
+            <div class="field">
+              <label for="nombre">Nombre <span class="req">*</span></label>
+              <input
+                id="nombre" type="text" required minlength="2" maxlength="120"
+                [(ngModel)]="nuevoCliente.nombre" name="nombre"
+                [class.invalid]="submitted && !nuevoCliente.nombre?.trim()" aria-describedby="nombre-help" autofocus />
+              <small id="nombre-help" class="hint">Entre 2 y 120 caracteres.</small>
+              <div class="error" *ngIf="submitted && !nuevoCliente.nombre?.trim()">El nombre es obligatorio.</div>
+            </div>
+
+            <div class="field">
+              <label for="nit">NIT (9 dígitos)</label>
+              <input
+                id="nit" type="text" inputmode="numeric" pattern="^[0-9]{9}$" maxlength="9"
+                [(ngModel)]="nuevoCliente.nit" name="nit" (input)="sanitizarNit($event)"
+                placeholder="#########" aria-describedby="nit-help" />
+              <small id="nit-help" class="hint">Debe contener exactamente 9 números (sin guiones ni letras).</small>
+              <div class="error" *ngIf="submitted && !nitValido() && !!nuevoCliente.nit">El NIT debe tener 9 dígitos.</div>
+            </div>
+
+            <!-- Fila 2: Teléfono + Email -->
+            <div class="field">
+              <label for="telefono">Teléfono</label>
+              <input
+                id="telefono" type="text" inputmode="numeric" pattern="^[0-9]{0,8}$" maxlength="8"
+                [(ngModel)]="nuevoCliente.telefono" name="telefono" (input)="sanitizarTelefono($event)"
+                placeholder="8 dígitos" />
+            </div>
+
+            <div class="field">
+              <label for="email">Email</label>
+              <input id="email" type="email" maxlength="120" [(ngModel)]="nuevoCliente.email" name="email" />
+            </div>
+
+            <!-- Dirección y Notas a ancho completo -->
+            <div class="field span-2">
+              <label for="direccion">Dirección</label>
+              <textarea id="direccion" rows="3" maxlength="200" [(ngModel)]="nuevoCliente.direccion" name="direccion"></textarea>
+            </div>
+
+            <div class="field span-2">
+              <label for="notas">Notas</label>
+              <textarea id="notas" rows="3" maxlength="300" [(ngModel)]="nuevoCliente.notas" name="notas"></textarea>
+            </div>
+          </div>
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+              <button *ngIf="editando" type="button" class="danger" (click)="eliminarCliente()">
+                <span class="material-icons" aria-hidden="true">delete</span> Eliminar
+              </button>
+            </div>
+            <button type="submit" class="primary" [disabled]="cargando">
+              {{ editando ? 'Guardar cambios' : 'Crear' }}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>

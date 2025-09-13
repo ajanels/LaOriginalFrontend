@@ -1,0 +1,206 @@
+<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-categorias">
+  <!-- Mensajes -->
+  <div *ngIf="mensaje" class="toast ok" role="status" aria-live="polite">{{ mensaje }}</div>
+  <div *ngIf="errorMsg" class="toast err" role="alert" aria-live="assertive">{{ errorMsg }}</div>
+
+  <!-- Título en fila propia -->
+  <div class="head-title">
+    <h1 id="title-categorias">Categorías</h1>
+  </div>
+
+  <!-- Filtros + botón crear en otra fila -->
+  <div class="head">
+    <div class="actions">
+      <div class="search" aria-label="Buscar categorías">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          id="buscador"
+          type="text"
+          inputmode="search"
+          placeholder="Escribe un nombre…"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+          autocomplete="off"
+          aria-describedby="hint-busqueda"
+        />
+      </div>
+
+      <select
+        class="filter"
+        [(ngModel)]="filtroEstado"
+        (change)="aplicarFiltros()"
+        aria-label="Estado"
+        title="Filtrar por estado">
+        <option value="">Todos</option>
+        <option value="true">Activos</option>
+        <option value="false">Inactivos</option>
+      </select>
+
+      <select class="filter"
+        [(ngModel)]="itemsPorPagina"
+        (change)="cambiarPaginacion()"
+        aria-label="Ítems por página">
+  <option [ngValue]="5">5 / pág</option>
+  <option [ngValue]="10">10 / pág</option>
+  <option [ngValue]="25">25 / pág</option>
+  <option [ngValue]="50">50 / pág</option>
+  <option [ngValue]="100">100 / pág</option>
+</select>
+
+    </div>
+
+    <button
+      class="primary"
+      type="button"
+      (click)="abrirCrear()"
+      [disabled]="cargando"
+      [attr.aria-label]="'Crear categoría'"
+      title="Crear categoría">
+      <span class="material-icons" aria-hidden="true">add</span>
+      Nueva categoría
+    </button>
+  </div>
+
+  <!-- Card tabla -->
+  <div class="card">
+    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando categorías…</div>
+
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="grid" role="table" aria-label="Listado de categorías">
+        <thead>
+          <tr>
+            <th scope="col"></th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Descripción</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let cat of categoriasFiltradas.slice(inicio, fin); let i = index">
+            <td class="mono">{{ inicio + i + 1 }}</td>
+            <td><strong>{{ cat.nombre }}</strong></td>
+            <td>{{ cat.descripcion || '—' }}</td>
+            <td>
+              <span class="state-pill" [ngClass]="cat.activo ? 'activo' : 'inactivo'">
+                {{ cat.activo ? 'Activo' : 'Inactivo' }}
+              </span>
+            </td>
+            <td>
+              <div class="acts">
+                <button
+                  class="icon edit"
+                  type="button"
+                  (click)="editarCategoria(cat)"
+                  [attr.aria-label]="'Editar categoría ' + cat.nombre"
+                  title="Editar {{cat.nombre}}">
+                  <span class="material-icons" aria-hidden="true">edit</span>
+                </button>
+
+                <button
+                  class="icon toggle"
+                  [ngClass]="cat.activo ? 'active' : 'inactive'"
+                  type="button"
+                  (click)="confirmarToggle(cat)"
+                  [disabled]="cargandoFila[cat.id]"
+                  [attr.aria-busy]="cargandoFila[cat.id] ? 'true' : null"
+                  [attr.aria-label]="(cat.activo ? 'Desactivar' : 'Activar') + ' categoría ' + cat.nombre"
+                  title="{{ cat.activo ? 'Desactivar' : 'Activar' }} {{cat.nombre}}">
+                  <span class="material-icons" aria-hidden="true">
+                    {{ cargandoFila[cat.id] ? 'hourglass_top' : (cat.activo ? 'block' : 'check_circle') }}
+                  </span>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="categoriasFiltradas.length === 0">
+            <td colspan="5" class="empty">No hay categorías que coincidan con el filtro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
+      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
+      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
+      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Overlay -->
+  <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
+
+  <!-- Modal -->
+  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title">{{ editando ? 'Editar categoría' : 'Nueva categoría' }}</h2>
+        </div>
+        <button
+          class="icon close"
+          type="button"
+          (click)="cerrarModal()"
+          [attr.aria-label]="'Cerrar'"
+          title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <form class="form" (ngSubmit)="guardarCategoria()" #formCat="ngForm" novalidate>
+          <div class="field">
+            <label for="nombre">Nombre <span class="req">*</span></label>
+            <input
+              id="nombre"
+              type="text"
+              required
+              minlength="2"
+              maxlength="80"
+              [(ngModel)]="nuevaCategoria.nombre"
+              name="nombre"
+              [class.invalid]="submitted && !nuevaCategoria.nombre?.trim()"
+              aria-describedby="nombre-help"
+              autofocus
+            />
+            <small id="nombre-help" class="hint">Entre 2 y 80 caracteres.</small>
+            <div class="error" *ngIf="submitted && !nuevaCategoria.nombre?.trim()">El nombre es obligatorio.</div>
+          </div>
+
+          <div class="field">
+            <label for="descripcion">Descripción</label>
+            <textarea
+              id="descripcion"
+              rows="6"
+              maxlength="200"
+              [(ngModel)]="nuevaCategoria.descripcion"
+              name="descripcion"></textarea>
+          </div>
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+
+              <button
+                *ngIf="editando"
+                type="button"
+                class="danger"
+                (click)="eliminarCategoria()"
+                [attr.aria-label]="'Eliminar categoría ' + editando.nombre"
+                title="Eliminar categoría">
+                <span class="material-icons" aria-hidden="true">delete</span>
+                Eliminar
+              </button>
+            </div>
+
+            <button type="submit" class="primary" [disabled]="cargando">
+              {{ editando ? 'Guardar cambios' : 'Crear' }}
+            </button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>

@@ -1,0 +1,213 @@
+/* ===== Layout del módulo ===== */
+.mant { 
+  padding: 20px 0 30px; 
+  min-height: calc(100vh - 70px); /* 🔥 ajusta al alto de pantalla menos el header */
+  background: linear-gradient(135deg, 
+    rgba(255, 182, 193, 0.3) 0%,
+    rgba(173, 216, 230, 0.3) 25%,
+    rgba(221, 160, 221, 0.3) 50%,
+    rgba(255, 218, 185, 0.3) 75%,
+    rgba(152, 251, 152, 0.3) 100%);
+  
+  /* 🔥 Fix: el módulo nunca genera scroll propio */
+  overflow: visible;   
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;   /* scroll vertical solo en body */
+  overflow-x: hidden; /* bloquea scroll horizontal */
+  height: 100vh;
+}
+
+/* ===== Encabezado ===== */
+.mant__head { 
+  max-width: 1200px; 
+  margin: 0 auto 24px; 
+  padding: 0 20px; 
+}
+
+.mant__title { 
+  margin: 0 0 8px; 
+  font-size: 48px; 
+  line-height: 1.1; 
+  color: #1a1a1a;
+  font-weight: 700;
+}
+
+.mant__subtitle { 
+  margin: 0; 
+  color: #4a5568; 
+  font-size: 16px;
+  font-weight: 400;
+}
+
+/* ===== Grid ===== */
+.mant__grid {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* dos columnas */
+  gap: 20px;
+}
+
+@media (max-width: 1100px) { 
+  .mant__grid { 
+    grid-template-columns: 1fr; 
+  } 
+}
+
+/* ===== Panels con glassmorphism ===== */
+.mant__panel {
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.mant__panelHead h2 { 
+  margin: 0 0 4px; 
+  font-size: 24px; 
+  color: #2d3748;
+  font-weight: 600;
+}
+
+.mant__panelHead p { 
+  margin: 0 0 20px; 
+  color: #4a5568; 
+  font-size: 14px; 
+  font-weight: 400;
+}
+
+/* ===== Grid de tarjetas ===== */
+.mgrid { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 16px; 
+}
+
+@media (max-width: 880px) { 
+  .mgrid { 
+    grid-template-columns: 1fr; 
+  } 
+}
+
+.mstack { 
+  display: grid; 
+  grid-template-columns: 1fr 1fr; 
+  gap: 16px; 
+}
+
+@media (max-width: 600px) {
+  .mstack {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ===== Card glassmorphism style ===== */
+.mcard {
+  display: flex; 
+  align-items: center; 
+  justify-content: space-between; 
+  gap: 16px;
+  padding: 20px;
+  min-height: 80px;
+
+  background: rgba(255, 255, 255, 0.4);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mcard:hover { 
+  transform: translateY(-2px); 
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+.mcard__body { 
+  flex: 1; 
+  min-width: 0; 
+}
+
+.mcard__title { 
+  margin: 0 0 4px; 
+  font-size: 18px; 
+  line-height: 1.2; 
+  font-weight: 600; 
+  color: #2d3748; 
+}
+
+.mcard__desc { 
+  margin: 0; 
+  color: #4a5568; 
+  font-size: 12px;
+  font-weight: 400;
+}
+
+/* ===== Botón magenta ===== */
+.mcard__btn {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #e91e63, #9c27b0);
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-size: 12px;
+  line-height: 1;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
+  flex-shrink: 0;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.mcard__btn:hover { 
+  transform: translateY(-1px); 
+  box-shadow: 0 6px 16px rgba(233, 30, 99, 0.4);
+  color: white;
+}
+
+/* ===== Responsive ===== */
+@media (max-width: 768px) {
+  .mant {
+    overflow: visible;
+  }
+  
+  .mant__title {
+    font-size: 28px;
+  }
+  
+  .mant__grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 0 15px; 
+  }
+  
+  .mgrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .mstack {
+    grid-template-columns: 1fr;
+  }
+  
+  .mant__panel {
+    padding: 20px;
+  }
+}
+
+/* ===== Ajustes para menú colapsado ===== */
+@media (min-width: 769px) {
+  .mant__grid {
+    max-width: none;
+  }
+}

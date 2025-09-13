@@ -1,1 +1,445 @@
-<p>proveedores works!</p>
+<div class="page" [class.modal-open]="mostrarCrear || mostrarDetalle || mostrarRecepcion" role="main" aria-labelledby="title-pedidos">
+  <!-- Mensajes -->
+  <div *ngIf="mensaje" class="toast ok" role="status" aria-live="polite">{{ mensaje }}</div>
+  <div *ngIf="errorMsg" class="toast err" role="alert" aria-live="assertive">{{ errorMsg }}</div>
+
+  <!-- Título -->
+  <div class="head-title">
+    <h1 id="title-pedidos">Pedidos a proveedores</h1>
+  </div>
+
+  <!-- Filtros + crear -->
+  <div class="head">
+    <div class="actions">
+      <div class="search" aria-label="Buscar pedidos">
+        <span class="material-icons" aria-hidden="true">search</span>
+        <input
+          id="buscadorPedidos"
+          type="text"
+          inputmode="search"
+          placeholder="Busca por número o proveedor…"
+          title="Buscar"
+          [(ngModel)]="searchTerm"
+          (input)="onSearchInput()"
+          autocomplete="off"
+        />
+      </div>
+
+      <label class="sr" for="filtroProveedor">Filtrar por proveedor</label>
+      <select id="filtroProveedor" class="filter" [(ngModel)]="filtroProveedorId" (change)="aplicarFiltros()"
+              aria-label="Proveedor" title="Filtrar por proveedor">
+        <option [ngValue]="null">Todos los proveedores</option>
+        <option *ngFor="let p of proveedoresOpts" [ngValue]="p.id">{{ p.nombre }}</option>
+      </select>
+
+      <label class="sr" for="filtroEstado">Filtrar por estado</label>
+      <select id="filtroEstado" class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()"
+              aria-label="Estado" title="Filtrar por estado">
+        <option value="">Todos</option>
+        <option *ngFor="let e of estados" [value]="e.value">{{ e.label }}</option>
+      </select>
+
+      <label class="sr" for="filtroDesde">Desde</label>
+      <input id="filtroDesde" type="date" class="filter" [(ngModel)]="filtroDesde" (change)="aplicarFiltros()"
+             aria-label="Desde" title="Fecha desde" />
+
+      <label class="sr" for="filtroHasta">Hasta</label>
+      <input id="filtroHasta" type="date" class="filter" [(ngModel)]="filtroHasta" (change)="aplicarFiltros()"
+             aria-label="Hasta" title="Fecha hasta" />
+
+      <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear pedido">
+        <span class="material-icons" aria-hidden="true">add</span>
+        Nuevo pedido
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando pedidos…</div>
+
+    <div class="table-wrapper" *ngIf="!cargando">
+      <table class="grid" role="table" aria-label="Listado de pedidos">
+        <thead>
+          <tr>
+            <th>#</th><th>Fecha</th><th>Número</th><th>Proveedor</th><th>Estado</th>
+            <th style="text-align:right">Subtotal</th><th style="text-align:right">Desc</th><th style="text-align:right">Total</th>
+            <th class="acts-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of pedidosFiltrados.slice(inicio, fin); let i = index">
+            <td class="mono">{{ inicio + i + 1 }}</td>
+            <td>{{ p.fecha | date:'yyyy-MM-dd' }}</td>
+            <td class="mono">{{ p.numero || '—' }}</td>
+            <td><strong>{{ p.proveedorNombre }}</strong></td>
+            <td>
+              <span class="state-pill"
+                    [ngClass]="{
+                      'state-borrador': p.estado==='borrador',
+                      'state-enviado': p.estado==='enviado',
+                      'state-aprobado': p.estado==='aprobado',
+                      'state-parcial': p.estado==='parcialmenteRecibido',
+                      'state-cerrado': p.estado==='cerrado',
+                      'state-cancelado': p.estado==='cancelado'
+                    }">{{ estadoTexto(p.estado) }}</span>
+            </td>
+            <td style="text-align:right">{{ p.subtotal | number:'1.2-2' }}</td>
+            <td style="text-align:right">{{ p.descuento | number:'1.2-2' }}</td>
+            <td style="text-align:right"><strong>{{ p.total | number:'1.2-2' }}</strong></td>
+            <td>
+              <div class="acts">
+                <button class="icon" type="button" title="Abrir" (click)="abrirDetalle(p.id)">
+                  <span class="material-icons" aria-hidden="true">open_in_new</span>
+                </button>
+
+                <button *ngIf="p.estado==='borrador'" class="icon" type="button" title="Enviar"
+                        (click)="enviar(p)">
+                  <span class="material-icons" aria-hidden="true">send</span>
+                </button>
+
+                <button *ngIf="p.estado==='enviado'" class="icon" type="button" title="Aprobar"
+                        (click)="aprobar(p)">
+                  <span class="material-icons" aria-hidden="true">check_circle</span>
+                </button>
+
+                <button *ngIf="p.estado!=='cerrado' && p.estado!=='cancelado'"
+                        class="danger" type="button" title="Cancelar"
+                        (click)="cancelar(p)">
+                  <span class="material-icons" aria-hidden="true">block</span> Cancelar
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="pedidosFiltrados.length === 0">
+            <td colspan="9" class="empty">No hay pedidos que coincidan con el filtro.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="pager" *ngIf="totalPaginas > 1">
+      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
+      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas }}</strong></span>
+      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    </div>
+  </div>
+
+  <!-- Backdrops -->
+  <div class="modal-backdrop" *ngIf="mostrarCrear" (click)="cerrarCrear()" aria-hidden="true"></div>
+  <div class="modal-backdrop" *ngIf="mostrarDetalle" (click)="cerrarDetalle()" aria-hidden="true"></div>
+  <div class="modal-backdrop" *ngIf="mostrarRecepcion" (click)="cerrarRecepcion()" aria-hidden="true"></div>
+
+  <!-- ================= MODAL: CREAR ================= -->
+  <section class="modal" *ngIf="mostrarCrear" role="dialog" aria-modal="true" aria-labelledby="modal-title-crear">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title-crear">Nuevo pedido</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarCrear()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body">
+        <form (ngSubmit)="crearPedido()" #formCrear="ngForm" novalidate>
+          <div class="form-grid">
+            <div class="field">
+              <label for="cProv">Proveedor <span class="req">*</span></label>
+              <select id="cProv" required [(ngModel)]="formCrearPedido.proveedorId" name="proveedorId"
+                      aria-label="Proveedor" title="Proveedor">
+                <option [ngValue]="null" disabled>Selecciona…</option>
+                <option *ngFor="let p of proveedoresOpts" [ngValue]="p.id">{{ p.nombre }}</option>
+              </select>
+              <div class="error" *ngIf="submittedCrear && !formCrearPedido.proveedorId">Selecciona un proveedor.</div>
+            </div>
+
+            <div class="field">
+              <label for="cNum">Número</label>
+              <input id="cNum" type="text" maxlength="40" [(ngModel)]="formCrearPedido.numero" name="numero"
+                     placeholder="Opcional" title="Número interno o referencia" />
+            </div>
+
+            <div class="field span-2">
+              <label for="cObs">Observaciones</label>
+              <textarea id="cObs" rows="3" maxlength="200" [(ngModel)]="formCrearPedido.observaciones" name="observaciones"
+                        placeholder="Notas del pedido" title="Observaciones"></textarea>
+            </div>
+
+            <!-- Sección líneas -->
+            <div class="section span-2">
+              <h3>Agregar líneas</h3>
+              <div class="form-grid">
+                <div class="field">
+                  <label for="lPres">Presentación ID <span class="req">*</span></label>
+                  <input id="lPres" type="number" min="1" step="1" [(ngModel)]="lineaTmp.presentacionId" name="presId"
+                         placeholder="Id" title="ID de la presentación" />
+                </div>
+                <div class="field">
+                  <label for="lCant">Cantidad <span class="req">*</span></label>
+                  <input id="lCant" type="number" min="0.01" step="0.01" [(ngModel)]="lineaTmp.cantidad" name="cant"
+                         placeholder="0.00" title="Cantidad" />
+                </div>
+                <div class="field">
+                  <label for="lPU">Precio unitario <span class="req">*</span></label>
+                  <input id="lPU" type="number" min="0" step="0.01" [(ngModel)]="lineaTmp.precioUnitario" name="punit"
+                         placeholder="0.00" title="Precio unitario" />
+                </div>
+                <div class="field">
+                  <label for="lDesc">Descuento</label>
+                  <input id="lDesc" type="number" min="0" step="0.01" [(ngModel)]="lineaTmp.descuento" name="desc"
+                         placeholder="0.00" title="Descuento" />
+                </div>
+                <div class="field span-2">
+                  <label for="lNotas">Notas</label>
+                  <input id="lNotas" type="text" maxlength="200" [(ngModel)]="lineaTmp.notas" name="lnotas"
+                         placeholder="Opcional" title="Notas de la línea" />
+                </div>
+
+                <div class="field span-2">
+                  <button class="ghost" type="button" (click)="agregarLineaTmp()">Agregar línea</button>
+                </div>
+
+                <div class="span-2" *ngIf="formCrearPedido.detalles.length">
+                  <table class="grid" aria-label="Líneas agregadas">
+                    <thead><tr><th>#</th><th>Presentación</th><th>Cant</th><th>Precio</th><th>Desc</th><th>Total</th><th></th></tr></thead>
+                    <tbody>
+                      <tr *ngFor="let l of formCrearPedido.detalles; let j=index">
+                        <td class="mono">{{ j+1 }}</td>
+                        <td class="mono">{{ l.presentacionId }}</td>
+                        <td>{{ l.cantidad }}</td>
+                        <td>{{ l.precioUnitario | number:'1.2-2' }}</td>
+                        <td>{{ l.descuento | number:'1.2-2' }}</td>
+                        <td>{{ (l.cantidad*l.precioUnitario - (l.descuento||0)) | number:'1.2-2' }}</td>
+                        <td>
+                          <button class="icon" type="button" title="Quitar" (click)="quitarLineaTmp(j)">
+                            <span class="material-icons" aria-hidden="true">delete</span>
+                          </button>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          <footer class="modal-foot">
+            <div class="left"><button type="button" class="ghost" (click)="cerrarCrear()">Cancelar</button></div>
+            <button type="submit" class="primary" [disabled]="guardandoCrear">{{ guardandoCrear ? 'Guardando…' : 'Crear' }}</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MODAL: DETALLE / EDICIÓN ================= -->
+  <section class="modal" *ngIf="mostrarDetalle" role="dialog" aria-modal="true" aria-labelledby="modal-title-det">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title-det">Pedido #{{ pedidoActual?.id }} — {{ estadoTexto(pedidoActual?.estado) }}</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarDetalle()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body" *ngIf="pedidoActual">
+        <!-- Encabezado -->
+        <div class="form-grid">
+          <div class="field">
+            <label for="dNum">Número</label>
+            <input id="dNum" type="text" maxlength="40" [(ngModel)]="pedidoEdit.numero" name="dnum"
+                   [readonly]="pedidoActual.estado!=='borrador'" placeholder="Opcional" title="Número" />
+          </div>
+          <div class="field">
+            <label for="dProv">Proveedor</label>
+            <input id="dProv" type="text" [value]="pedidoActual.proveedorNombre" readonly title="Proveedor" />
+          </div>
+          <div class="field span-2">
+            <label for="dObs">Observaciones</label>
+            <textarea id="dObs" rows="3" maxlength="200" [(ngModel)]="pedidoEdit.observaciones" name="dobs"
+                      [readonly]="pedidoActual.estado!=='borrador'" placeholder="Notas" title="Observaciones"></textarea>
+          </div>
+        </div>
+
+        <!-- Líneas -->
+        <div class="section">
+          <h3>Líneas</h3>
+          <table class="grid" aria-label="Líneas del pedido">
+            <thead>
+              <tr>
+                <th>#</th><th>Presentación</th><th>Unidad</th><th>SKU</th>
+                <th style="text-align:right">Cant</th>
+                <th style="text-align:right">Recib.</th>
+                <th style="text-align:right">Precio</th>
+                <th style="text-align:right">Desc</th>
+                <th style="text-align:right">Total</th>
+                <th *ngIf="pedidoActual.estado==='borrador'"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of pedidoActual.detalles; let k=index">
+                <td class="mono">{{ k+1 }}</td>
+                <td>{{ d.presentacionNombre }}</td>
+                <td class="mono">{{ d.unidad }}</td>
+                <td class="mono">{{ d.sku || '—' }}</td>
+                <td style="text-align:right">{{ d.cantidad }}</td>
+                <td style="text-align:right">{{ d.cantidadRecibida }}</td>
+                <td style="text-align:right">{{ d.precioUnitario | number:'1.2-2' }}</td>
+                <td style="text-align:right">{{ d.descuento | number:'1.2-2' }}</td>
+                <td style="text-align:right">{{ d.totalLinea | number:'1.2-2' }}</td>
+                <td *ngIf="pedidoActual.estado==='borrador'">
+                  <button class="icon" type="button" title="Editar" (click)="editarLinea(d)">
+                    <span class="material-icons" aria-hidden="true">edit</span>
+                  </button>
+                  <button class="icon" type="button" title="Eliminar" (click)="eliminarLinea(d)">
+                    <span class="material-icons" aria-hidden="true">delete</span>
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Agregar/editar línea (solo borrador) -->
+        <div class="section" *ngIf="pedidoActual.estado==='borrador'">
+          <h3>{{ editandoLinea ? 'Editar línea' : 'Agregar línea' }}</h3>
+          <div class="form-grid">
+            <div class="field">
+              <label for="ePres">Presentación ID</label>
+              <input id="ePres" type="number" min="1" step="1" [(ngModel)]="lineaForm.presentacionId" name="ePres"
+                     placeholder="Id" title="ID de la presentación" />
+            </div>
+            <div class="field">
+              <label for="eCant">Cantidad</label>
+              <input id="eCant" type="number" min="0.01" step="0.01" [(ngModel)]="lineaForm.cantidad" name="eCant"
+                     placeholder="0.00" title="Cantidad" />
+            </div>
+            <div class="field">
+              <label for="ePU">Precio unitario</label>
+              <input id="ePU" type="number" min="0" step="0.01" [(ngModel)]="lineaForm.precioUnitario" name="ePU"
+                     placeholder="0.00" title="Precio unitario" />
+            </div>
+            <div class="field">
+              <label for="eDesc">Descuento</label>
+              <input id="eDesc" type="number" min="0" step="0.01" [(ngModel)]="lineaForm.descuento" name="eDesc"
+                     placeholder="0.00" title="Descuento" />
+            </div>
+            <div class="field span-2">
+              <label for="eNotas">Notas</label>
+              <input id="eNotas" type="text" maxlength="200" [(ngModel)]="lineaForm.notas" name="eNotas"
+                     placeholder="Opcional" title="Notas" />
+            </div>
+
+            <div class="field span-2">
+              <button class="ghost" type="button" (click)="guardarLinea()">
+                {{ editandoLinea ? 'Guardar cambios de línea' : 'Agregar línea' }}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Acciones del flujo -->
+        <footer class="modal-foot">
+          <div class="left">
+            <button class="ghost" type="button" (click)="cerrarDetalle()">Cerrar</button>
+          </div>
+
+          <div class="actions">
+            <button *ngIf="pedidoActual.estado==='borrador'" class="primary" type="button" (click)="enviar(pedidoActual)">
+              <span class="material-icons">send</span> Enviar
+            </button>
+
+            <button *ngIf="pedidoActual.estado==='enviado'" class="primary" type="button" (click)="aprobar(pedidoActual)">
+              <span class="material-icons">check_circle</span> Aprobar
+            </button>
+
+            <button *ngIf="pedidoActual.estado==='aprobado' || pedidoActual.estado==='parcialmenteRecibido'"
+                    class="primary" type="button" (click)="abrirRecepcion()">
+              <span class="material-icons">download_done</span> Recibir
+            </button>
+
+            <button *ngIf="pedidoActual.estado!=='cerrado' && pedidoActual.estado!=='cancelado'"
+                    class="danger" type="button" (click)="cancelar(pedidoActual)">
+              <span class="material-icons">block</span> Cancelar
+            </button>
+          </div>
+        </footer>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= MODAL: RECEPCIÓN ================= -->
+  <section class="modal" *ngIf="mostrarRecepcion" role="dialog" aria-modal="true" aria-labelledby="modal-title-rec">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title-rec">Recepción del pedido #{{ pedidoActual?.id }}</h2>
+        </div>
+        <button class="icon close" type="button" (click)="cerrarRecepcion()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
+
+      <div class="modal-body" *ngIf="pedidoActual">
+        <div class="form-grid">
+          <div class="field">
+            <label for="rFecha">Fecha</label>
+            <input id="rFecha" type="date" [(ngModel)]="recForm.fecha" name="rFecha" title="Fecha de recepción" />
+          </div>
+          <div class="field">
+            <label for="rNum">Número de documento</label>
+            <input id="rNum" type="text" maxlength="40" [(ngModel)]="recForm.numero" name="rNum" placeholder="Factura/Doc" title="Número de documento" />
+          </div>
+          <div class="field">
+            <label for="rFP">Forma de pago</label>
+            <input id="rFP" type="number" min="1" step="1" [(ngModel)]="recForm.formaPagoId" name="rFP" placeholder="Id" title="Forma de pago (Id)" />
+          </div>
+        </div>
+
+        <div class="section">
+          <h3>Líneas a recibir</h3>
+          <table class="grid" aria-label="Recepción de líneas">
+            <thead>
+              <tr>
+                <th>#</th><th>Presentación</th><th>Pendiente</th><th>Recibir</th><th>Costo</th><th>Notas</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let d of pedidoActual.detalles; let i=index">
+                <td class="mono">{{ i+1 }}</td>
+                <td>{{ d.presentacionNombre }}</td>
+                <td class="mono">{{ (d.cantidad - d.cantidadRecibida) | number:'1.2-2' }}</td>
+                <td>
+                  <input type="number" min="0" step="0.01" [(ngModel)]="d._recibir" [name]="'rec'+i"
+                         placeholder="0.00" title="Cantidad a recibir" />
+                </td>
+                <td>
+                  <input type="number" min="0" step="0.01" [(ngModel)]="d._costo" [name]="'cos'+i"
+                         placeholder="0.00" title="Costo unitario" />
+                </td>
+                <td>
+                  <input type="text" maxlength="200" [(ngModel)]="d._notas" [name]="'not'+i"
+                         placeholder="Opcional" title="Notas" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <footer class="modal-foot">
+          <div class="left"><button class="ghost" type="button" (click)="cerrarRecepcion()">Cancelar</button></div>
+          <button class="primary" type="button" (click)="confirmarRecepcion()">Confirmar recepción</button>
+        </footer>
+      </div>
+    </div>
+  </section>
+</div>

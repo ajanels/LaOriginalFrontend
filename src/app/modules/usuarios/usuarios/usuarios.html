@@ -1,66 +1,84 @@
-<div class="page">
-  <div class="head">
+<div class="page" [class.modal-open]="show()">
+  <!-- título -->
+  <div class="head-title">
     <h1>Usuarios</h1>
+  </div>
 
+  <!-- barra de acciones -->
+  <div class="head">
     <div class="actions">
-      <!-- Filtro: búsqueda -->
-      <div class="search">
+      <!-- búsqueda libre -->
+      <div class="search" aria-label="Buscar usuarios">
         <span class="material-icons" aria-hidden="true">search</span>
         <input
           [ngModel]="q()"
           (ngModelChange)="q.set($event)"
-          placeholder="Buscar…"
-          aria-label="Buscar usuario"
+          placeholder="Busca por nombre, usuario o correo…"
+          autocomplete="off"
         />
       </div>
 
-      <!-- Filtro: estado -->
-      <select
-        class="filter"
-        [ngModel]="estado()"
-        (ngModelChange)="estado.set($event)"
-        aria-label="Filtrar por estado">
-        <option value="">Estado: Todos</option>
+      <!-- estado -->
+      <select class="filter" [ngModel]="estado()" (ngModelChange)="estado.set($event)" aria-label="Estado">
+        <option value="">Todos</option>
         <option value="Activo">Activo</option>
         <option value="Inactivo">Inactivo</option>
         <option value="Suspendido">Suspendido</option>
       </select>
 
-      <!-- Filtro: rol -->
-      <select
-        class="filter"
-        [ngModel]="rolId()"
-        (ngModelChange)="rolId.set($event)"
-        aria-label="Filtrar por rol">
+      <!-- rol -->
+      <select class="filter" [ngModel]="rolId()" (ngModelChange)="rolId.set($event)" aria-label="Rol">
         <option [ngValue]="null">Rol: Todos</option>
         <option *ngFor="let r of roles()" [ngValue]="r.id">{{ r.nombre }}</option>
       </select>
 
-      <!-- Tamaño de página -->
-      <select
-        class="filter"
-        [ngModel]="pageSize()"
-        (ngModelChange)="changePageSize($event)"
-        aria-label="Cambiar tamaño de página">
-        <option [ngValue]="10">10 / pág</option>
-        <option [ngValue]="20">20 / pág</option>
-        <option [ngValue]="50">50 / pág</option>
-      </select>
-
-      <button class="primary" (click)="openCreate()">
-        <span class="material-icons" aria-hidden="true">person_add</span>
-        Nuevo
+      <!-- toggle filtros avanzados -->
+      <button class="ghost" type="button" (click)="toggleFilters()">
+        <span class="material-icons" aria-hidden="true">tune</span>
+        Filtros
       </button>
+    </div>
+
+    <button class="primary" type="button" (click)="openCreate()">
+      <span class="material-icons" aria-hidden="true">person_add</span>
+      Nuevo
+    </button>
+  </div>
+
+  <!-- filtros avanzados -->
+  <div class="filters-adv" *ngIf="showFilters()">
+    <div class="filters-grid">
+      <label>
+        <span>Primer nombre</span>
+        <input [ngModel]="fPrimer()" (ngModelChange)="fPrimer.set($event)" placeholder="Ej. Juan" />
+      </label>
+      <label>
+        <span>Segundo nombre</span>
+        <input [ngModel]="fSegundo()" (ngModelChange)="fSegundo.set($event)" placeholder="Ej. Carlos" />
+      </label>
+      <label>
+        <span>Apellidos</span>
+        <input [ngModel]="fApellidos()" (ngModelChange)="fApellidos.set($event)" placeholder="Pérez / López" />
+      </label>
+      <label>
+        <span>NIT (9 dígitos)</span>
+        <input inputmode="numeric" maxlength="9"
+               [ngModel]="fNit()" (ngModelChange)="onNitFilter($event)" placeholder="#########" />
+      </label>
+      <label>
+        <span>Fecha de ingreso</span>
+        <input type="date" [ngModel]="fFechaIng()" (ngModelChange)="fFechaIng.set($event)" />
+      </label>
     </div>
   </div>
 
+  <!-- card tabla -->
   <div class="card">
     <div class="table-wrapper" *ngIf="!loading(); else loadingTpl">
-      <table class="grid" *ngIf="paged().length; else emptyTpl">
+      <table class="grid" *ngIf="paged().length; else emptyTpl" aria-label="Listado de usuarios">
         <thead>
           <tr>
             <th>Nombre</th>
-            <th>Apellido</th>
             <th>Usuario</th>
             <th>Rol</th>
             <th>Teléfono</th>
@@ -70,51 +88,41 @@
         </thead>
         <tbody>
           <tr *ngFor="let u of paged()">
-            <td>{{ u.primerNombre }} {{ u.segundoNombre }}</td>
-            <td>{{ u.primerApellido }} {{ u.segundoApellido }}</td>
+            <td><strong>{{ u.primerNombre }} {{ u.segundoNombre }} {{ u.primerApellido }} {{ u.segundoApellido }}</strong></td>
             <td class="mono">{{ u.username }}</td>
             <td><span class="role-pill">{{ u.rol?.nombre || '—' }}</span></td>
             <td>{{ u.celular }}</td>
             <td>
-              <span class="state-pill" [class.activo]="u.estado==='Activo'"
-                                      [class.inactivo]="u.estado==='Inactivo'"
-                                      [class.suspendido]="u.estado==='Suspendido'">
+              <span class="state-pill"
+                    [class.activo]="u.estado==='Activo'"
+                    [class.inactivo]="u.estado==='Inactivo'"
+                    [class.suspendido]="u.estado==='Suspendido'">
                 {{ u.estado }}
               </span>
             </td>
             <td class="acts">
-              <button class="icon" (click)="openView(u)" aria-label="Ver">
-                <span class="material-icons">visibility</span>
-              </button>
-              <button class="icon" (click)="openEdit(u)" aria-label="Editar">
-                <span class="material-icons">edit</span>
-              </button>
-              <button class="icon danger" (click)="remove(u)" aria-label="Eliminar">
-                <span class="material-icons">delete</span>
-              </button>
+              <button class="icon" type="button" (click)="openView(u)" title="Ver"><span class="material-icons">visibility</span></button>
+              <button class="icon" type="button" (click)="openEdit(u)" title="Editar"><span class="material-icons">edit</span></button>
+              <!-- SIN botón eliminar en la tabla -->
             </td>
           </tr>
         </tbody>
       </table>
 
-      <!-- Paginación -->
-      <div class="pager" *ngIf="totalPages() > 1">
-        <button class="ghost" (click)="prevPage()" [disabled]="page()===1" aria-label="Página anterior">
-          <span class="material-icons">chevron_left</span>
-        </button>
-        <span>Página {{ page() }} / {{ totalPages() }}</span>
-        <button class="ghost" (click)="nextPage()" [disabled]="page()===totalPages()" aria-label="Página siguiente">
-          <span class="material-icons">chevron_right</span>
-        </button>
+      <!-- paginación (fija a 5) -->
+      <div class="pager" *ngIf="totalPages() > 1" aria-label="Paginación">
+        <button class="ghost" (click)="prevPage()" [disabled]="page()===1" type="button"><span class="material-icons">chevron_left</span></button>
+        <span>Página <strong>{{ page() }}</strong> de <strong>{{ totalPages() }}</strong></span>
+        <button class="ghost" (click)="nextPage()" [disabled]="page()===totalPages()" type="button"><span class="material-icons">chevron_right</span></button>
       </div>
     </div>
 
     <ng-template #loadingTpl><div class="empty">Cargando…</div></ng-template>
-    <ng-template #emptyTpl><div class="empty">No hay usuarios con los filtros seleccionados</div></ng-template>
+    <ng-template #emptyTpl><div class="empty">No hay usuarios que coincidan con los filtros.</div></ng-template>
   </div>
 </div>
 
-<!-- Modal -->
+<!-- modal -->
 <app-usuario-modal
   *ngIf="show()"
   [mode]="mode()"

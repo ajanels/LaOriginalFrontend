@@ -1,34 +1,47 @@
-// src/app/services/auth.guard.ts
-import { CanActivateFn, Router, ActivatedRouteSnapshot } from '@angular/router';
 import { inject } from '@angular/core';
+import {
+  CanMatchFn,
+  CanActivateChildFn,
+  Router,
+  RouterStateSnapshot,
+  UrlTree
+} from '@angular/router';
 import Swal from 'sweetalert2';
 import { AuthService } from './auth.service';
 
-/**
- * Guard que:
- * 1) Exige sesión activa.
- * 2) Valida roles si la ruta define data: { roles: ['Admin', ...] }.
- */
-export const authGuard: CanActivateFn = (route: ActivatedRouteSnapshot) => {
+function requireLogin(url: string): true | UrlTree {
   const auth = inject(AuthService);
   const router = inject(Router);
 
-  // 1) Requiere login
   if (!auth.isLoggedIn()) {
-    router.navigateByUrl('/login');
-    return false;
+    return router.createUrlTree(['/login'], { queryParams: { returnUrl: url } });
   }
+  return true;
+}
 
-  // 2) Roles (opcional)
-  const required = route.data?.['roles'] as string[] | undefined;
-  if (required?.length) {
-    const ok = auth.hasRole(...required);
-    if (!ok) {
-      Swal.fire('Acceso denegado', 'No tienes permisos para acceder a esta ruta', 'error');
-      router.navigateByUrl('/'); // o a una página 403 si la tienes
-      return false;
-    }
+function checkRoles(routeData: any): true | UrlTree {
+  const auth = inject(AuthService);
+  const router = inject(Router);
+
+  const required = routeData?.['roles'] as string[] | undefined;
+  if (required?.length && !auth.hasRole(...required)) {
+    Swal.fire('Acceso denegado', 'No tienes permisos para acceder', 'error');
+    return router.createUrlTree(['/home']);
   }
+  return true;
+}
+
+export const authGuardMatch: CanMatchFn = (route, segments) => {
+  const url = '/' + segments.map(s => s.path).join('/');
+  return requireLogin(url);
+};
+
+export const authGuard: CanActivateChildFn = (route, state: RouterStateSnapshot) => {
+  const login = requireLogin(state.url);
+  if (login !== true) return login;
+
+  const roles = checkRoles(route.data);
+  if (roles !== true) return roles;
 
   return true;
 };

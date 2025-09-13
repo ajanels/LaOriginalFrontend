@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, OnDestroy, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterOutlet, RouterLink, RouterLinkActive, Router, NavigationEnd } from '@angular/router';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -28,16 +28,16 @@ export class LayoutComponent implements OnInit, OnDestroy {
 
   collapsed = toSignal(this.layout.collapsed$, { initialValue: this.layout.collapsed });
 
-  // ⬇️ MENÚ ACTUALIZADO
+  //  MENÚ actualizado con todos los módulos
   menu: MenuItem[] = [
-    { label: 'Inicio',     icon: 'home',          route: '/home' },
-    { label: 'Caja',       icon: 'point_of_sale', route: '/caja' },
-    { label: 'Usuarios',   icon: 'group',         route: '/usuarios' },
-    { label: 'Inventario', icon: 'inventory_2',   route: '/inventario' },
-    { label: 'Ventas',     icon: 'shopping_cart', route: '/ventas' },
-    { label: 'Reportes',   icon: 'bar_chart',     route: '/reportes' },
+    { label: 'Inicio',      icon: 'home',          route: '/home' },
+    { label: 'Caja',        icon: 'point_of_sale', route: '/caja' },
+    { label: 'Usuarios',    icon: 'group',         route: '/usuarios' },
+    { label: 'Inventario',  icon: 'inventory_2',   route: '/inventario' },
+    { label: 'Ventas',      icon: 'shopping_cart', route: '/ventas' },
+    { label: 'Reportes',    icon: 'bar_chart',     route: '/reportes' },
 
-    // Pedidos como GRUPO (submenú)
+    // Pedidos como submenú
     {
       label: 'Pedidos', icon: 'local_shipping', expanded: false, children: [
         { label: 'Clientes',    route: '/pedidos/clientes' },
@@ -45,23 +45,18 @@ export class LayoutComponent implements OnInit, OnDestroy {
       ]
     },
 
-    // Mantenimientos (creados abajo)
-    {
-      label: 'Mantenimientos', icon: 'settings', expanded: false, children: [
-        { label: 'Categorías', route: '/mantenimientos/categorias' },
-        { label: 'Productos',  route: '/mantenimientos/productos'  },
-      ]
-    },
+    // Mantenimientos directo (sin desplegable)
+    { label: 'Mantenimientos', icon: 'settings', route: '/mantenimientos' },
   ];
 
   toggleSidebar() { this.layout.toggle(); }
   toggleGroup(item: MenuItem) { item.expanded = !item.expanded; }
 
-  // 🔓 Auto-expande el grupo cuyo hijo coincide con la URL
+  // Auto-expande el grupo cuyo hijo coincide con la URL
   private syncExpand(url: string) {
     for (const item of this.menu) {
       if (item.children?.length) {
-        item.expanded = item.children.some(c => !!c.route && url.startsWith(c.route));
+        item.expanded = item.children.some(c => !!c.route && url.startsWith(c.route!));
       }
     }
   }
@@ -70,7 +65,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
     this.syncExpand(this.router.url);
     this.sub = this.router.events
       .pipe(filter(e => e instanceof NavigationEnd))
-      .subscribe((e: any) => this.syncExpand(e.urlAfterRedirects));
+      .subscribe((e: any) => this.syncExpand(e.urlAfterRedirects ?? e.url));
   }
+
   ngOnDestroy(): void { this.sub?.unsubscribe(); }
 }

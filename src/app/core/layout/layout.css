@@ -101,13 +101,31 @@
 }
 
 /* ======================
-   WORKSPACE (zona de contenido)
+   WORKSPACE
 ====================== */
-.workspace{
+/* Workspace principal */
+.workspace {
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* evita que cree scroll propio */
   background: url('/images/bg-home.png') center/cover no-repeat;
 }
+
+/* 🔥 importante: que el contenido se ajuste al espacio disponible */
+.workspace-inner {
+  position: relative;
+  height: 100%;
+  overflow-y: auto;     /* scroll solo vertical */
+  overflow-x: hidden;   /* no permitir scroll horizontal */
+
+  width: 100%;          /* 🔥 ocupa todo el ancho disponible */
+  max-width: 100%;      /* 🔥 evita que el max-width "empuje" */
+  box-sizing: border-box;
+
+  margin: 0;            /* elimina márgenes laterales que empujan */
+  padding-block: 24px;
+  padding-inline: var(--page-pad);
+}
+
 .workspace::before{
   content: "";
   position: absolute; inset: 0;
@@ -115,19 +133,16 @@
   pointer-events: none;
 }
 
-/* 🔥 nuevo: limita y centra el contenido */
-.workspace-inner{
-  position: relative;
-  height: 100%;
-  overflow: auto;
-
-  max-width: var(--container-max);
-  margin-inline: auto;
-
-  padding-block: 24px;
-  padding-inline: var(--page-pad);
-}
-
 @media (max-width: 1200px){
   .shell{ --side-w: 260px; }
+}
+
+/* Ocultar scrollbars cross-browser */
+.workspace-inner {
+  scrollbar-width: none;   /* Firefox */
+  -ms-overflow-style: none; /* IE y Edge antiguos */
+}
+
+.workspace-inner::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Edge moderno */
 }
