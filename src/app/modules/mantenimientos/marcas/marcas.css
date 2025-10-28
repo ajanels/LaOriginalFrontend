@@ -1,149 +1,234 @@
 :root{
   --header-h: 97px;
   --side-w: 280px;
+  --side-w-collapsed: 92px; /* ancho cuando el sidebar está colapsado */
 }
 
-/* ==== Base layout ==== */
-.page{ position:relative; isolation:isolate; display:flex; flex-direction:column; gap:16px; min-height:100%; box-sizing:border-box; }
+/* ==== Base layout (compacto) ==== */
+.page{
+  position:relative; isolation:isolate;
+  display:flex; flex-direction:column;
+  gap:9px;                              /* ↓ antes 16px */
+  min-height:100%;
+  box-sizing:border-box;
+}
 
-/* ===== Título ===== */
+/* ===== Título (compacto) ===== */
 .head-title{ position:relative; margin-bottom:8px; text-align:left; }
 .head-title h1{
   font-family:"Playfair Display", Georgia, "Times New Roman", serif;
-  font-weight:700; font-size:clamp(28px,6vw,64px); line-height:1.1; letter-spacing:.3px;
-  color:rgba(0,0,0,.55); margin:0;
+  font-weight:700;
+  font-size:clamp(24px,3.9vw,36px);     /* ↓ */
+  line-height:1.05;                     /* ↓ */
+  letter-spacing:.2px;                  /* ↓ */
+  color:#333;                           /* ↑ */
+  margin:2px 0;                         /* ↓ */
 }
 
-/* ===== Head & actions ===== */
-.head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-.actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+/* ===== Head & actions (mismos lugares, menos aire) ===== */
+.head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px;                              /* ↓ */
+  flex-wrap:wrap;
+}
+.actions{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; } /* ↓ */
 .hint{ color:#8a8a8a; font-size:12px; }
 
-/* Search / filtros */
+/* ===== Search (compacto) ===== */
 .search{
-  display:flex; align-items:center; gap:6px;
-  background:#fff; border:1px solid #e5e5e5; border-radius:20px;
-  padding:10px 14px; min-width:280px;
-  box-shadow:0 4px 12px rgba(80,0,120,.06);
+  display:flex; align-items:center; gap:6px;                  /* ↓ */
+  background:#fff; border:1px solid #e5e5e5; border-radius:8px; /* ↓ */
+  padding:5px 10px;                                           /* ↓ */
+  min-width:240px;                                            /* ↓ */
+  box-shadow:0 1px 4px rgba(80,0,120,.06);                    /* ↓ */
 }
-.search input{ border:0; outline:0; background:transparent; width:100%; }
-.search .material-icons{ font-size:18px; color:#8a8a8a; }
-.filter{ height:40px; border-radius:12px; border:1px solid #e5e5e5; background:#fff; padding:0 12px; outline:none; }
+.search input{ border:0; outline:0; background:transparent; width:100%; font-size:12.5px; } /* ↓ */
+.search .material-icons{ font-size:15px; color:#8a8a8a; }     /* ↓ */
 
-/* ===== Buttons ===== */
+/* ===== Filtros (compactos) ===== */
+.filter{
+  height:30px;                       /* ↓ */
+  border-radius:8px;                 /* ↓ */
+  border:1px solid #e5e5e5;
+  background:#fff; padding:0 9px;    /* ↓ */
+  outline:none; font-size:12.5px;    /* ↓ */
+}
+
+/* ===== Buttons (tamaños del “perfecto”) ===== */
+button.primary, button.ghost{
+  display:inline-flex; align-items:center; gap:7px;           /* ↓ */
+  padding:5px 10px; height:28px;                              /* ↓ */
+  border-radius:8px;                                          /* ↓ */
+  font-size:12px; font-weight:600; cursor:pointer; transition:.15s ease;
+}
 button.primary{
-  display:inline-flex; align-items:center; gap:8px;
-  border:0; padding:10px 16px; border-radius:12px;
-  background:#7a2ea8; color:#fff; cursor:pointer; font-weight:700;
-  box-shadow:0 6px 14px rgba(122,46,168,.18);
+  border:0; background:#7a2ea8; color:#fff;
+  box-shadow:0 3px 7px rgba(122,46,168,.14);                  /* ↓ */
 }
-button.primary:hover{ filter:brightness(1.03); }
+button.primary:hover{ filter:brightness(.97); }
 button.primary:disabled{ opacity:.6; cursor:not-allowed; }
-button.ghost{ background:#fff; border:1px solid #e5e5e5; border-radius:12px; padding:10px 16px; cursor:pointer; color:#333; }
+button.ghost{ background:#fff; border:1px solid #e5e5e5; color:#333; }
 
-/* Uniformar alturas de botones en el modal */
-button.primary, button.ghost, button.danger{ min-height:40px; }
-
-/* Botón eliminar del mismo tamaño que los otros */
+/* Danger alineado a tamaños compactos */
 button.danger{
-  display:inline-flex; align-items:center; gap:8px;
-  padding:10px 16px; border-radius:12px;
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:8px;                        /* ↓ */
   border:1px solid #f6c7cd; background:#fde9eb; color:#b4232b;
   font-weight:700; cursor:pointer;
 }
-button.danger .material-icons{ font-size:18px; }
+button.danger .material-icons{ font-size:16px; }              /* ↓ */
 
-button.icon{ border:0; background:#f6f3f7; color:#6b2f99; border-radius:10px; padding:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
-button.icon .material-icons{ font-size:18px; }
+/* Icon buttons (mini) */
+button.icon{
+  border:0; background:#f6f3f7; color:#6b2f99; border-radius:7px; /* ↓ */
+  padding:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  transition:.15s ease; min-width:24px; min-height:24px;           /* ↓ */
+}
+button.icon .material-icons{ font-size:17px; }                    /* ↓ */
 button.icon.edit{ background:#f1ecf7; color:#6b2f99; }
 button.icon.toggle.active{ background:#fde9eb; color:#d33; }
 button.icon.toggle.inactive{ background:#eaf7ef; color:#2e7d32; }
 button.icon.close{ background:#f3f3f3; color:#555; }
 
-/* ===== Card / Table ===== */
-.card{ background:#fff; border:1px solid #eee; border-radius:20px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.06); }
-.table-wrapper{ overflow-x:auto; }
-table.grid{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:900px; }
-.grid thead th{ text-align:left; font-weight:700; font-size:14px; color:#6a6a6a; padding:14px 12px; border-bottom:1px solid #eee; white-space:nowrap; background:#fafafa; }
-.grid tbody td{ padding:14px 12px; border-bottom:1px solid #f3f3f3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.grid tbody tr:hover{ background:#faf7ff3d; }
+/* ===== Card / Table (compacto, sin cambiar posiciones) ===== */
+.card{
+  background:#fff; border:1px solid #eee; border-radius:10px;  /* ↓ */
+  padding:8px;                                                 /* ↓ */
+  box-shadow:0 5px 12px rgba(0,0,0,.045);                      /* ↓ */
+  position:relative; overflow:hidden;
+}
+.card::before{
+  content:""; position:absolute; inset:0 auto 0 -1px; width:5px; /* ↓ + oculta la junta del borde */
+  background:#7a2ea8; opacity:.95;
+}
 
-/* Estado */
-.state-pill{ padding:6px 12px; border-radius:999px; font-size:12px; font-weight:600; border:1px solid transparent; }
+/* Aire consistente */
+.head + .card{ margin-top:10px; }
+.filters-adv{ margin-bottom:10px; }
+
+/* Tabla compacta */
+.table-wrapper{ overflow-x:auto; }
+table.grid{
+  width:100%; border-collapse:collapse; table-layout:fixed; min-width:900px;
+  font-size:12.5px;                                          /* ↓ */
+}
+.grid thead th{
+  text-align:left; font-weight:700; font-size:12px; color:#555; /* ↓ */
+  padding:6px 8px;                                            /* ↓ */
+  border-bottom:1px solid #eee; white-space:nowrap; background:#fafafa;
+}
+.grid tbody td{
+  padding:6px 8px;                                            /* ↓ */
+  border-bottom:1px solid #f3f3f3;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.grid tbody tr:hover{ background:#fbf7ff; }
+
+/* Estado (pills compactas) */
+.state-pill{
+  padding:4px 8px; border-radius:999px; font-size:11.25px;    /* ↓ */
+  font-weight:600; border:1px solid transparent;
+}
 .state-pill.activo{ background:#eaf7ef; color:#2e7d32; border-color:#cdecd6; }
 .state-pill.inactivo{ background:#f7f7f7; color:#666; border-color:#eee; }
 
-/* Acciones */
-.acts-col{ width:150px; }
-.acts{ display:flex; align-items:center; gap:8px; }
+/* Acciones (menos ancho / gap) */
+.acts-col{ width:140px; }                                     /* ↓ */
+.acts{ display:flex; align-items:center; gap:6px; }           /* ↓ */
 
-/* Empty / Loading / Toasts */
-.empty{ text-align:center; color:#8a8a8a; padding:24px; }
-.loading{ color:#8a8a8a; padding:10px; }
-.toast{ border-radius:10px; padding:10px 14px; font-size:14px; width:fit-content; }
+/* Empty / Loading / Toasts (compactos) */
+.empty{ text-align:center; color:#8a8a8a; padding:14px; }     /* ↓ */
+.loading{ color:#8a8a8a; padding:8px; }                       /* ↓ */
+.toast{ border-radius:8px; padding:8px 10px; font-size:12.5px; width:fit-content; } /* ↓ */
 .toast.ok{ background:#eaf7ef; color:#2e7d32; border:1px solid #cdecd6; }
 .toast.err{ background:#fde9eb; color:#b4232b; border:1px solid #f6c7cd; }
 
-/* Paginación */
-.pager{ display:flex; align-items:center; gap:10px; padding:12px; justify-content:flex-end; }
+/* Paginación (compacta) */
+.pager{ display:flex; align-items:center; gap:9px; padding:9px; justify-content:flex-end; } /* ↓ */
 
-/* ===== Modal & Backdrop ===== */
+/* ===== Modal & Backdrop (mismas posiciones; tamaños del “perfecto”) ===== */
 .page.modal-open{ overflow:hidden; }
 
-/* aquí se ajusta el fondo oscuro */
+/* Fondo oscuro alineado al workspace */
 .modal-backdrop{
-  position: fixed;
-  top: 97px;
-  left: var(--side-w, 280px);
-  right: 0; bottom: 0;
-  background: rgba(0,0,0,.55);
-  -webkit-backdrop-filter: blur(2px);
-  backdrop-filter: blur(2px);
-  z-index: 9999;
-  animation: fadeIn .16s ease-out both;
+  position:fixed;
+  top:var(--header-h,97px);
+  left:var(--side-w,280px);
+  right:0; bottom:0;
+  background:rgba(0,0,0,.55);
+  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+  z-index:9999; animation:fadeIn .16s ease-out both;
 }
 
-/* Modal alineado al workspace */
+/* Modal centrado */
 .modal{
-  position: fixed;
-  top: 97px;
-  left: var(--side-w, 280px);
-  right: 0; bottom: 0;
-  display:flex; align-items:flex-start; justify-content:center;
-  overflow:hidden; padding:clamp(12px, 2vw, 24px);
-  z-index: 10000;
+  position:fixed;
+  top:var(--header-h,97px);
+  left:var(--side-w,280px);
+  right:0; bottom:0;
+  display:grid; place-items:center;           /* centrado perfecto */
+  overflow:auto; padding:12px;                /* ↓ */
+  z-index:10000;
 }
+
+/* Soporte sidebar colapsado */
+:host-context(.sidebar-collapsed) .modal,
+:host-context(.sidebar-collapsed) .modal-backdrop{ left:var(--side-w-collapsed,92px); }
+body.sidebar-collapsed .modal,
+body.sidebar-collapsed .modal-backdrop{ left:var(--side-w-collapsed,92px); }
+
+/* Móvil: cubrir toda la pantalla */
+@media (max-width:1024px){
+  .modal, .modal-backdrop{ top:0; left:0; }
+}
+
+/* Modal card (compacto) */
 .modal-card{
-  width:min(900px, 96%); max-width:900px;
-  margin-top:clamp(8px, 2vh, 24px);
-  background:#fff; border:1px solid #eee; border-radius:20px;
+  width:min(900px,96%); max-width:900px;
+  background:#fff; border:1px solid #eee; border-radius:12px;  /* ↓ */
   box-shadow:0 24px 80px rgba(0,0,0,.28);
   display:flex; flex-direction:column; overflow:hidden;
   animation:popIn .18s ease-out both;
+  position:relative;
+}
+.modal-card::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:4px; background:#7a2ea8; opacity:.85;
 }
 .modal-card, .modal-card *{ box-sizing:border-box; }
-.modal-head{ display:flex; align-items:center; justify-content:space-between; padding:16px; border-bottom:1px solid #eee; background:linear-gradient(180deg,#ffffff 0%, #faf8fc 100%); }
-.modal-title-wrap{ display:flex; align-items:center; gap:10px; }
-.modal-dot{ width:10px; height:10px; border-radius:999px; background:#7a2ea8; display:inline-block; }
-.modal-head h2{ margin:0; font-size:20px; font-weight:800; }
-.modal-body{ padding:16px; }
 
-/* Form grid */
-.form-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:12px 16px; }
+.modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 10px;                                           /* ↓ */
+  border-bottom:1px solid #eee;
+  background:linear-gradient(180deg,#ffffff 0%, #faf8fc 100%);
+}
+.modal-title-wrap{ display:flex; align-items:center; gap:6px; } /* ↓ */
+.modal-dot{ width:6px; height:6px; border-radius:999px; background:#7a2ea8; display:inline-block; } /* ↓ */
+.modal-head h2{ margin:0; font-size:15px; font-weight:700; }  /* ↓ */
+.modal-body{ padding:10px; }                                   /* ↓ */
+
+/* Form grid (compacta 2 cols) */
+.form-grid{ display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:10px 12px; } /* ↓ */
 .form-grid .span-2{ grid-column:1 / -1; }
+
 .field{ display:flex; flex-direction:column; gap:6px; }
 .req{ color:#d33; }
-input[type="text"], textarea{ height:40px; border-radius:12px; border:1px solid #e5e5e5; background:#fff; padding:0 12px; outline:none; width:100%; }
-textarea{ height:auto; padding:10px 12px; min-height:90px; resize:vertical; }
-input[type="text"]:focus, textarea:focus{ border-color:#c8a9dc; box-shadow:0 0 0 3px rgba(122,46,168,.12); }
+input[type="text"], textarea{
+  height:30px; border-radius:8px; border:1px solid #e5e5e5;  /* ↓ */
+  background:#fff; padding:0 8px; outline:none; width:100%; font-size:12.5px; /* ↓ */
+}
+textarea{ height:auto; padding:8px; min-height:84px; resize:vertical; } /* ↓ */
+input[type="text"]:focus, textarea:focus{
+  border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.10);    /* ↓ */
+}
 input.invalid{ border-color:#f6c7cd; background:#fff6f7; }
 
-/* Footer modal */
+/* Footer modal (compacto) */
 .modal-foot{
-  margin-top:12px; padding:14px 16px; border-top:1px solid #eee;
-  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin-top:6px; padding:10px 12px; border-top:1px solid #eee; /* ↓ */
+  display:flex; align-items:center; justify-content:space-between; gap:6px; /* ↓ */
 }
-.modal-foot .left, .modal-foot .right{ display:flex; align-items:center; gap:8px; }
+.modal-foot .left, .modal-foot .right{ display:flex; align-items:center; gap:6px; } /* ↓ */
 
 /* Animaciones */
 @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
@@ -152,9 +237,15 @@ input.invalid{ border-color:#f6c7cd; background:#fff6f7; }
 /* Responsive */
 @media (max-width:900px){
   .form-grid{ grid-template-columns:1fr; }
-  .modal-card{ width:min(720px, 98%); max-width:720px; }
+  .modal-card{ width:min(720px,98%); max-width:720px; }
 }
 @media (max-width:560px){
   .modal{ padding:8px; }
-  .modal-card{ border-radius:14px; }
+  .modal-card{ border-radius:10px; }                           /* ↓ */
+}
+
+/* Altura baja: alinear arriba si no cabe */
+@media (max-height:680px){
+  .modal{ align-items:start; }
+  .modal-card{ margin-top:12px; }
 }

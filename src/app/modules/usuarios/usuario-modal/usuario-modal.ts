@@ -4,7 +4,6 @@ import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import Swal from 'sweetalert2';
 import { UsuariosService, Usuario } from '../../../services/usuarios.service';
 import { RolesService, Rol } from '../../../services/roles.service';
-import { HostListener } from '@angular/core';
 
 export type ModalMode = 'create' | 'edit' | 'view';
 type UsuarioWithRol = Usuario & { rolId?: number | null; rol?: { id: number; nombre: string } | null };
@@ -21,7 +20,6 @@ export class UsuarioModalComponent implements OnInit {
   @Input() usuario: UsuarioWithRol | null = null;
   @Output() closed = new EventEmitter<boolean>();
 
-  
   private fb = inject(FormBuilder);
   private api = inject(UsuariosService);
   private rolesApi = inject(RolesService);
@@ -120,8 +118,9 @@ export class UsuarioModalComponent implements OnInit {
     try {
       if (this.isCreate) {
         const fd = new FormData();
-        Object.entries(this.form.value).forEach(([k, v]) => v != null && fd.append(k, String(v)));
-        if (this.photoFile) fd.append('foto', this.photoFile);
+        Object.entries(this.form.value).forEach(([k, v]) => { if (v != null) fd.append(k, String(v)); });
+        if (this.photoFile) fd.append('Foto', this.photoFile);
+
         await this.api.create(fd).toPromise();
         Swal.fire('Creado','Usuario creado correctamente','success');
         this.closed.emit(true);
@@ -133,32 +132,36 @@ export class UsuarioModalComponent implements OnInit {
         this.closed.emit(true);
       }
     } catch (e: any) {
-      const msg = e?.error?.title || e?.error || 'No se pudo guardar';
+      const msg =
+        typeof e?.error === 'string' ? e.error :
+        e?.error?.message || e?.error?.title || e?.message || 'No se pudo guardar';
       Swal.fire('Error', String(msg), 'error');
       this.closed.emit(false);
     }
   }
 
- async removeInside() {
-  if (!this.usuario) return;
-  const res = await Swal.fire({
-    icon: 'warning',
-    title: '¿Eliminar usuario?',
-    text: `${this.usuario.primerNombre} ${this.usuario.primerApellido}`,
-    showCancelButton: true,
-    confirmButtonText: 'Sí, eliminar',
-    cancelButtonText: 'Cancelar'
-  });
+  async removeInside() {
+    if (!this.usuario) return;
+    const res = await Swal.fire({
+      icon: 'warning',
+      title: '¿Eliminar usuario?',
+      text: `${this.usuario.primerNombre} ${this.usuario.primerApellido}`,
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
 
-  if (!res.isConfirmed) return;
+    if (!res.isConfirmed) return;
 
-  try {
-    await this.api.remove(this.usuario.id).toPromise();
-    Swal.fire('Eliminado','','success');
-    this.closed.emit(true);
-  } catch {
-    Swal.fire('Error','No se pudo eliminar','error');
+    try {
+      await this.api.remove(this.usuario.id).toPromise();
+      Swal.fire('Eliminado','', 'success');
+      this.closed.emit(true);
+    } catch (e: any) {
+      const msg =
+        typeof e?.error === 'string' ? e.error :
+        e?.error?.message || e?.error?.title || e?.message || 'No se pudo eliminar';
+      Swal.fire('Error', String(msg), 'error');
+    }
   }
-}
-
 }

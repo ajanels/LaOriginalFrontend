@@ -1,4 +1,3 @@
-// src/app/services/auth.interceptor.ts
 import { inject } from '@angular/core';
 import {
   HttpInterceptorFn,
@@ -15,9 +14,7 @@ export const authInterceptor: HttpInterceptorFn =
     const token = auth.token();
 
     if (token) {
-      req = req.clone({
-        setHeaders: { Authorization: `Bearer ${token}` }
-      });
+      req = req.clone({ setHeaders: { Authorization: `Bearer ${token}` } });
     }
     return next(req);
   };

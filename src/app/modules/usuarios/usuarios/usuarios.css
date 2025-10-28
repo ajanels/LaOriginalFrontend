@@ -1,89 +1,169 @@
-/* ===== Layout base ===== */
-.page{ display:flex; flex-direction:column; gap:16px; }
+/* ===== Página y cabeceras ===== */
+.page { position: relative; }
 
-.head-title { margin-bottom: 8px; }
+.head-title{ margin-bottom:8px; }
 .head-title h1{
   font-family:"Playfair Display", Georgia, "Times New Roman", serif;
   font-weight:700;
-  font-size: clamp(28px, 6vw, 64px);
-  line-height:1.1;
-  letter-spacing:.3px;
-  color:rgba(0,0,0,.55);
-  margin:0;
+  font-size:clamp(24px,3.9vw,36px); /* escala compacta */
+  line-height:1.05; letter-spacing:.2px; color:#333; margin:0;
 }
 
-.head{ display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-.actions{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+/* ===== barra y acciones (mantiene posiciones/behavior original) ===== */
+.head{
+  display:flex; align-items:center; justify-content:space-between; gap:12px;
+  flex-wrap:wrap;               /* ← mantiene el wrap que ya tenías */
+  margin-bottom:8px;
+}
+.actions{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
 
+/* ===== Buscador y filtros ===== */
 .search{
   display:flex; align-items:center; gap:6px;
-  background:#fff; border:1px solid #e5e5e5; border-radius:20px;
-  padding:10px 14px; min-width:280px;
-  box-shadow:0 4px 12px rgba(80,0,120,.06);
+  background:#fff; border:1px solid #ddd; border-radius:8px;
+  padding:5px 10px; min-width:280px;
+  box-shadow:0 1px 4px rgba(122,46,168,.06); transition:.15s ease;
 }
-.search input{ border:0; outline:0; background:transparent; width:100%; }
-.search .material-icons{ font-size:18px; color:#8a8a8a; }
+.search:focus-within{ border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.10); }
+.search input{ border:0; outline:0; background:transparent; width:100%; font-size:12.5px; }
+.search .material-icons{ font-size:15px; color:#8a8a8a; }
 
 .filter{
-  height:40px; border-radius:12px; border:1px solid #e5e5e5;
-  background:#fff; padding:0 12px; outline:none;
+  height:30px; border-radius:8px; border:1px solid #e5e5e5;
+  background:#fff; padding:0 9px; outline:none; font-size:12.5px;
 }
 
+/* ===== Botones ===== */
 button.primary{
-  display:inline-flex; align-items:center; gap:8px;
-  border:0; padding:10px 16px; border-radius:12px;
-  background:#7a2ea8; color:#fff; cursor:pointer; font-weight:700;
-  box-shadow:0 6px 14px rgba(122,46,168,.18);
+  display:inline-flex; align-items:center; gap:7px; border:0; padding:5px 10px; height:28px; border-radius:8px;
+  background:#7a2ea8; color:#fff; cursor:pointer; font-weight:700; box-shadow:0 3px 7px rgba(122,46,168,.14); transition:.15s ease; font-size:12px;
 }
+button.primary:hover{ filter:brightness(.97); }
 button.ghost{
-  background:#fff; border:1px solid #e5e5e5; border-radius:10px;
-  padding:8px 12px; cursor:pointer; color:#333;
+  background:#fff; border:1px solid #e5e5e5; border-radius:8px; padding:5px 10px; height:28px; cursor:pointer; color:#333; transition:.15s ease; font-size:12px; font-weight:600;
 }
 
-/* ===== filtros avanzados ===== */
-.filters-adv{ background:#fff; border:1px solid #eee; border-radius:16px; padding:12px; }
-.filters-grid{
-  display:grid; gap:10px; grid-template-columns: repeat(5, 1fr);
+/* ===== Filtros avanzados ===== */
+.filters-adv{
+  background:#fff; border:1px solid #eee; border-radius:10px; padding:9px;
+  margin:6px 0 10px;
 }
-.filters-grid label{ display:flex; flex-direction:column; gap:4px; font-size:12px; color:#555; }
+.filters-grid{ display:grid; gap:7px; grid-template-columns: repeat(5, 1fr); }
+.filters-grid label{ display:flex; flex-direction:column; gap:3px; font-size:11.5px; color:#555; }
 .filters-grid input{
-  height:38px; border-radius:10px; border:1px solid #e5e5e5; padding:0 10px; outline:none;
+  height:30px; border-radius:8px; border:1px solid #e5e5e5; padding:0 8px; outline:none; font-size:12.5px;
 }
 
-/* ===== Card & tabla ===== */
-.card{ background:#fff; border:1px solid #eee; border-radius:20px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.06); }
+/* ===== Card & tabla (franja morada con border-radius perfecto) ===== */
+.card{
+  border:1px solid #eee; border-radius:10px; padding:8px;
+  box-shadow:0 5px 12px rgba(0,0,0,.05);
+  position:relative; overflow:hidden;
+  background:
+    linear-gradient(90deg,#7a2ea8 0 3px, transparent 3px) padding-box,
+    #fff border-box; /* ← franja morada sin seams */
+}
+.head + .card{ margin-top:8px; }
+.card::before{ content:none !important; } /* anulamos el pseudo antiguo */
+
 .table-wrapper{ overflow-x:auto; }
-table.grid{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:900px; }
-.grid thead th{ text-align:left; font-weight:700; font-size:14px; color:#6a6a6a; padding:14px 12px; border-bottom:1px solid #eee; white-space:nowrap; background:#fafafa; }
-.grid tbody td{ padding:14px 12px; border-bottom:1px solid #f3f3f3; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.grid tbody tr:hover{ background:#faf7ff3d; }
+table.grid{ width:100%; border-collapse:separate; border-spacing:0; min-width:900px; table-layout:fixed; font-size:12.5px; }
+.grid thead th{
+  text-align:left; font-weight:700; font-size:12px; color:#6a6a6a;
+  padding:6px 8px; border-bottom:2px solid #efe9f7; background:#faf9fc;
+  position:sticky; top:0; z-index:1;
+}
+.grid tbody td{
+  padding:6px 8px; border-bottom:1px solid #f3f3f6;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle; font-size:12.5px;
+}
+.grid tbody tr:hover{ background:#fbf7ff; }
+
 .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#555; }
 
-.role-pill{ background:#f1ecf7; color:#6b2f99; padding:4px 8px; border-radius:999px; font-size:12px; }
-.state-pill{ padding:6px 12px; border-radius:999px; font-size:12px; font-weight:600; border:1px solid transparent; }
+/* ===== Pills (compact) ===== */
+.role-pill{
+  background:#f1ecf7; color:#6b2f99; padding:3px 7px; border-radius:999px; font-size:11.25px; font-weight:700;
+}
+.state-pill{ padding:4px 8px; border-radius:999px; font-size:11.25px; font-weight:600; border:1px solid transparent; }
 .state-pill.activo{ background:#eaf7ef; color:#2e7d32; border-color:#cdecd6; }
 .state-pill.inactivo{ background:#f7f7f7; color:#666; border-color:#eee; }
 .state-pill.suspendido{ background:#fde9eb; color:#b4232b; border-color:#f6c7cd; }
 
-.acts-col{ width:140px; }
-.acts{ display:flex; align-items:center; gap:8px; }
+/* ===== Acciones ===== */
+.acts-col{ width:168px; text-align:center; }
+.acts{ display:flex; align-items:center; justify-content:center; gap:6px; }
 button.icon{
-  border:0; background:#f6f3f7; color:#6b2f99; border-radius:10px;
-  padding:8px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  border:0; background:#f6f3f7; color:#6b2f99; border-radius:7px;
+  padding:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  transition:.15s ease; min-width:24px; min-height:24px;
 }
-button.icon .material-icons{ font-size:18px; }
+button.icon:hover{ background:#ede8ef; transform:translateY(-1px); }
+button.icon .material-icons{ font-size:17px; }
 button.icon.danger{ background:#fde9eb; color:#b4232b; }
 
-.empty{ text-align:center; color:#8a8a8a; padding:24px; }
+/* Vacío */
+.empty{ text-align:center; color:#8a8a8a; padding:14px; }
 
-/* pager */
-.pager{ display:flex; align-items:center; gap:10px; padding:12px; justify-content:flex-end; }
+/* Paginación */
+.pager{ display:flex; align-items:center; gap:9px; padding:9px; justify-content:flex-end; }
 button.ghost:disabled{ opacity:.6; cursor:not-allowed; }
 
-/* responsive */
-@media (max-width:1200px){ .filters-grid{ grid-template-columns: repeat(2, 1fr); } }
+/* ===== Responsive ===== */
+@media (max-width:1200px){
+  .filters-grid{ grid-template-columns: repeat(2, 1fr); }
+}
+
 @media (max-width:1000px){
+  /* mantiene el comportamiento original: barra apilable */
   .head{ flex-direction:column; align-items:stretch; gap:10px; }
   .actions{ flex-wrap:wrap; gap:8px; }
   .search{ min-width:unset; width:100%; }
+}
+
+/* Mejora extra en móvil: tabla como tarjetas */
+@media (max-width:900px){
+  .grid thead{ display:none; }
+  .grid tbody tr{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:6px;
+    border-bottom:1px solid #eee;
+    padding:8px 0;
+  }
+  .grid tbody td{ border:0; padding:4px 7px; white-space:normal; }
+}
+
+/* Base común para ambos botones */
+button.primary,
+button.ghost{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;   /* centra también en icon-only */
+  gap:7px;
+  padding:5px 10px;
+  min-height:28px;          /* mejor que height: evita recortes */
+  border-radius:8px;
+  font-size:12px;
+  line-height:1;            /* evita que el texto “crezca” la caja */
+  box-sizing:border-box;
+  cursor:pointer;
+  transition:.15s ease;
+  font-weight:600;
+}
+
+/* Colores (lo que ya tenías) */
+button.primary{ border:0; background:#7a2ea8; color:#fff; box-shadow:0 3px 7px rgba(122,46,168,.14); font-weight:700; }
+button.primary:hover{ filter:brightness(.97); }
+
+button.ghost{ background:#fff; border:1px solid #ddd; color:#333; }
+button.ghost:hover{ background:#f7f7f7; }
+
+/* Tamaño de icono dentro de cualquier botón */
+button.primary .material-icons,
+button.ghost  .material-icons{
+  font-size:17px;
+  line-height:1;
+  display:inline-block;     /* evita heredar baseline raro */
+  vertical-align:middle;
 }

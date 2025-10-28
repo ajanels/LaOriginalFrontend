@@ -1,1 +1,775 @@
-<p>clientes works!</p>
+<div class="page">
+  <div class="head-title"><h1>Pedidos</h1></div>
+
+  <div class="toolbar">
+    <div class="search">
+      <span class="material-icons">search</span>
+      <input type="text" placeholder="Buscar cliente u observación…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
+    </div>
+
+    <div class="actions">
+      <button class="ghost" type="button" (click)="reload()">
+        <span class="material-icons">refresh</span> Actualizar
+      </button>
+      <button class="primary" type="button" (click)="crearPedido()">
+        <span class="material-icons">add</span> Crear pedido
+      </button>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="table-wrapper">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th class="img-cell">Img</th>
+            <th>Cliente</th>
+            <th>Descripción</th>
+            <th>Estado</th>
+            <th>Cuenta</th>
+            <th class="text-right">Total</th>
+            <th class="actions-col">Acciones</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let p of filtered(); trackBy: trackByPedidoId">
+            <td class="img-cell">
+              <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eef;border:1px solid #d4d4ff;"
+                   [style.background]="p.tipo === TipoPedidoCliente.Completo ? '#eef' : '#efe'"
+                   [style.borderColor]="p.tipo === TipoPedidoCliente.Completo ? '#d4d4ff' : '#cfe8cf'">
+                <span class="material-icons" style="font-size:20px;">
+                  {{ p.tipo === TipoPedidoCliente.Completo ? 'assignment' : 'handyman' }}
+                </span>
+              </div>
+            </td>
+
+            <td class="strong">
+              {{ p.cliente }}
+              <div class="mono" style="font-size:12px;color:#777">{{ asDmyTime(p.fechaCreacionUtc) }}</div>
+            </td>
+
+            <td [title]="p.descripcion || '—'">{{ resumenDescripcion(p.descripcion, 3) }}</td>
+
+            <td>
+              <span [ngClass]="estadoBadge(p.estado)" class="pill">
+                <span class="dot"></span>{{ estadoTexto(p.estado) }}
+              </span>
+            </td>
+
+            <td>
+              <span class="pill" [ngClass]="p.cuentaAlDia ? 'ok' : 'low'">
+                <span class="dot" [ngClass]="p.cuentaAlDia ? 'ok' : 'warn'"></span>
+                {{ p.cuentaAlDia ? 'Al día' : 'Pendiente' }}
+              </span>
+            </td>
+
+            <td class="text-right nowrap">{{ p.total | number:'1.2-2' }}</td>
+
+            <td class="actions-cell" style="gap:10px;">
+              <!-- Ver -->
+              <button class="icon" title="Ver detalle" (click)="openDetail(p.id)">
+                <span class="material-icons">visibility</span>
+              </button>
+
+              <!-- Cuando el pedido está finalizado (entregado o ya convertido a venta), ocultamos todo lo demás -->
+              <ng-container *ngIf="!isFinalizado(p)">
+
+                <!-- Editar -->
+                <button class="icon" title="Editar pedido"
+                        *ngIf="(+p.estado) === EstadoPedidoCliente.Borrador || (+p.estado) === EstadoPedidoCliente.Confirmado"
+                        (click)="openEditarPedido(p.id)">
+                  <span class="material-icons">edit</span>
+                </button>
+
+                <!-- Avanzar estados -->
+                <button class="icon" title="Pasar a En preparación"
+                        *ngIf="(+p.estado) === EstadoPedidoCliente.Confirmado"
+                        (click)="pasarAPreparacion(p)">
+                  <span class="material-icons">engineering</span>
+                </button>
+
+                <button class="icon" title="Marcar como Listo"
+                        *ngIf="(+p.estado) === EstadoPedidoCliente.EnPreparacion"
+                        (click)="marcarListo(p)">
+                  <span class="material-icons">done_all</span>
+                </button>
+
+                <!-- Listo -> Entregado: deshabilitar si la cuenta está pendiente -->
+                <button class="icon"
+                        [title]="p.cuentaAlDia ? 'Marcar Entregado' : 'No puedes entregar con saldo pendiente'"
+                        *ngIf="(+p.estado) === EstadoPedidoCliente.Listo"
+                        [disabled]="!p.cuentaAlDia"
+                        (click)="entregarPedido(p)">
+                  <span class="material-icons">local_shipping</span>
+                </button>
+
+                <!-- Convertir a venta: solo para pedidos con ítems (Personalizado) y no finalizados -->
+                <button class="icon" title="Convertir a venta"
+                        *ngIf="showBtnConvertirVenta(p)"
+                        (click)="convertirAVenta(p)">
+                  <span class="material-icons">point_of_sale</span>
+                </button>
+
+                <!-- Pagos / Devoluciones -->
+                <button class="icon" title="Registrar anticipo"
+                        *ngIf="(+p.estado) !== EstadoPedidoCliente.Cancelado"
+                        (click)="openAnticipoDesdeLista(p.id)">
+                  <span class="material-icons">payments</span>
+                </button>
+
+                <button class="icon devol"
+                        *ngIf="showBtnDevolucion(p)"
+                        (click)="openDevolucionDesdeLista(p.id)"
+                        title="Devolución">
+                  <span class="material-icons">undo</span>
+                </button>
+
+                <!-- Cancelar / Reactivar / Eliminar -->
+                <button class="icon" title="Cancelar pedido"
+                        *ngIf="(+p.estado) === EstadoPedidoCliente.Confirmado"
+                        (click)="cancelarPedido(p)">
+                  <span class="material-icons">block</span>
+                </button>
+
+              </ng-container>
+
+              <button class="icon" title="Reactivar pedido"
+                      *ngIf="(+p.estado) === EstadoPedidoCliente.Cancelado"
+                      (click)="reactivarPedido(p)">
+                <span class="material-icons">restart_alt</span>
+              </button>
+
+              <button class="icon" title="Eliminar"
+                      *ngIf="(+p.estado) === EstadoPedidoCliente.Borrador && !hasCobros(p)"
+                      (click)="eliminarPedido(p)">
+                <span class="material-icons">delete</span>
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="!loading() && filtered().length === 0">
+            <td colspan="7">
+              <div class="empty"><span class="material-icons">inbox</span><div>Sin pedidos</div><small>Cuando registres un pedido aparecerá aquí.</small></div>
+            </td>
+          </tr>
+
+          <tr *ngIf="loading()">
+            <td colspan="7">
+              <div class="empty"><span class="material-icons">hourglass_top</span>Cargando…</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de selección de tipo -->
+<div class="modal choice-modal" *ngIf="showChoice()" (click)="closeCreate()">
+  <div class="modal-card small" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap"><div class="modal-dot"></div><h2>Crear Pedido</h2></div>
+      <button class="icon" title="Cerrar" (click)="closeCreate()"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <div class="choice-grid">
+        <button type="button" class="choice-btn" (click)="goCrear('completo')"><span class="material-icons">assignment</span>Completo (sin ítems)</button>
+        <button type="button" class="choice-btn alt" (click)="goCrear('personalizado')"><span class="material-icons">handyman</span>Personalizado</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Pedido Completo -->
+<div class="modal full-modal" *ngIf="showFull()" (click)="closeFull()">
+  <div class="modal-card large" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap">
+        <div class="modal-dot"></div>
+        <h2>{{ editingId ? 'Editar pedido (completo)' : 'Crear pedido (completo)' }}</h2>
+      </div>
+      <button class="icon" (click)="closeFull()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="two-col">
+        <div class="section-card">
+          <h3 class="section-title">Datos del cliente</h3>
+
+          <label class="form-row">
+            <span>Cliente</span>
+            <div class="picked" style="gap:8px; width:100%;">
+              <input type="text" placeholder="Escribe para buscar…" [ngModel]="clienteTerm()" (ngModelChange)="clienteTerm.set($event); buscarClientes();" style="flex:1 1 auto;">
+              <button class="ghost" type="button" (click)="openNewClient()">Nuevo cliente</button>
+            </div>
+          </label>
+
+          <div *ngIf="clientesSug().length" class="card suggestions">
+            <div *ngFor="let c of clientesSug()" (click)="pickCliente(c)" class="suggestion-row">
+              <div class="strong">{{ c.nombre }}</div>
+              <small class="mono">ID {{ c.id }} · {{ c.telefono || '—' }}</small>
+            </div>
+          </div>
+
+          <label class="form-row" *ngIf="form.clienteId">
+            <span>Cliente seleccionado</span>
+            <div class="picked">
+              <input readonly [ngModel]="form.clienteNombre + ' (ID ' + form.clienteId + ')'">
+              <button class="icon" title="Quitar" (click)="clearCliente(); form.clienteId=null; form.clienteNombre='';">✕</button>
+            </div>
+          </label>
+
+          <label class="form-row"><span>Teléfono</span>
+            <input type="text" inputmode="numeric" maxlength="8" [ngModel]="form.telefono" (ngModelChange)="onPedidoPhoneChange($event)">
+          </label>
+
+          <label class="form-row"><span>Dirección entrega</span><input type="text" [(ngModel)]="form.direccion"></label>
+
+          <label class="form-row"><span>Fecha entrega (opcional)</span><input type="date" [(ngModel)]="form.fechaEntrega"></label>
+
+          <label class="form-row">
+            <span>Estado</span>
+            <select [(ngModel)]="form.estado">
+              <option [ngValue]="EstadoPedidoCliente.Borrador">Borrador</option>
+              <option [ngValue]="EstadoPedidoCliente.Confirmado">Confirmado</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="section-card">
+          <h3 class="section-title">Monto total</h3>
+          <label class="form-row"><span>Total</span><input type="number" min="0" step="0.01" [(ngModel)]="form.totalManual"></label>
+
+          <h3 class="section-title">Observaciones / Diseño</h3>
+          <div class="form-row"><span>Lienzos</span><input type="number" min="0" [(ngModel)]="form.diseno.lienzos"></div>
+          <div class="form-row"><span>Color</span><input type="text" [(ngModel)]="form.diseno.color"></div>
+
+          <div class="form-row">
+            <span>Brich</span>
+            <label class="checkbox-wrap"><input type="checkbox" [(ngModel)]="form.diseno.brich" /><span>Aplicar</span></label>
+          </div>
+
+          <div class="form-row"><span>Otros</span><input type="text" [(ngModel)]="form.diseno.otros"></div>
+
+          <div class="form-row">
+            <span>Reportado</span>
+            <select [(ngModel)]="form.reportado">
+              <option [ngValue]="null">—</option>
+              <option [ngValue]="true">Sí</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <span>Observaciones extra</span>
+            <input type="text" [(ngModel)]="form.observacionesExtra" placeholder="Comentarios generales">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ghost" (click)="closeFull()">Cancelar</button>
+      <button class="primary" (click)="saveFull()">{{ editingId ? 'Guardar cambios' : 'Crear' }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Pedido Personalizado -->
+<div class="modal full-modal" *ngIf="showPers()" (click)="closePers()">
+  <div class="modal-card xlarge" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap"><div class="modal-dot"></div><h2>{{ editingId ? 'Editar pedido personalizado' : 'Crear pedido personalizado' }}</h2></div>
+      <button class="icon" (click)="closePers()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="two-col">
+        <div class="section-card">
+          <h3 class="section-title">Datos del cliente</h3>
+
+          <label class="form-row">
+            <span>Cliente</span>
+            <div class="picked" style="gap:8px; width:100%;">
+              <input type="text" placeholder="Escribe para buscar…" [ngModel]="clienteTerm()" (ngModelChange)="clienteTerm.set($event); buscarClientes();" style="flex:1 1 auto;">
+              <button class="ghost" type="button" (click)="openNewClient()">Nuevo cliente</button>
+            </div>
+          </label>
+
+          <div *ngIf="clientesSug().length" class="card suggestions">
+            <div *ngFor="let c of clientesSug()" (click)="pickCliente(c)" class="suggestion-row">
+              <div class="strong">{{ c.nombre }}</div>
+              <small class="mono">ID {{ c.id }} · {{ c.telefono || '—' }}</small>
+            </div>
+          </div>
+
+          <label class="form-row" *ngIf="formPers.clienteId">
+            <span>Cliente seleccionado</span>
+            <div class="picked">
+              <input readonly [ngModel]="formPers.clienteNombre + ' (ID ' + formPers.clienteId + ')'">
+              <button class="icon" title="Quitar" (click)="clearCliente(); formPers.clienteId=null; formPers.clienteNombre='';">✕</button>
+            </div>
+          </label>
+
+          <label class="form-row"><span>Teléfono</span>
+            <input type="text" inputmode="numeric" maxlength="8" [ngModel]="formPers.telefono" (ngModelChange)="onPersPhoneChange($event)">
+          </label>
+
+          <label class="form-row"><span>Dirección entrega</span><input type="text" [(ngModel)]="formPers.direccion"></label>
+
+          <label class="form-row"><span>Fecha entrega (opcional)</span><input type="date" [(ngModel)]="formPers.fechaEntrega"></label>
+
+          <label class="form-row">
+            <span>Estado</span>
+            <select [(ngModel)]="formPers.estado">
+              <option [ngValue]="EstadoPedidoCliente.Borrador">Borrador</option>
+              <option [ngValue]="EstadoPedidoCliente.Confirmado">Confirmado</option>
+            </select>
+          </label>
+
+          <h3 class="section-title">Observaciones / Diseño</h3>
+          <div class="form-row"><span>Lienzos</span><input type="number" min="0" [(ngModel)]="formPers.diseno.lienzos"></div>
+          <div class="form-row"><span>Color</span><input type="text" [(ngModel)]="formPers.diseno.color"></div>
+
+          <div class="form-row">
+            <span>Brich</span>
+            <label class="checkbox-wrap"><input type="checkbox" [(ngModel)]="formPers.diseno.brich" /><span>Aplicar</span></label>
+          </div>
+
+          <div class="form-row"><span>Otros</span><input type="text" [(ngModel)]="formPers.diseno.otros"></div>
+
+          <div class="form-row">
+            <span>Reportado</span>
+            <select [(ngModel)]="formPers.reportado">
+              <option [ngValue]="null">—</option>
+              <option [ngValue]="true">Sí</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </div>
+
+          <div class="form-row">
+            <span>Observaciones extra</span>
+            <input type="text" [(ngModel)]="formPers.observacionesExtra" placeholder="Comentarios generales">
+          </div>
+        </div>
+
+        <div class="section-card">
+          <div class="list-head">
+            <h3 class="section-title">Ítems del pedido</h3>
+            <button class="ghost" type="button" (click)="openCatalog()">
+              <span class="material-icons">add_shopping_cart</span> Agregar ítems
+            </button>
+          </div>
+
+          <div class="card">
+            <table class="grid small">
+              <thead>
+                <tr>
+                  <th style="width:56px">Img</th>
+                  <th>Producto / Presentación</th>
+                  <th class="text-right">Cant.</th>
+                  <th class="text-right">P. Unit</th>
+                  <th class="text-right">Desc.</th>
+                  <th class="text-right">Total</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let l of formPers.detalles; let i = index">
+                  <td class="img-cell">
+                    <img class="line-thumb" [src]="l.imgUrl || lineImg(l.presentacionId)" alt="img">
+                  </td>
+                  <td>
+                    <div class="strong one-line" [title]="(l.productoNombre || lineProducto(l.presentacionId) || l.presentacionNombre)">
+                      {{ l.productoNombre || lineProducto(l.presentacionId) || '—' }}
+                    </div>
+                    <small class="mono sub one-line" [title]="l.presentacionNombre">
+                      {{ l.presentacionNombre || ('#' + l.presentacionId) }}
+                    </small>
+                    <div class="tag tag-stock" *ngIf="l.disponible != null">Disp: {{ l.disponible | number:'1.0-2' }}</div>
+                  </td>
+
+                  <!-- Cantidad -->
+                  <td class="text-right">
+                    <input class="num-input qty" type="number" min="0.01" step="0.01"
+                           [(ngModel)]="l.cantidad" (ngModelChange)="onLineChange()">
+                  </td>
+
+                  <!-- Precio Unitario (solo lectura) -->
+                  <td class="text-right">
+                    <input class="num-input pu readonly" type="number" min="0" step="0.01"
+                           [ngModel]="l.precioUnitario" readonly>
+                  </td>
+
+                  <td class="text-right">
+                    <input class="num-input disc" type="number" min="0" step="0.01"
+                           [(ngModel)]="l.descuentoUnitario" (ngModelChange)="onLineChange()">
+                  </td>
+
+                  <td class="text-right mono">{{ l.totalLinea | number:'1.2-2' }}</td>
+                  <td class="text-right"><button class="icon" title="Quitar" (click)="removeLine(i)"><span class="material-icons">delete</span></button></td>
+                </tr>
+                <tr *ngIf="formPers.detalles.length === 0">
+                  <td colspan="7"><div class="empty"><span class="material-icons">inventory_2</span> Sin ítems. Usa “Agregar ítems”.</div></td>
+                </tr>
+              </tbody>
+              <tfoot>
+                <tr><td colspan="3"></td><td class="text-right">Subtotal</td><td class="text-right mono">{{ formPers.subtotal | number:'1.2-2' }}</td><td></td></tr>
+                <tr><td colspan="3"></td><td class="text-right">Descuento</td><td class="text-right mono">{{ formPers.descuento | number:'1.2-2' }}</td><td></td></tr>
+                <tr><td colspan="3"></td><td class="text-right strong">Total</td><td class="text-right mono strong">{{ formPers.total | number:'1.2-2' }}</td><td></td></tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <div class="card hint">
+            <small class="mono"></small>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ghost" (click)="closePers()">Cancelar</button>
+      <button class="primary" (click)="savePers()">{{ editingId ? 'Guardar cambios' : 'Crear' }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ver detalle -->
+<div class="modal" *ngIf="showDetail()" (click)="closeDetail()">
+  <div class="modal-card large detail-modal" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap"><div class="modal-dot"></div><h2>Detalle del pedido</h2></div>
+      <button class="icon" (click)="closeDetail()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <ng-container *ngIf="detalle as d; else detailLoading">
+
+        <!-- Header + Métricas -->
+        <div class="detail-card">
+          <div class="detail-top">
+            <div class="avatar">{{ (d.clienteNombre || '?').slice(0,1) }}</div>
+
+            <div class="top-main">
+              <div class="name-row">
+                <h3 class="client-name">{{ d.clienteNombre }}</h3>
+                <span class="pill" [ngClass]="estadoBadge(d.estado)">
+                  <span class="dot"></span>{{ estadoTexto(d.estado) }}
+                </span>
+                <span class="chip" [class.alt]="d.tipo === TipoPedidoCliente.Personalizado">
+                  {{ d.tipo === TipoPedidoCliente.Personalizado ? 'Personalizado' : 'Completo' }}
+                </span>
+              </div>
+
+              <div class="kv-grid mono">
+                <div class="kv">
+                  <span class="kv-k">Total</span>
+                  <span class="kv-v strong">{{ d.total | number:'1.2-2' }}</span>
+                </div>
+                <div class="kv">
+                  <span class="kv-k">Desc</span>
+                  <span class="kv-v">{{ d.descuento | number:'1.2-2' }}</span>
+                </div>
+                <div class="kv">
+                  <span class="kv-k">Cobrado</span>
+                  <span class="kv-v">{{ (d.totalCobrado ?? d.montoPagado) | number:'1.2-2' }}</span>
+                </div>
+                <div class="kv">
+                  <span class="kv-k">Devuelto</span>
+                  <span class="kv-v">{{ (d.totalDevuelto ?? 0) | number:'1.2-2' }}</span>
+                </div>
+                <div class="kv">
+                  <span class="kv-k">Saldo</span>
+                  <span class="kv-v strong">{{ d.saldo | number:'1.2-2' }}</span>
+                </div>
+                <div class="kv" *ngIf="d.fechaEntregaCompromisoUtc">
+                  <span class="kv-k">Entrega</span>
+                  <span class="kv-v">{{ asDmyUtc(d.fechaEntregaCompromisoUtc) }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Cuerpo -->
+        <div class="two-col detail-columns">
+          <div class="left">
+            <h3 class="section-title">Contacto</h3>
+            <ul class="details-list">
+              <li *ngIf="d.telefono"><b>Teléfono:</b> {{ d.telefono }}</li>
+              <li *ngIf="d.direccionEntrega"><b>Dirección:</b> {{ d.direccionEntrega }}</li>
+            </ul>
+
+            <div *ngIf="(d.diseno?.lienzos || d.diseno?.color || d.diseno?.brich || d.diseno?.otros || d.diseno?.extra)">
+              <h3 class="section-title">Observaciones / Diseño</h3>
+              <ul class="details-list">
+                <li *ngIf="d.diseno?.lienzos">Lienzos: {{ d.diseno?.lienzos }}</li>
+                <li *ngIf="d.diseno?.color">Color: {{ d.diseno?.color }}</li>
+                <li *ngIf="d.diseno?.brich">Brich: sí</li>
+                <li *ngIf="d.diseno?.otros">{{ d.diseno?.otros }}</li>
+                <li *ngIf="d.diseno?.extra">{{ d.diseno?.extra }}</li>
+              </ul>
+            </div>
+
+            <!-- Pagos / Devoluciones -->
+            <div>
+              <h3 class="section-title">Movimientos de pago</h3>
+              <div class="card" *ngIf="(d.pagos?.length || 0) > 0; else noPagos">
+                <table class="grid small">
+                  <thead>
+                    <tr>
+                      <th>Fecha</th>
+                      <th>Forma de pago</th>
+                      <th class="text-right">Monto</th>
+                      <th>Referencia</th>
+                      <th>Notas</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let pg of d.pagos">
+                      <td class="mono">{{ asDmyTime(pg.fechaUtc) }}</td>
+                      <td>{{ pg.formaPagoNombre }}</td>
+                      <td class="text-right mono" [class.negative]="pg.esDevolucion">{{ (pg.esDevolucion ? -pg.monto : pg.monto) | number:'1.2-2' }}</td>
+                      <td class="mono">{{ pg.referencia || '—' }}</td>
+                      <td class="mono">{{ pg.notas || '—' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <ng-template #noPagos>
+                <div class="card hint"><small class="mono">Sin movimientos de pago.</small></div>
+              </ng-template>
+            </div>
+          </div>
+
+          <div class="right" *ngIf="(d.detalles?.length || 0) > 0">
+            <div class="card">
+              <table class="grid detail-table">
+                <thead>
+                  <tr>
+                    <th style="width:56px">Img</th>
+                    <th>Producto / Presentación</th>
+                    <th class="text-right nowrap">Cantidad</th>
+                    <th class="text-right nowrap">Precio unitario</th>
+                    <th class="text-right nowrap">Descuento</th>
+                    <th class="text-right nowrap">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let it of d.detalles">
+                    <td class="img-cell">
+                      <img class="line-thumb" [src]="lineImg(it.presentacionId)" alt="img">
+                    </td>
+                    <td>
+                      <div class="strong one-line">
+                        {{ lineProducto(it.presentacionId, it.presentacionNombre) || '—' }}
+                      </div>
+                      <small class="mono sub one-line">
+                        {{ it.presentacionNombre || ('#' + it.presentacionId) }}
+                      </small>
+                    </td>
+                    <td class="text-right mono">{{ it.cantidad | number:'1.2-2' }}</td>
+                    <td class="text-right mono">{{ it.precioUnitario | number:'1.2-2' }}</td>
+                    <td class="text-right mono">{{ it.descuentoUnitario | number:'1.2-2' }}</td>
+                    <td class="text-right mono">{{ it.totalLinea | number:'1.2-2' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </ng-container>
+
+      <ng-template #detailLoading>
+        <div class="empty"><span class="material-icons">hourglass_top</span>Cargando…</div>
+      </ng-template>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ghost" (click)="closeDetail()">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Nuevo cliente -->
+<div class="modal" *ngIf="showNewClient()" (click)="closeNewClient()">
+  <div class="modal-card small" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap"><div class="modal-dot"></div><h2>Nuevo cliente</h2></div>
+      <button class="icon" (click)="closeNewClient()"><span class="material-icons">close</span></button>
+    </div>
+    <div class="modal-body">
+      <label class="form-row"><span>Nombre</span><input [(ngModel)]="newClient.nombre" placeholder="Nombre del cliente"></label>
+      <label class="form-row"><span>Teléfono</span>
+        <input type="text" inputmode="numeric" maxlength="8" [ngModel]="newClient.telefono" (ngModelChange)="onNewClientPhoneChange($event)" placeholder="Opcional (8 dígitos)">
+      </label>
+    </div>
+    <div class="modal-foot">
+      <button class="ghost" (click)="closeNewClient()">Cancelar</button>
+      <button class="primary" [disabled]="savingNewClient()" (click)="saveNewClient()">{{ savingNewClient() ? 'Guardando…' : 'Crear' }}</button>
+    </div>
+  </div>
+</div>
+
+<!-- Anticipos -->
+<div class="modal" *ngIf="showPago()" (click)="closePago()">
+  <div class="modal-card small" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap"><div class="modal-dot"></div><h2>Registrar anticipo</h2></div>
+      <button class="icon" (click)="closePago()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="form-row"><span>Forma de pago</span>
+        <select [(ngModel)]="anticipo.formaPagoId">
+          <option [ngValue]="null">— Selecciona —</option>
+          <option *ngFor="let fp of formasPago()" [ngValue]="fp.id">{{ fp.nombre }}</option>
+        </select>
+      </div>
+      <div class="form-row"><span>Monto</span><input type="number" min="0" step="0.01" [(ngModel)]="anticipo.monto"></div>
+      <div class="form-row" *ngIf="formaRequiereReferencia"><span>Referencia</span><input type="text" [(ngModel)]="anticipo.referencia" placeholder="Obligatoria"></div>
+      <div class="form-row"><span>Notas</span><input type="text" [(ngModel)]="anticipo.notas" placeholder="Opcional"></div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ghost" (click)="closePago()">Cancelar</button>
+      <button class="primary" (click)="registrarAnticipo()">Registrar anticipo</button>
+    </div>
+  </div>
+</div>
+
+<!-- Devoluciones -->
+<div class="modal" *ngIf="showDevolucion()" (click)="closeDevolucion()">
+  <div class="modal-card small" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap"><div class="modal-dot"></div><h2>Registrar devolución</h2></div>
+      <button class="icon" (click)="closeDevolucion()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="card hint"><small>Saldo disponible a devolver: <b>Q{{ devolSaldoDisponible() | number:'1.2-2' }}</b></small></div>
+
+      <div class="form-row"><span>Forma de pago</span>
+        <select [(ngModel)]="devol.formaPagoId">
+          <option [ngValue]="null">— Selecciona —</option>
+          <option *ngFor="let fp of formasPago()" [ngValue]="fp.id">{{ fp.nombre }}</option>
+        </select>
+      </div>
+
+      <div class="form-row"><span>Monto</span><input type="number" min="0" step="0.01" [(ngModel)]="devol.monto"></div>
+      <div class="form-row" *ngIf="devolRequiereRef"><span>Referencia</span><input type="text" [(ngModel)]="devol.referencia" placeholder="Obligatoria"></div>
+      <div class="form-row"><span>Notas</span><input type="text" [(ngModel)]="devol.notas" placeholder="Opcional"></div>
+    </div>
+
+    <div class="modal-foot">
+      <button class="ghost" (click)="closeDevolucion()">Cancelar</button>
+      <button class="primary danger" (click)="registrarDevolucion()">Registrar devolución</button>
+    </div>
+  </div>
+</div>
+
+<!-- Catálogo -->
+<div class="modal" *ngIf="showCat()" (click)="closeCatalog()">
+  <div class="modal-card xlarge" (click)="$event.stopPropagation()">
+    <div class="modal-head">
+      <div class="modal-title-wrap"><div class="modal-dot"></div><h2>Catálogo</h2></div>
+      <button class="icon" (click)="closeCatalog()"><span class="material-icons">close</span></button>
+    </div>
+
+    <div class="modal-body">
+      <div class="toolbar">
+        <div class="search" style="flex:1 1 100%; max-width:100%;">
+          <span class="material-icons">search</span>
+          <input type="text"
+                 placeholder="Buscar por nombre, código, SKU o código de barras…"
+                 [ngModel]="catTerm()"
+                 (ngModelChange)="catTerm.set($event); buscarCatalogo()"/>
+        </div>
+
+        <!-- Botón filtro por categoría -->
+        <div class="cat-filter-wrap">
+          <button type="button" class="ghost cat-filter-btn" (click)="catPopover.set(!catPopover())">
+            <span class="material-icons">tune</span>
+            {{ catNombreSel() }}
+            <span class="material-icons caret">expand_more</span>
+          </button>
+
+          <!-- Popover categorías -->
+          <div class="cat-popover" *ngIf="catPopover()" (click)="$event.stopPropagation()">
+            <div class="cat-popover-head">
+              <strong>Filtrar por categoría</strong>
+              <button class="linklike" type="button" (click)="selectCategoria(null)">Quitar filtro</button>
+            </div>
+
+            <div class="active-cat" *ngIf="catSelected()!=null">
+              <span class="chip active">{{ catNombreSel() }}</span>
+              <button class="icon mini" (click)="selectCategoria(null)"><span class="material-icons">close</span></button>
+            </div>
+
+            <div class="cat-popover-grid">
+              <button class="chip"
+                      *ngFor="let c of categorias()"
+                      [class.active]="c.id === catSelected()"
+                      (click)="selectCategoria(c.id)">
+                {{ c.nombre }}
+                <span class="chip-count" *ngIf="false"></span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="grid">
+          <thead>
+            <tr>
+              <th style="width:64px">Img</th>
+              <th>Producto</th>
+              <th>Presentación</th>
+              <th class="text-right">Precio</th>
+              <th class="text-right">Disp.</th>
+              <th class="actions-col">Agregar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let r of catRowsFiltered(); trackBy: trackByCatId">
+              <td><img class="thumb" [src]="imgFor(r)" alt="img"></td>
+              <td>
+                <div class="strong">{{ r.producto }}</div>
+                <small class="mono" *ngIf="r.productoCodigo">Código: {{ r.productoCodigo }}</small>
+              </td>
+              <td>{{ r.nombre }}</td>
+              <td class="text-right mono">{{ (r.precioVentaDefault != null ? r.precioVentaDefault : 0) | number:'1.2-2' }}</td>
+              <td class="text-right mono">{{ (r.disponible != null ? r.disponible : 0) | number:'1.2-2' }}</td>
+              <td class="actions-cell">
+                <button class="primary" type="button" (click)="pickFromCatalog(r)">
+                  <span class="material-icons">add</span> Elegir
+                </button>
+              </td>
+            </tr>
+
+            <tr *ngIf="!catLoading && catRowsFiltered().length === 0">
+              <td colspan="6">
+                <div class="empty"><span class="material-icons">inbox</span><div>Sin resultados</div><small>Prueba con otro término.</small></div>
+              </td>
+            </tr>
+
+            <tr *ngIf="catLoading">
+              <td colspan="6">
+                <div class="empty"><span class="material-icons">hourglass_top</span> Cargando…</div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+    </div>
+
+    <div class="modal-foot">
+      <button class="ghost" (click)="closeCatalog()">Cerrar</button>
+    </div>
+  </div>
+</div>

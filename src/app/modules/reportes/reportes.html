@@ -1,1 +1,357 @@
-<p>reportes works!</p>
+<div class="page rep-page">
+
+  <!-- Título -->
+  <div class="head-title">
+    <h1>Reportes</h1>
+  </div>
+
+  <!-- Filtros + Tabs + Acciones -->
+  <div class="head">
+    <div class="filters actions">
+      <label class="date">
+        <span>Desde</span>
+        <input class="filter" type="date" [(ngModel)]="desde" (change)="refrescar()"/>
+      </label>
+      <label class="date">
+        <span>Hasta</span>
+        <input class="filter" type="date" [(ngModel)]="hasta" (change)="refrescar()"/>
+      </label>
+
+      <div class="tabs">
+        <button [class.active]="tab==='dia'"       (click)="switch('dia')">Ventas por día</button>
+        <button [class.active]="tab==='usuario'"   (click)="switch('usuario')">Por usuario</button>
+        <button [class.active]="tab==='clientes'"  (click)="switch('clientes')">Clientes top</button>
+        <button [class.active]="tab==='producto'"  (click)="switch('producto')">Por producto</button>
+        <button [class.active]="tab==='categoria'" (click)="switch('categoria')">Por categoría</button>
+        <button [class.active]="tab==='usuarios'"  (click)="switch('usuarios')">Usuarios</button>
+        <button [class.active]="tab==='caja'"      (click)="switch('caja')">Caja</button>
+        <button [class.active]="tab==='utilidad'"  (click)="switch('utilidad')">Ganancia por producto</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="ghost" (click)="exportCsv()">Exportar CSV</button>
+      <button class="primary" (click)="imprimir()">Imprimir</button>
+    </div>
+  </div>
+
+  <!-- KPIs ventas por día -->
+  <div class="kpis" *ngIf="tab==='dia'">
+    <div class="kpi">
+      <div class="kpi-label">Ingresos</div>
+      <div class="kpi-value">Q {{ totalIngresos | number:'1.2-2' }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label"># Documentos</div>
+      <div class="kpi-value">{{ totalDocs }}</div>
+    </div>
+  </div>
+
+  <!-- KPIs usuarios -->
+  <div class="kpis" *ngIf="tab==='usuario' && utilidadUsuarioDisponible">
+    <div class="kpi">
+      <div class="kpi-label">Ganancia (usuarios)</div>
+      <div class="kpi-value">Q {{ totalUtilidadUsuarios | number:'1.2-2' }}</div>
+    </div>
+  </div>
+
+  <div class="kpis" *ngIf="tab==='utilidad'">
+    <div class="kpi">
+      <div class="kpi-label">Ganancia (productos)</div>
+      <div class="kpi-value">Q {{ totalUtilidadProductos | number:'1.2-2' }}</div>
+    </div>
+  </div>
+
+  <!-- KPIs caja -->
+  <div class="kpis" *ngIf="tab==='caja'">
+    <div class="kpi">
+      <div class="kpi-label">Ingresos (rango)</div>
+      <div class="kpi-value">Q {{ cajaIngresosTotal | number:'1.2-2' }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Egresos (rango)</div>
+      <div class="kpi-value">Q {{ cajaEgresosTotal | number:'1.2-2' }}</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-label">Neto (rango)</div>
+      <div class="kpi-value">Q {{ cajaNetoTotal | number:'1.2-2' }}</div>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading" *ngIf="cargando">Cargando…</div>
+
+  <!-- ===== Ventas por día ===== -->
+  <section *ngIf="tab==='dia' && !cargando" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-ventas-dia">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th class="c">Ventas</th>
+            <th class="c">Items</th>
+            <th class="r">Subtotal</th>
+            <th class="r">Descuento</th>
+            <th class="r">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of porDia">
+            <td>{{ r.fecha }}</td>
+            <td class="c mono">{{ r.ventas }}</td>
+            <td class="c mono">{{ r.items }}</td>
+            <td class="r mono">Q {{ r.subtotal | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.descuento | number:'1.2-2' }}</td>
+            <td class="r mono strong">Q {{ r.total | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!porDia?.length"><td colspan="6" class="empty">Sin datos en el rango seleccionado</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Por usuario ===== -->
+  <section *ngIf="tab==='usuario' && !cargando" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-usuario">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th class="c">Ventas</th>
+            <th class="r">Total</th>
+            <th class="r">Ticket Prom.</th>
+            <th class="r">Utilidad*</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of porUsuario">
+            <td>{{ r.usuario }}</td>
+            <td class="c mono">{{ r.ventas }}</td>
+            <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.ticketPromedio | number:'1.2-2' }}</td>
+            <td class="r mono">
+              <ng-container *ngIf="utilidadUsuarioDisponible && r.utilidad!=null; else dash">
+                Q {{ r.utilidad | number:'1.2-2' }}
+              </ng-container>
+              <ng-template #dash>—</ng-template>
+            </td>
+          </tr>
+          <tr *ngIf="!porUsuario?.length"><td colspan="5" class="empty">Sin datos en el rango seleccionado</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <small class="note">* Se muestra si el backend calcula costo/utilidad.</small>
+  </section>
+
+  <!-- ===== Clientes top ===== -->
+  <section *ngIf="tab==='clientes' && !cargando" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-clientes">
+        <thead>
+          <tr>
+            <th class="c">#</th>
+            <th>Cliente</th>
+            <th class="c">Compras</th>
+            <th class="r">Total</th>
+            <th class="c">Última compra</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of topClienteRows; let i = index">
+            <td class="c mono">{{ i + 1 }}</td>
+            <td>{{ r.cliente }}</td>
+            <td class="c mono">{{ r.compras }}</td>
+            <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
+            <td class="c mono">{{ r.ultimaCompra | date:'yyyy-MM-dd' }}</td>
+          </tr>
+          <tr *ngIf="!topClienteRows?.length"><td colspan="5" class="empty">Sin datos en el rango seleccionado</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Por producto ===== -->
+  <section *ngIf="tab==='producto' && !cargando" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-producto">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Presentación</th>
+            <th>Categoría</th>
+            <th class="r">Cant.</th>
+            <th class="r">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of porProducto">
+            <td>{{ r.producto }}</td>
+            <td>{{ r.presentacion }}</td>
+            <td>{{ r.categoria }}</td>
+            <td class="r mono">{{ r.cantidadVendida | number:'1.0-2' }}</td>
+            <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!porProducto?.length"><td colspan="5" class="empty">Sin datos en el rango seleccionado</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Por categoría ===== -->
+  <section *ngIf="tab==='categoria' && !cargando" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-categoria">
+        <thead>
+          <tr>
+            <th>Categoría</th>
+            <th class="r">Cant.</th>
+            <th class="r">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of porCategoria">
+            <td>{{ r.categoria }}</td>
+            <td class="r mono">{{ r.cantidadVendida | number:'1.0-2' }}</td>
+            <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!porCategoria?.length"><td colspan="3" class="empty">Sin datos en el rango seleccionado</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Usuarios (resumen) ===== -->
+  <section *ngIf="tab==='usuarios' && !cargando" class="card">
+    <div class="kpis">
+      <div class="kpi"><div class="kpi-label">Usuarios totales</div><div class="kpi-value">{{ uTotal }}</div></div>
+      <div class="kpi"><div class="kpi-label">Activos</div><div class="kpi-value">{{ uActivos }}</div></div>
+      <div class="kpi"><div class="kpi-label">Inactivos</div><div class="kpi-value">{{ uInactivos }}</div></div>
+      <div class="kpi"><div class="kpi-label">Suspendidos</div><div class="kpi-value">{{ uSuspendidos }}</div></div>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th class="r">Total</th>
+            <th class="r">Activos</th>
+            <th class="r">Inactivos</th>
+            <th class="r">Suspendidos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of usuariosRes?.porRol">
+            <td>{{ r.rol }}</td>
+            <td class="r mono">{{ r.total }}</td>
+            <td class="r mono">{{ r.activos }}</td>
+            <td class="r mono">{{ r.inactivos }}</td>
+            <td class="r mono">{{ r.suspendidos }}</td>
+          </tr>
+          <tr *ngIf="!(usuariosRes?.porRol?.length)">
+            <td colspan="5" class="empty">Sin datos</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="grid-2" style="margin-top:10px">
+      <div class="table-wrapper">
+        <table class="grid">
+          <thead><tr><th>Periodo</th><th class="r">Cantidad</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let a of usuariosRes?.altasPorMes">
+              <td>{{ a.periodo }}</td>
+              <td class="r mono">{{ a.cantidad }}</td>
+            </tr>
+            <tr *ngIf="!(usuariosRes?.altasPorMes?.length)">
+              <td colspan="2" class="empty">Sin datos</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="grid">
+          <thead><tr><th>Mes</th><th class="r">Cantidad</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let c of usuariosRes?.cumplesPorMes">
+              <td>{{ monthName(c.mes) }}</td>
+              <td class="r mono">{{ c.cantidad }}</td>
+            </tr>
+            <tr *ngIf="!(usuariosRes?.cumplesPorMes?.length)">
+              <td colspan="2" class="empty">Sin datos</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Caja: ingresos/egresos diarios ===== -->
+  <section *ngIf="tab==='caja' && !cargando" class="card">
+    <div class="table-wrapper">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>Fecha</th>
+            <th class="r">Ingresos</th>
+            <th class="r">Egresos</th>
+            <th class="r">Neto</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of cajaDiaria">
+            <td>{{ r.fecha }}</td>
+            <td class="r mono">Q {{ r.ingresos | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.egresos | number:'1.2-2' }}</td>
+            <td class="r mono strong">Q {{ r.neto | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!cajaDiaria?.length">
+            <td colspan="4" class="empty">Sin datos en el rango seleccionado</td>
+          </tr>
+        </tbody>
+        <tfoot *ngIf="cajaDiaria?.length">
+          <tr>
+            <th>Total</th>
+            <th class="r mono">Q {{ cajaIngresosTotal | number:'1.2-2' }}</th>
+            <th class="r mono">Q {{ cajaEgresosTotal | number:'1.2-2' }}</th>
+            <th class="r mono strong">Q {{ cajaNetoTotal | number:'1.2-2' }}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== Ganancia por producto ===== -->
+  <section *ngIf="tab==='utilidad' && !cargando" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-utilidad">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th>Presentación</th>
+            <th>Categoría</th>
+            <th class="r">Cant.</th>
+            <th class="r">Venta</th>
+            <th class="r">Costo</th>
+            <th class="r">Utilidad</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of porUtilidad">
+            <td>{{ r.producto }}</td>
+            <td>{{ r.presentacion }}</td>
+            <td>{{ r.categoria }}</td>
+            <td class="r mono">{{ r.cantidad | number:'1.0-2' }}</td>
+            <td class="r mono">Q {{ r.venta | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.costo | number:'1.2-2' }}</td>
+            <td class="r mono strong">Q {{ r.utilidad | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!porUtilidad?.length"><td colspan="7" class="empty">Sin datos en el rango seleccionado</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+</div>

@@ -1,0 +1,224 @@
+/* ===== Página y cabeceras (compacto, tipografía “perfecto”) ===== */
+
+.head-title h1{
+  font-family:"Playfair Display", Georgia, serif;      /* tipografía del perfecto */
+  font-weight:800;
+  font-size:clamp(24px,3.9vw,36px);                   /* tamaños compactos */
+  line-height:1.05;
+  margin:0 0 2px;
+  color:#333;
+  letter-spacing:.2px;
+  text-shadow:0 1px 0 #fff;
+  position:relative;
+}
+
+
+.head{ display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }  /* compacto */
+.actions{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }                               /* compacto */
+
+/* ===== Buscador / filtros (compacto) ===== */
+.search{
+  display:flex; align-items:center; gap:6px;                           /* compacto */
+  background:#fff; border:1px solid #e9e6ee; border-radius:8px;        /* compacto */
+  padding:6px 10px;                                                    /* compacto */
+  box-shadow:0 1px 4px rgba(122,46,168,.08);
+  transition:.15s;
+}
+.search:focus-within{ border-color:#c8a9dc; box-shadow:0 0 0 2px rgba(122,46,168,.12); } /* compacto */
+.search input{
+  border:0; outline:0; background:transparent;
+  width:240px; min-width:200px;                                        /* compacto */
+  font-size:12.5px;                                                    /* compacto */
+}
+.search .material-icons{ font-size:15px; color:#8a8a8a; }              /* compacto */
+
+.filters{ display:flex; align-items:center; gap:6px; }                 /* compacto */
+select.filter{
+  height:30px; border:1px solid #e5e5e5; border-radius:8px;            /* compacto */
+  background:#fff; padding:0 9px;                                      /* compacto */
+  font-size:12.5px;                                                    /* compacto */
+}
+
+/* ===== Botones (tamaños del “perfecto”) ===== */
+button.primary{
+  display:inline-flex; align-items:center; gap:7px;                     /* compacto */
+  border:0; padding:6px 12px; height:30px;                              /* compacto */
+  border-radius:8px; background:#7a2ea8; color:#fff; cursor:pointer;
+  font-weight:700; font-size:12.5px; letter-spacing:.15px;              /* compacto */
+  box-shadow:0 3px 8px rgba(122,46,168,.18); transition:.15s;
+}
+button.primary:hover:not(:disabled){ filter:brightness(.97); box-shadow:0 4px 10px rgba(122,46,168,.22); }
+button.primary:disabled{ background:#ccc; cursor:not-allowed; box-shadow:none; }
+
+button.ghost{
+  background:#fff; border:1px solid #e5e5e5; border-radius:8px;         /* compacto */
+  padding:6px 12px; height:30px; cursor:pointer; color:#333;
+  transition:.15s; font-size:12.5px;                                    /* compacto */
+}
+button.ghost:hover:not(:disabled){ background:#f8f8f8; border-color:#ddd; }
+button.ghost:disabled{ background:#f9f9f9; color:#999; cursor:not-allowed; }
+
+/* Icon buttons */
+button.icon{
+  border:0; background:#f6f3f7; color:#6b2f99; border-radius:7px;       /* compacto */
+  padding:3px; min-width:24px; min-height:24px;                          /* compacto */
+  cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  transition:.15s;
+}
+button.icon:hover:not(:disabled){ background:#ede8ef; transform:translateY(-1px); }
+button.icon:disabled{ background:#f0f0f0; color:#999; cursor:not-allowed; transform:none; }
+button.icon .material-icons{ font-size:17px; }                           /* compacto */
+button.icon.danger{ background:#fde9eb; color:#b4232b; }
+button.icon.danger:hover:not(:disabled){ background:#fbd4d7; }
+
+/* ===== Tarjeta / tabla (compacto + tipografía mono del perfecto) ===== */
+.card{
+  background:#fff; border:1px solid #eee; border-radius:10px;           /* compacto */
+  padding:8px;                                                          /* compacto */
+  box-shadow:0 6px 16px rgba(0,0,0,.06); position:relative; overflow:hidden;
+}
+.card::before{
+  content:""; position:absolute; left:-1px; top:0; bottom:0; width:5px; /* compacto y tapa la junta */
+  background:#7a2ea8; opacity:.95;
+}
+
+.table-wrapper{ overflow-x:auto; }
+table.grid{ width:100%; border-collapse:separate; border-spacing:0; table-layout:auto; min-width:900px; } /* compacto */
+.grid thead th{
+  text-align:left; font-weight:700; font-size:12px; color:#555;         /* compacto */
+  padding:6px 8px;                                                      /* compacto */
+  border-bottom:1px solid #eee; background:#f7f1fb; white-space:nowrap;
+  position:sticky; top:0; z-index:1;
+}
+.grid tbody td{
+  padding:6px 8px;                                                      /* compacto */
+  border-bottom:1px solid #f2eef7; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;
+}
+.grid tbody tr:nth-child(even){ background:#fcfbfe; }
+.grid tbody tr:hover{ background:#f5ecff; }
+
+/* tipografía mono del perfecto */
+.mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#444; }
+
+.acts{ display:flex; align-items:center; justify-content:center; gap:6px; } /* compacto */
+
+/* Columna producto (compacta) */
+.prod{ display:flex; align-items:center; gap:8px; min-width:220px; }     /* compacto */
+.prod img{
+  width:38px; height:38px; border-radius:8px;                            /* compacto */
+  object-fit:cover; border:1px solid #eee; background:#f4f4f4;
+}
+.prod .meta{ display:flex; flex-direction:column; min-width:0; }
+.prod .name{ font-weight:700; color:#333; font-size:13px; }              /* compacto */
+.prod .sub{ color:#777; font-size:11.5px; }                              /* compacto */
+
+/* Pills (compactas) */
+.pill{
+  display:inline-block; padding:4px 8px;                                 /* compacto */
+  border-radius:999px; font-size:11.25px; font-weight:700;               /* compacto */
+  border:1px solid transparent;
+}
+.pill.ok{ background:#eaf7ef; color:#2e7d32; border-color:#cdecd6; }
+.pill.off{ background:#f7f7f7; color:#666; border-color:#eee; }
+
+/* ===== Modal (mismo posicionamiento; tamaños compactos) ===== */
+.page{ position: relative; display:flex; flex-direction:column; gap:12px; } /* compacto */
+.page.modal-open{ overflow:hidden; }
+
+.modal{
+  position:absolute; inset:0; z-index:10;
+  display:flex; align-items:center; justify-content:center;
+  padding:16px;                                                         /* compacto */
+  background:rgba(46,45,45,.55);
+  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+}
+.sub-modal{
+  z-index:11; background:rgba(46,45,45,.55);
+  -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+}
+
+.modal-card{
+  width:min(980px,96%); max-width:980px;                                 /* compacto */
+  margin:0; background:#fff; border:1px solid #eee; border-radius:12px;  /* compacto */
+  box-shadow:0 20px 60px rgba(0,0,0,.18);                                 /* compacto */
+  display:flex; flex-direction:column; overflow:hidden;
+  font-size:12.5px;                                                       /* compacto */
+  max-height:min(84vh, calc(100% - 32px));                                /* compacto */
+}
+.modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:10px 12px; border-bottom:1px solid #eee;                        /* compacto */
+  background:linear-gradient(180deg,#fff 0%, #faf8fc 100%);
+  flex-shrink:0;
+}
+.modal-body{ padding:12px; overflow:auto; flex:1; }                       /* compacto */
+.modal-foot{
+  padding:10px 12px; border-top:1px solid #eee; background:#fafafa;       /* compacto */
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  flex-shrink:0;
+}
+
+/* ===== Formularios (compactos) ===== */
+.form-row{
+  display:grid; gap:10px;                                                /* compacto */
+  grid-template-columns:1.4fr 1fr 1fr 120px;                             /* compacto */
+  margin-bottom:10px;                                                    /* compacto */
+}
+.form-row .span-2{ grid-column:span 2; }
+
+label{
+  display:flex; flex-direction:column; gap:4px;                           /* compacto */
+  font-size:12.5px; color:#1b1a1a; font-weight:600; min-width:0;
+}
+input, select{
+  height:32px; border-radius:8px; border:1px solid #e5e5e5;              /* compacto */
+  background:#fff; padding:0 10px; outline:none; width:100%;
+  font-size:12.5px; transition:.15s;
+}
+input:focus, select:focus{ border-color:#c8a9dc; box-shadow:0 0 0 2px rgba(122,46,168,.1); } /* compacto */
+input:disabled, select:disabled{ background:#f8f8f8; color:#999; cursor:not-allowed; }
+
+.uploader{
+  border:1px dashed #cfc8da; border-radius:10px; background:#faf9fc;      /* compacto */
+  padding:12px; display:flex; align-items:center; justify-content:center;
+  flex-direction:column; gap:8px; text-align:center; color:#666;
+  min-height:140px; width:100%; cursor:pointer;                           /* compacto */
+}
+.uploader input[type=file]{ display:none; }
+.uploader .preview{
+  width:96px; height:96px; object-fit:cover; border-radius:10px;          /* compacto */
+  border:1px solid #e5e5e5; background:#fff;
+}
+
+/* ===== Estados vacíos / cargando (compacto) ===== */
+.empty{
+  text-align:center; color:#8a8a8a; padding:24px 14px;                    /* compacto */
+  display:flex; flex-direction:column; align-items:center; gap:8px;       /* compacto */
+}
+.empty .material-icons{ font-size:36px; color:#ddd; }                     /* compacto */
+.empty p{ margin:0; font-size:12.5px; }                                   /* compacto */
+
+/* ===== Spinners (compacto) ===== */
+.spinner{
+  width:24px; height:24px; border:2px solid #f3f3f3;                      /* compacto */
+  border-top:2px solid #7a2ea8; border-radius:50%;
+  animation:spin 1s linear infinite;
+}
+@keyframes spin{ 0%{ transform:rotate(0) } 100%{ transform:rotate(360deg) } }
+
+/* ===== Responsive ===== */
+@media (max-width:1200px){
+  .modal-card{ width:95%; margin:8px auto; }                              /* compacto */
+  .form-row{ grid-template-columns:1.2fr 1fr 1fr 110px; }                 /* compacto */
+}
+@media (max-width:1000px){
+  .head{ flex-direction:column; align-items:stretch; }
+  .search input{ width:100%; min-width:auto; }
+  .form-row{ grid-template-columns:1fr 1fr; }
+  .form-row .span-2{ grid-column:1 / -1; }
+}
+@media (max-width:680px){
+  .form-row{ grid-template-columns:1fr; }
+  .table-wrapper{ border-radius:8px; box-shadow:inset 0 0 0 1px #e0e0e0; }
+  table.grid{ min-width:720px; }
+}

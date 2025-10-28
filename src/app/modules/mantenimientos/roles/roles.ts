@@ -90,7 +90,6 @@ export class Roles implements OnInit, OnDestroy {
   guardar(): void {
     this.submitted = true;
 
-    // Validaciones de UI (backend: 3..50)
     const nombre = (this.nuevo.nombre || '').trim();
     if (nombre.length < 3 || nombre.length > 50) {
       this.Toast.fire({ icon: 'warning', title: 'El nombre debe tener entre 3 y 50 caracteres' });

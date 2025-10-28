@@ -1,0 +1,230 @@
+<div class="page" [class.modal-open]="showCreate || showEdit">
+  <div class="head-title">
+    <h1>Productos</h1>
+  </div>
+
+  <div class="head">
+    <div class="actions">
+      <div class="search">
+        <span class="material-icons">search</span>
+        <input [ngModel]="q()" (ngModelChange)="q.set($event)" placeholder="Buscar producto o código…" />
+      </div>
+
+      <div class="filters">
+        <select class="filter" [(ngModel)]="categoriaId" (ngModelChange)="reload()">
+          <option [ngValue]="null">Todas las categorías</option>
+          <option *ngFor="let c of categorias; trackBy: trackByCategoriaId" [ngValue]="c.id">{{ c.nombre }}</option>
+        </select>
+
+        <label class="switch">
+          <input type="checkbox" [(ngModel)]="soloActivos" (ngModelChange)="reload()" />
+          Solo activos
+        </label>
+      </div>
+    </div>
+
+    <button class="primary" type="button" (click)="openCreate()">
+      <span class="material-icons">add</span>
+      Nuevo producto
+    </button>
+  </div>
+
+  <div class="card">
+    <div class="table-wrapper" *ngIf="!loading(); else loadingTpl">
+      <table class="grid" *ngIf="filtered().length; else emptyTpl">
+        <thead>
+          <tr>
+            <th>Producto</th>
+            <th class="mono">Código</th>
+            <th>Categoría</th>
+            <th class="mono">Present.</th>
+            <th>Estado</th>
+            <th style="width:180px">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of filtered(); trackBy: trackByProdId">
+            <td class="prod">
+              <img [src]="p.fotoUrl || fallbackImg" alt="img" />
+              <div class="meta">
+                <span class="name">{{ p.nombre }}</span>
+                <span class="sub" *ngIf="p.fotoUrl">{{ p.fotoUrl | slice:0:60 }}</span>
+              </div>
+            </td>
+            <td class="mono">{{ p.codigo || '—' }}</td>
+            <td>{{ p.categoria || '—' }}</td>
+            <td class="mono">{{ p.presentaciones }}</td>
+            <td>
+              <span class="pill" [ngClass]="p.activo ? 'ok':'off'">{{ p.activo ? 'activo':'inactivo' }}</span>
+            </td>
+            <td class="acts">
+              <button class="icon" title="Editar" (click)="openEdit(p)"><span class="material-icons">edit</span></button>
+              <button class="icon danger" title="Eliminar" (click)="eliminar(p)"><span class="material-icons">delete</span></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <ng-template #emptyTpl>
+        <div class="empty">
+          <span class="material-icons">inbox</span>
+          <p>No hay productos para los filtros actuales</p>
+        </div>
+      </ng-template>
+    </div>
+
+    <ng-template #loadingTpl>
+      <div class="empty">
+        <div class="spinner"></div>
+        <p>Cargando productos…</p>
+      </div>
+    </ng-template>
+  </div>
+</div>
+
+<!-- ====== MODAL CREAR ====== -->
+<section class="modal" *ngIf="showCreate" (click)="closeCreate()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Nuevo producto</h2>
+      </div>
+      <button class="icon" (click)="closeCreate()" aria-label="Cerrar">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <form (ngSubmit)="crear()" #fCrear="ngForm" novalidate>
+        <div class="form-row">
+          <label>Nombre *
+            <input [(ngModel)]="cNombre" name="cNombre" required placeholder="Nombre del producto" />
+          </label>
+          <label>Categoría *
+            <select [(ngModel)]="cCategoriaId" name="cCat" required>
+              <option [ngValue]="null" disabled>Seleccione…</option>
+              <option *ngFor="let c of categorias; trackBy: trackByCategoriaId" [ngValue]="c.id">{{ c.nombre }}</option>
+            </select>
+          </label>
+          <label>Proveedor *
+            <select [(ngModel)]="cProveedorId" name="cProv" required>
+              <option [ngValue]="null" disabled>Seleccione…</option>
+              <option *ngFor="let p of proveedores; trackBy: trackByProveedorId" [ngValue]="p.id">{{ p.nombre }}</option>
+            </select>
+          </label>
+          <label>Activo
+            <select [(ngModel)]="cActivo" name="cActivo">
+              <option [ngValue]="true">Sí</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="form-row">
+          <label>Precio de compra *
+            <input type="number" min="0" step="0.01" [(ngModel)]="cCompra" name="cCompra" required placeholder="0.00" />
+          </label>
+          <label>Precio de venta *
+            <input type="number" min="0" step="0.01" [(ngModel)]="cVenta" name="cVenta" required placeholder="0.00" />
+          </label>
+
+          <label class="span-2">Imagen (JPG/PNG/WEBP) *
+            <div class="uploader"
+                 (dragover)="$event.preventDefault()"
+                 (drop)="onDropCreate($event)"
+                 (click)="fileCreate.click()">
+              <img *ngIf="cPreview" class="preview" [src]="cPreview" alt="preview" />
+              <div *ngIf="!cPreview">
+                <span class="material-icons">cloud_upload</span>
+                <div><strong>Click para seleccionar</strong> o arrastra aquí</div>
+              </div>
+              <input #fileCreate type="file" accept="image/png,image/jpeg,image/webp" (change)="onFileCreate($event)">
+            </div>
+          </label>
+        </div>
+
+        <footer class="modal-foot">
+          <button class="ghost" type="button" (click)="closeCreate()" [disabled]="saving">Cancelar</button>
+          <button class="primary" type="submit" [disabled]="saving || !fCrear.valid || !cFile">
+            <span *ngIf="saving" class="material-icons">hourglass_empty</span>
+            {{ saving ? 'Creando…' : 'Crear producto' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</section>
+
+<!-- ====== MODAL EDITAR ====== -->
+ <!-- … (resto sin cambios) … -->
+
+<!-- ====== MODAL EDITAR ====== -->
+<section class="modal" *ngIf="showEdit" (click)="closeEdit()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Editar producto</h2>
+      </div>
+      <button class="icon" (click)="closeEdit()" aria-label="Cerrar">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <form (ngSubmit)="guardarEdicion()" #fEdit="ngForm" novalidate>
+        <div class="form-row">
+          <label>Nombre *
+            <input [(ngModel)]="eNombre" name="eNombre" required />
+          </label>
+          <label>Categoría *
+            <select [(ngModel)]="eCategoriaId" name="eCat" required>
+              <option [ngValue]="null" disabled>Seleccione…</option>
+              <option *ngFor="let c of categorias; trackBy: trackByCategoriaId" [ngValue]="c.id">{{ c.nombre }}</option>
+            </select>
+          </label>
+          <label>Activo
+            <select [(ngModel)]="eActivo" name="eActivo">
+              <option [ngValue]="true">Sí</option>
+              <option [ngValue]="false">No</option>
+            </select>
+          </label>
+          <div></div>
+        </div>
+
+        <!-- NUEVO: edición de precios por defecto -->
+        <div class="form-row">
+          <label>Precio de compra *
+            <input type="number" min="0" step="0.01" [(ngModel)]="eCompra" name="eCompra" required placeholder="0.00" />
+          </label>
+          <label>Precio de venta *
+            <input type="number" min="0" step="0.01" [(ngModel)]="eVenta" name="eVenta" required placeholder="0.00" />
+          </label>
+
+          <label class="span-2">Reemplazar imagen (opcional)
+            <div class="uploader"
+                 (dragover)="$event.preventDefault()"
+                 (drop)="onDropEdit($event)"
+                 (click)="fileEdit.click()">
+              <img *ngIf="ePreview || eFotoUrl" class="preview" [src]="ePreview || eFotoUrl" alt="preview" />
+              <div *ngIf="!ePreview && !eFotoUrl">
+                <span class="material-icons">image</span>
+                <div>Sin imagen</div>
+              </div>
+              <input #fileEdit type="file" accept="image/png,image/jpeg,image/webp" (change)="onFileEdit($event)">
+            </div>
+          </label>
+        </div>
+
+        <footer class="modal-foot">
+          <button class="ghost" type="button" (click)="closeEdit()" [disabled]="saving">Cancelar</button>
+          <button class="primary" type="submit" [disabled]="saving || !fEdit.valid">
+            <span *ngIf="saving" class="material-icons">hourglass_empty</span>
+            {{ saving ? 'Guardando…' : 'Guardar cambios' }}
+          </button>
+        </footer>
+      </form>
+    </div>
+  </div>
+</section>

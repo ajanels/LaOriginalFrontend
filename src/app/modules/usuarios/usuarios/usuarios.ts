@@ -24,7 +24,7 @@ export class UsuariosComponent implements OnInit {
 
   // filtros
   q = signal<string>('');
-  estado = signal<string>('');
+  estado = signal<string>('');             // 'Activo' | 'Inactivo' | ''
   rolId = signal<number | null>(null);
 
   // filtros avanzados
@@ -33,7 +33,7 @@ export class UsuariosComponent implements OnInit {
   fSegundo  = signal<string>('');
   fApellidos= signal<string>('');
   fNit      = signal<string>('');
-  fFechaIng = signal<string>('');
+  fFechaIng = signal<string>('');          // yyyy-MM-dd
 
   // modal
   show = signal(false);
@@ -49,26 +49,40 @@ export class UsuariosComponent implements OnInit {
 
   filtered = computed(() => {
     const term = this.q().trim().toLowerCase();
-    const est  = this.estado();
+    const est  = this.estado().trim();                // comparar tal cual viene del select
     const rid  = this.rolId();
 
     const f1 = this.fPrimer().trim().toLowerCase();
     const f2 = this.fSegundo().trim().toLowerCase();
     const fa = this.fApellidos().trim().toLowerCase();
     const fn = this.fNit().trim();
-    const ff = this.fFechaIng();
+    const ff = this.fFechaIng().trim();               // yyyy-MM-dd
 
     return this.rows().filter(u => {
       const fullName = `${u.primerNombre} ${u.segundoNombre ?? ''} ${u.primerApellido} ${u.segundoApellido ?? ''}`.toLowerCase();
-      const hayTerm = !term || (fullName.includes(term) || (u.username ?? '').toLowerCase().includes(term) || (u.email ?? '').toLowerCase().includes(term));
-      const hayEstado = !est || u.estado === est;
+      const hayTerm =
+        !term ||
+        fullName.includes(term) ||
+        (u.username ?? '').toLowerCase().includes(term) ||
+        (u.email ?? '').toLowerCase().includes(term);
+
+      const hayEstado = !est || (u.estado ?? '') === est;
       const hayRol = !rid || (u.rol?.id === rid);
 
-      const okPrimer  = !f1 || (u.primerNombre?.toLowerCase().includes(f1));
-      const okSegundo = !f2 || ((u.segundoNombre ?? '').toLowerCase().includes(f2));
-      const okApell   = !fa || (`${u.primerApellido} ${u.segundoApellido ?? ''}`.toLowerCase().includes(fa));
+      const okPrimer  = !f1 || (u.primerNombre ?? '').toLowerCase().includes(f1);
+      const okSegundo = !f2 || (u.segundoNombre ?? '').toLowerCase().includes(f2);
+      const okApell   = !fa || (`${u.primerApellido ?? ''} ${u.segundoApellido ?? ''}`.toLowerCase().includes(fa));
       const okNit     = !fn || (u.nit ?? '').startsWith(fn);
-      const okFecha   = !ff || (u.fechaIngreso ?? '').slice(0,10) === ff;
+
+      // Normaliza fechaIngreso si viene como Date o como string ISO
+      let ingresoStr = '';
+      const anyU: any = u as any;
+      if (anyU?.fechaIngreso) {
+        try {
+          ingresoStr = new Date(anyU.fechaIngreso).toISOString().slice(0, 10);
+        } catch { ingresoStr = ''; }
+      }
+      const okFecha   = !ff || ingresoStr === ff;
 
       return hayTerm && hayEstado && hayRol && okPrimer && okSegundo && okApell && okNit && okFecha;
     });

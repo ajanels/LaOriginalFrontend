@@ -110,77 +110,97 @@
   <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
 
   <!-- Modal -->
-  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-    <div class="modal-card" role="document">
-      <header class="modal-head">
-        <div class="modal-title-wrap">
-          <span class="modal-dot"></span>
-          <h2 id="modal-title">{{ editando ? 'Editar forma de pago' : 'Nueva forma de pago' }}</h2>
-        </div>
-        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
-          <span class="material-icons" aria-hidden="true">close</span>
-        </button>
-      </header>
+  <!-- …cabecera y tabla se quedan igual… -->
 
-      <div class="modal-body">
-        <form class="form" (ngSubmit)="guardar()" #formFP="ngForm" novalidate>
-          <div class="form-grid">
-            <!-- Nombre -->
-            <div class="field span-2">
-              <label for="nombre">Nombre <span class="req">*</span></label>
-              <input
-                id="nombre" type="text" required minlength="2" maxlength="80"
-                [(ngModel)]="nuevo.nombre" name="nombre"
-                [class.invalid]="submitted && !nuevo.nombre?.trim()" />
-              <small class="hint">Entre 2 y 80 caracteres.</small>
-              <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
-            </div>
+<!-- Modal -->
+<section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+  <div class="modal-card" role="document">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2 id="modal-title">{{ editando ? 'Editar forma de pago' : 'Nueva forma de pago' }}</h2>
+      </div>
+      <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+        <span class="material-icons" aria-hidden="true">close</span>
+      </button>
+    </header>
 
-            <!-- Switches -->
-            <div class="field">
-              <label for="reqref">Requiere referencia</label>
-              <label class="switch">
-                <input id="reqref" type="checkbox" [(ngModel)]="nuevo.requiereReferencia" name="requiereReferencia" />
-                <span>Activar</span>
-              </label>
-            </div>
-            <div class="field">
-              <label for="escred">Es crédito</label>
-              <label class="switch">
-                <input id="escred" type="checkbox" [(ngModel)]="nuevo.esCredito" name="esCredito" />
-                <span>Activar</span>
-              </label>
-            </div>
-
-            <!-- Descripción -->
-            <div class="field span-2">
-              <label for="desc">Descripción</label>
-              <textarea id="desc" rows="3" maxlength="200" [(ngModel)]="nuevo.descripcion" name="descripcion"></textarea>
-            </div>
-
-            <!-- Activo -->
-            <div class="field span-2">
-              <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
-            </div>
+    <div class="modal-body">
+      <form class="form" (ngSubmit)="guardar()" #formFP="ngForm" novalidate>
+        <div class="form-grid">
+          <!-- Nombre -->
+          <div class="field span-2">
+            <label for="nombre">Nombre <span class="req">*</span></label>
+            <input id="nombre" type="text" required minlength="2" maxlength="80"
+                   [(ngModel)]="nuevo.nombre" name="nombre"
+                   [class.invalid]="submitted && !nuevo.nombre?.trim()" />
+            <small class="hint">Entre 2 y 80 caracteres.</small>
+            <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
           </div>
 
-          <footer class="modal-foot">
-            <div class="left">
-              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
-              <button *ngIf="editando" type="button" class="danger" (click)="eliminarForma(editando!)">
-                <span class="material-icons" aria-hidden="true">delete</span>
-                Eliminar
-              </button>
-            </div>
+          <!-- Switches -->
+          <div class="field">
+            <label for="reqref">Requiere referencia</label>
+            <label class="switch">
+              <input id="reqref" type="checkbox" [(ngModel)]="nuevo.requiereReferencia" name="requiereReferencia" />
+              <span>Activar</span>
+            </label>
+          </div>
 
-            <div class="right">
-              <button type="submit" class="primary" [disabled]="cargando">
-                {{ editando ? 'Guardar cambios' : 'Crear' }}
-              </button>
-            </div>
-          </footer>
-        </form>
-      </div>
+          <div class="field">
+            <label for="escred">Es crédito</label>
+            <label class="switch">
+              <input id="escred" type="checkbox" [(ngModel)]="nuevo.esCredito" name="esCredito" />
+              <span>Activar</span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="afCaja">Afecta caja</label>
+            <label class="switch">
+              <input id="afCaja" type="checkbox" [(ngModel)]="nuevo.afectaCaja" name="afectaCaja" />
+              <span>Activar</span>
+            </label>
+          </div>
+
+          <div class="field">
+            <label for="afBanco">Afecta banco</label>
+            <label class="switch">
+              <input id="afBanco" type="checkbox" [(ngModel)]="nuevo.afectaBanco" name="afectaBanco" />
+              <span>Activar</span>
+            </label>
+          </div>
+
+          <!-- Descripción -->
+          <div class="field span-2">
+            <label for="desc">Descripción</label>
+            <textarea id="desc" rows="3" maxlength="200" [(ngModel)]="nuevo.descripcion" name="descripcion"></textarea>
+          </div>
+
+          <!-- Activo -->
+          <div class="field span-2">
+            <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
+          </div>
+        </div>
+
+        <footer class="modal-foot">
+          <div class="left">
+            <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+            <button *ngIf="editando" type="button" class="danger" (click)="eliminarForma(editando!)">
+              <span class="material-icons" aria-hidden="true">delete</span>
+              Eliminar
+            </button>
+          </div>
+
+          <div class="right">
+            <button type="submit" class="primary" [disabled]="cargando">
+              {{ editando ? 'Guardar cambios' : 'Crear' }}
+            </button>
+          </div>
+        </footer>
+      </form>
     </div>
-  </section>
+  </div>
+</section>
+
 </div>

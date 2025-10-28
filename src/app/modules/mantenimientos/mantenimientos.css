@@ -1,213 +1,107 @@
-/* ===== Layout del módulo ===== */
+/* ===== Layout del módulo (compacto “perfecto”) ===== */
 .mant { 
-  padding: 20px 0 30px; 
-  min-height: calc(100vh - 70px); /* 🔥 ajusta al alto de pantalla menos el header */
+  padding: 13px 0 18px;                                   /* compacto */
+  min-height: calc(100vh - 70px);
   background: linear-gradient(135deg, 
-    rgba(255, 182, 193, 0.3) 0%,
-    rgba(173, 216, 230, 0.3) 25%,
-    rgba(221, 160, 221, 0.3) 50%,
-    rgba(255, 218, 185, 0.3) 75%,
-    rgba(152, 251, 152, 0.3) 100%);
-  
-  /* 🔥 Fix: el módulo nunca genera scroll propio */
-  overflow: visible;   
+    rgba(255,182,193,.3) 0%,
+    rgba(173,216,230,.3) 25%,
+    rgba(221,160,221,.3) 50%,
+    rgba(255,218,185,.3) 75%,
+    rgba(152,251,152,.3) 100%);
+  overflow: visible;
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  padding: 0;
-  overflow-y: auto;   /* scroll vertical solo en body */
-  overflow-x: hidden; /* bloquea scroll horizontal */
-  height: 100vh;
-}
-
-/* ===== Encabezado ===== */
-.mant__head { 
-  max-width: 1200px; 
-  margin: 0 auto 24px; 
-  padding: 0 20px; 
-}
 
 .mant__title { 
-  margin: 0 0 8px; 
-  font-size: 48px; 
-  line-height: 1.1; 
-  color: #1a1a1a;
+  margin: 0 0 6px;
+  font-family: "Playfair Display", Georgia, serif;         
   font-weight: 700;
+  font-size: clamp(24px, 3.9vw, 36px);                    
+  line-height: 1.05;
+  color: #333;
+  letter-spacing: .2px;
 }
 
 .mant__subtitle { 
-  margin: 0; 
-  color: #4a5568; 
-  font-size: 16px;
-  font-weight: 400;
+  margin: 1; color: #4a5568; font-size: 12.5px; font-weight: 400;      /* compacto */
 }
 
 /* ===== Grid ===== */
-.mant__grid {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
-  display: grid;
-  grid-template-columns: 1fr 1fr; /* dos columnas */
-  gap: 20px;
+.mant__grid{
+  max-width:1200px; margin:0 auto; padding:0 13px;                     /* compacto */
+  display:grid; grid-template-columns:1fr 1fr; gap:12px;                /* compacto */
+}
+@media (max-width:1100px){ .mant__grid{ grid-template-columns:1fr; } }
+
+/* ===== Panels (glassmorphism compacto) ===== */
+.mant__panel{
+  background: rgba(255,255,255,.32);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,.45);
+  border-radius: 10px;                                                /* compacto perfecto */
+  padding: 14px;                                                      /* compacto */
+  box-shadow: 0 5px 12px rgba(0,0,0,.10);                             /* compacto */
 }
 
-@media (max-width: 1100px) { 
-  .mant__grid { 
-    grid-template-columns: 1fr; 
-  } 
+.mant__panelHead h2{
+  margin:0 0 4px;
+  font-size:15px;                                                     /* compacto perfecto */
+  color:#2d3748; font-weight:700;
 }
-
-/* ===== Panels con glassmorphism ===== */
-.mant__panel {
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 20px;
-  padding: 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-}
-
-.mant__panelHead h2 { 
-  margin: 0 0 4px; 
-  font-size: 24px; 
-  color: #2d3748;
-  font-weight: 600;
-}
-
-.mant__panelHead p { 
-  margin: 0 0 20px; 
-  color: #4a5568; 
-  font-size: 14px; 
-  font-weight: 400;
+.mant__panelHead p{
+  margin:0 0 10px; color:#4a5568; font-size:12.5px; font-weight:400; /* compacto */
 }
 
 /* ===== Grid de tarjetas ===== */
-.mgrid { 
-  display: grid; 
-  grid-template-columns: 1fr 1fr; 
-  gap: 16px; 
-}
+.mgrid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }       /* compacto */
+@media (max-width:880px){ .mgrid{ grid-template-columns:1fr; } }
 
-@media (max-width: 880px) { 
-  .mgrid { 
-    grid-template-columns: 1fr; 
-  } 
-}
+.mstack{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }      /* compacto */
+@media (max-width:600px){ .mstack{ grid-template-columns:1fr; } }
 
-.mstack { 
-  display: grid; 
-  grid-template-columns: 1fr 1fr; 
-  gap: 16px; 
+/* ===== Card (compacta) ===== */
+.mcard{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; /* compacto */
+  padding:14px; min-height:62px;                                             /* compacto */
+  background: rgba(255,255,255,.45);
+  backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+  border:1px solid rgba(255,255,255,.55);
+  border-radius:10px;                                                        /* compacto perfecto */
+  box-shadow:0 4px 12px rgba(0,0,0,.10);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;  /* compacto */
 }
+.mcard:hover{ transform:translateY(-1px); box-shadow:0 8px 18px rgba(0,0,0,.14); }
 
-@media (max-width: 600px) {
-  .mstack {
-    grid-template-columns: 1fr;
-  }
+.mcard__body{ flex:1; min-width:0; }
+
+.mcard__title{
+  margin:0 0 3px; font-size:15px; line-height:1.22;                         /* compacto perfecto */
+  font-weight:700; color:#2d3748;
 }
+.mcard__desc{ margin:0; color:#4a5568; font-size:12px; font-weight:400; }
 
-/* ===== Card glassmorphism style ===== */
-.mcard {
-  display: flex; 
-  align-items: center; 
-  justify-content: space-between; 
-  gap: 16px;
-  padding: 20px;
-  min-height: 80px;
-
-  background: rgba(255, 255, 255, 0.4);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.4);
-  border-radius: 16px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+/* ===== Botón magenta (compacto perfecto) ===== */
+.mcard__btn{
+  display:inline-block; height:28px; padding:0 12px;
+  border-radius:16px; background:linear-gradient(135deg,#e91e63,#9c27b0);
+  border:none; color:#fff; font-weight:700; font-size:12px; line-height:28px;
+  text-decoration:none; box-shadow:0 3px 10px rgba(233,30,99,.25);
+  flex-shrink:0; transition:transform .12s ease, box-shadow .12s ease, filter .12s ease;
 }
-
-.mcard:hover { 
-  transform: translateY(-2px); 
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-}
-
-.mcard__body { 
-  flex: 1; 
-  min-width: 0; 
-}
-
-.mcard__title { 
-  margin: 0 0 4px; 
-  font-size: 18px; 
-  line-height: 1.2; 
-  font-weight: 600; 
-  color: #2d3748; 
-}
-
-.mcard__desc { 
-  margin: 0; 
-  color: #4a5568; 
-  font-size: 12px;
-  font-weight: 400;
-}
-
-/* ===== Botón magenta ===== */
-.mcard__btn {
-  display: inline-block;
-  padding: 8px 16px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, #e91e63, #9c27b0);
-  border: none;
-  color: white;
-  font-weight: 600;
-  font-size: 12px;
-  line-height: 1;
-  text-decoration: none;
-  box-shadow: 0 4px 12px rgba(233, 30, 99, 0.3);
-  flex-shrink: 0;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.mcard__btn:hover { 
-  transform: translateY(-1px); 
-  box-shadow: 0 6px 16px rgba(233, 30, 99, 0.4);
-  color: white;
-}
+.mcard__btn:hover{ transform:translateY(-1px); box-shadow:0 6px 14px rgba(233,30,99,.32); color:#fff; }
 
 /* ===== Responsive ===== */
-@media (max-width: 768px) {
-  .mant {
-    overflow: visible;
-  }
-  
-  .mant__title {
-    font-size: 28px;
-  }
-  
-  .mant__grid {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 0 15px; 
-  }
-  
-  .mgrid {
-    grid-template-columns: 1fr;
-  }
-  
-  .mstack {
-    grid-template-columns: 1fr;
-  }
-  
-  .mant__panel {
-    padding: 20px;
-  }
+@media (max-width:768px){
+  .mant{ overflow:visible; }
+  .mant__title{ font-size:clamp(22px,6vw,28px); }                          /* compacto móvil */
+  .mant__grid{ grid-template-columns:1fr; gap:12px; padding:0 12px; }
+  .mgrid, .mstack{ grid-template-columns:1fr; }
+  .mant__panel{ padding:12px; }
 }
 
 /* ===== Ajustes para menú colapsado ===== */
-@media (min-width: 769px) {
-  .mant__grid {
-    max-width: none;
-  }
+@media (min-width:769px){
+  .mant__grid{ max-width:none; }
 }
+

@@ -1,1 +1,324 @@
-<p>caja works!</p>
+<div class="page" [class.modal-open]="showGasto() || showCierre() || showApertura()">
+  <div class="head-title">
+    <h1>Caja</h1>
+
+    <div class="chip-group" *ngIf="estado() as e">
+      <span class="chip" [class.ok]="e.abierta" [class.bad]="!e.abierta">
+        {{ e.abierta ? 'Abierta' : 'Cerrada' }}
+      </span>
+
+      <span class="chip code" *ngIf="e.codigo">Sesión: {{ e.codigo }}</span>
+
+      <!-- Cajero: usa el del backend si viene; si no, el del JWT -->
+      <span class="chip" *ngIf="e.cajeroNombre || userName()">Cajero: {{ e.cajeroNombre || userName() }}</span>
+
+      <!-- Apertura: usa hora local si viene; si no, UTC -->
+      <span class="chip" *ngIf="e.aperturaLocal || e.apertura">
+  Apertura:
+  <ng-container *ngIf="e.aperturaLocal; else aperturaUtc">
+    {{ e.aperturaLocal | date:'dd/MM/yyyy HH:mm' }}
+  </ng-container>
+  <ng-template #aperturaUtc>
+    {{ e.apertura | date:'dd/MM/yyyy HH:mm':'UTC' }}
+  </ng-template>
+</span>
+
+
+      <button class="ghost" type="button" (click)="refrescar()">
+        <span class="material-icons">refresh</span> Refrescar
+      </button>
+    </div>
+  </div>
+
+  <!-- ESTADO: CAJA CERRADA -->
+  <div class="empty-card" *ngIf="!estado() || !estado()?.abierta">
+    <div class="empty">
+      <span class="material-icons">lock_open</span>
+      <h3>Caja cerrada</h3>
+      <p>Para registrar movimientos necesitas abrir una nueva sesión de caja.</p>
+      <button type="button" class="primary" (click)="openApertura()">
+        <span class="material-icons">add</span> Abrir caja
+      </button>
+    </div>
+  </div>
+
+  <!-- CONTENIDO: SOLO CON CAJA ABIERTA -->
+  <ng-container *ngIf="estado()?.abierta">
+    <!-- KPIs -->
+    <div class="kpis" *ngIf="resumen() as r">
+      <div class="kpi"><div class="kpi-title">Efectivo inicial</div><div class="kpi-val">Q {{ r.montoInicial | number:'1.2-2' }}</div></div>
+      <div class="kpi"><div class="kpi-title">Ingresos</div><div class="kpi-val in">Q {{ r.ingresos | number:'1.2-2' }}</div></div>
+      <div class="kpi"><div class="kpi-title">Egresos</div><div class="kpi-val out">Q {{ r.egresos | number:'1.2-2' }}</div></div>
+      <div class="kpi"><div class="kpi-title">Saldo esperado</div><div class="kpi-val strong">Q {{ r.esperado | number:'1.2-2' }}</div></div>
+
+      <div class="kpi-actions">
+        <button type="button" class="primary" (click)="openGasto()"><span class="material-icons">request_quote</span> Registrar gasto</button>
+        <button type="button" class="danger" (click)="openCierre()"><span class="material-icons">lock</span> Cerrar caja</button>
+      </div>
+    </div>
+
+    <!-- Filtros + Movimientos -->
+    <div class="card">
+      <div class="filters">
+        <label class="search">
+          <span class="material-icons" aria-hidden="true">search</span>
+          <input [ngModel]="q()" (ngModelChange)="q.set($any($event) ?? '')" placeholder="Buscar por concepto, observaciones o documento…" title="Buscar movimientos" />
+        </label>
+
+        <label>Tipo
+          <select
+            [ngModel]="tipo()"
+            (ngModelChange)="tipo.set($any($event))"
+            title="Filtrar por tipo">
+            <option [ngValue]="null">Todos</option>
+            <option [ngValue]="2">Ingreso</option>
+            <option [ngValue]="3">Egreso</option>
+            <option [ngValue]="4">Cobro venta</option>
+            <option [ngValue]="5">Pago proveedor</option>
+            <option [ngValue]="0">Apertura</option>
+            <option [ngValue]="1">Cierre</option>
+          </select>
+        </label>
+
+        <button class="ghost" type="button" (click)="clearFiltros()">
+          <span class="material-icons">cleaning_services</span> Limpiar
+        </button>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="grid" *ngIf="movs().length; else vacioMovs" aria-label="Movimientos de caja">
+          <thead>
+            <tr>
+              <th class="mono">Fecha</th>
+              <th>Tipo</th>
+              <th>Concepto</th>
+              <th>Documento</th>
+              <th class="mono right">Monto</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let m of movs(); trackBy: trackByMov">
+              <td class="mono small">
+                <ng-container *ngIf="m.fechaLocal; else utcMov">
+                  {{ m.fechaLocal | date:'dd/MM/yyyy HH:mm' }}
+                </ng-container>
+                <ng-template #utcMov>
+                  {{ m.fechaUtc | date:'dd/MM/yyyy HH:mm':'UTC' }}
+                </ng-template>
+              </td>
+              <td><span [class]="tipoClass(m.tipo)">{{ tipoLabel(m.tipo) }}</span></td>
+              <td>
+                <div class="strong">{{ m.concepto || '—' }}</div>
+                <div class="muted small" *ngIf="m.observaciones">{{ m.observaciones }}</div>
+              </td>
+              <td class="small mono">
+                <ng-container *ngIf="m.documento; else guion">
+                  {{ m.documento }} <span *ngIf="m.documentoId">#{{ m.documentoId }}</span>
+                </ng-container>
+                <ng-template #guion>—</ng-template>
+              </td>
+              <td class="mono right" [class.neg]="m.tipo === 3 || m.tipo === 5">Q {{ m.monto | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <ng-template #vacioMovs>
+          <div class="empty">
+            <span class="material-icons">inbox</span>
+            <p>No hay movimientos en esta sesión</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </ng-container>
+
+  <!-- Sesiones -->
+  <div class="card">
+    <h3>Sesiones recientes</h3>
+    <div class="table-wrapper">
+      <table class="grid" *ngIf="sesiones().length; else vacioSes">
+        <thead>
+          <tr>
+            <th>Código</th>
+            <th class="mono">Fecha apertura</th>
+            <th>Cajero</th>
+            <th>Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let s of sesiones(); trackBy: trackBySesion">
+            <td class="mono strong">{{ s.codigo }}</td>
+            <td class="mono small">
+              <ng-container *ngIf="s.aperturaLocal; else utcSes">
+                {{ s.aperturaLocal | date:'dd/MM/yyyy HH:mm' }}
+              </ng-container>
+              <ng-template #utcSes>
+                {{ s.apertura | date:'dd/MM/yyyy HH:mm':'UTC' }}
+              </ng-template>
+            </td>
+            <td>{{ s.cajeroNombre || '—' }}</td>
+            <td><span class="pill" [class.ok]="s.estado==='Abierta'">{{ s.estado }}</span></td>
+          </tr>
+        </tbody>
+      </table>
+      <ng-template #vacioSes>
+        <div class="empty">
+          <span class="material-icons">history</span>
+          <p>Sin historial</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+</div>
+
+<!-- ========== MODAL: GASTO ========== -->
+<section class="modal" *ngIf="showGasto()" (click)="closeGasto()">
+  <div class="modal-card small" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Registrar gasto</h2>
+      </div>
+      <div class="modal-actions">
+        <button class="icon close" type="button" (click)="closeGasto()" aria-label="Cerrar">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>Monto *
+          <input type="number" min="0" step="0.01" class="mono right"
+                 [ngModel]="gMonto()" (ngModelChange)="gMonto.set(+($any($event)||0))" />
+        </label>
+
+        <label>Concepto
+          <input [ngModel]="gConcepto()" (ngModelChange)="gConcepto.set($any($event) ?? '')" placeholder="Ej. Compra de bolsas"/>
+        </label>
+
+        <label class="span-2">Observaciones
+          <input [ngModel]="gObs()" (ngModelChange)="gObs.set($any($event) ?? null)" placeholder="Opcional"/>
+        </label>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button class="ghost" type="button" (click)="closeGasto()">Cancelar</button>
+      <button class="primary" type="button" (click)="saveGasto()" [disabled]="gMonto()<=0">Guardar gasto</button>
+    </footer>
+  </div>
+</section>
+
+<!-- ========== MODAL: CIERRE (dos columnas + badge + ajustar) ========== -->
+<section class="modal" *ngIf="showCierre()" (click)="closeCierre()">
+  <div class="modal-card large" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Conteo de efectivo</h2>
+      </div>
+      <div class="modal-actions">
+        <button class="icon close" type="button" (click)="closeCierre()" aria-label="Cerrar">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="modal-body">
+      <div class="denoms-2cols">
+        <div class="denoms-table">
+          <div class="denoms-head"><div>Denominación</div><div class="right">Cantidad</div><div class="right">Total</div></div>
+          <div class="denoms-row" *ngFor="let d of denomsCols()[0]; let i = index">
+            <div class="mono strong">{{ d.valor | number:'1.2-2' }}</div>
+            <div><input type="number" min="0" step="1" class="mono right" [ngModel]="d.qty" (ngModelChange)="setQty(i, $any($event))" /></div>
+            <div class="mono right">Q {{ (d.valor * d.qty) | number:'1.2-2' }}</div>
+          </div>
+        </div>
+
+        <div class="denoms-table">
+          <div class="denoms-head"><div>Denominación</div><div class="right">Cantidad</div><div class="right">Total</div></div>
+          <div class="denoms-row" *ngFor="let d of denomsCols()[1]; let j = index">
+            <div class="mono strong">{{ d.valor | number:'1.2-2' }}</div>
+            <div><input type="number" min="0" step="1" class="mono right" [ngModel]="d.qty" (ngModelChange)="setQty(j + mid(), $any($event))" /></div>
+            <div class="mono right">Q {{ (d.valor * d.qty) | number:'1.2-2' }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="totales-cierre">
+        <div class="fila">
+          <span>Saldo esperado</span>
+          <strong class="mono">Q {{ resumen()?.esperado | number:'1.2-2' }}</strong>
+        </div>
+
+        <div class="fila">
+          <span>Total contado</span>
+          <div class="total-badge">
+            <strong class="mono">Q {{ conteo() | number:'1.2-2' }}</strong>
+            <span class="badge" [class.ok]="canCerrar()" [class.bad]="!canCerrar()">
+              {{ canCerrar() ? 'OK' : 'No coincide' }}
+            </span>
+          </div>
+        </div>
+
+        <div class="alert" *ngIf="!canCerrar()">
+          El conteo debe coincidir con el saldo esperado para poder cerrar.
+          Diferencia: <b class="mono" [class.neg]="diferencia()<0">Q {{ diferencia() | number:'1.2-2' }}</b>
+        </div>
+
+        <div class="ajuste-row" *ngIf="!canCerrar()">
+          <button type="button" class="secondary" (click)="adjustToExpected()" [disabled]="!canAdjust()">
+            Ajustar al esperado (última denominación)
+          </button>
+          <small class="muted" *ngIf="lastEditedIdx() === null">Edita una denominación para habilitar el ajuste.</small>
+          <small class="muted" *ngIf="lastEditedIdx() !== null && !canAdjust()">El ajuste exacto no es posible con la última denominación editada.</small>
+        </div>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button class="ghost" type="button" (click)="closeCierre()">Cancelar</button>
+      <button class="primary" type="button" (click)="confirmarCierre()" [disabled]="!canCerrar()">Confirmar cierre</button>
+    </footer>
+  </div>
+</section>
+
+<!-- ========== MODAL: APERTURA ========== -->
+<section class="modal" *ngIf="showApertura()" (click)="closeApertura()">
+  <div class="modal-card small" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Abrir caja</h2>
+      </div>
+      <div class="modal-actions">
+        <button class="icon close" type="button" (click)="closeApertura()" aria-label="Cerrar">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="modal-body">
+      <div class="form-grid">
+        <label>Monto inicial *
+          <input type="number" min="0" step="0.01" class="mono right"
+                 [ngModel]="aMonto()" (ngModelChange)="aMonto.set(+($any($event) || 0))" />
+        </label>
+
+        <label>Cajero (automático)
+          <input [value]="userName()" disabled placeholder="Nombre del cajero"/>
+        </label>
+
+        <label class="span-2">Observaciones (opcional)
+          <input [ngModel]="aObs()" (ngModelChange)="aObs.set($any($event) ?? null)" placeholder="Ej. Apertura turno matutino" />
+        </label>
+      </div>
+    </div>
+
+    <footer class="modal-foot">
+      <button class="ghost" type="button" (click)="closeApertura()">Cancelar</button>
+      <button class="primary" type="button" (click)="confirmarApertura()" [disabled]="aMonto()<=0">Abrir caja</button>
+    </footer>
+  </div>
+</section>

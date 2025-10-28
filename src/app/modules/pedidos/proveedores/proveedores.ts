@@ -1,392 +1,674 @@
-import { Component, OnInit, OnDestroy, HostListener, inject } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, NgForm } from '@angular/forms';
+import { HttpClient } from '@angular/common/http';
 import Swal from 'sweetalert2';
 
+import { ProveedoresService } from '../../../services/proveedores.service';
 import {
   PedidosService,
-  ProveedorLite,
-  PedidoListItem,
-  PedidoFull,
-  PedidoDetalleCreate,
-  PedidoCreate,
-  RecepcionCreate,
-  EstadoPedidoProveedor
+  PedidoProveedorCreate,
+  PedidoProveedorListItem,
+  PedidoProveedorDto,
 } from '../../../services/pedidos.service';
+import { FormasPagoService, FormaPagoItem } from '../../../services/formas-pago.service';
+import { CategoriasService } from '../../../services/categorias.service';
+import { MarcasService } from '../../../services/marcas.service';
+import { UnidadesMedidaService } from '../../../services/unidades-medida.service';
+import { ProductosService } from '../../../services/productos.service';
+import { ProveedorCatalogoService, CatalogoItem } from '../../../services/proveedor-catalogo.service';
+
+type Opt = { id: number; nombre: string };
+
+type LineaTemp = {
+  presentacionId: number;
+  producto: string;
+  presentacion: string;
+  cantidad: number;
+  precioUnitario: number;
+  totalLinea: number;
+  notas?: string | null;
+};
 
 @Component({
   selector: 'app-pedidos-proveedores',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './proveedores.html',
-  styleUrls: ['./proveedores.css']
+  styleUrls: ['./proveedores.css'],
 })
-export class Proveedores implements OnInit, OnDestroy {
-
+export class PedidosProveedores implements OnInit {
+  private provSvc = inject(ProveedoresService);
   private svc = inject(PedidosService);
+  private fpSvc = inject(FormasPagoService);
+  private catSvc = inject(CategoriasService);
+  private marcaSvc = inject(MarcasService);
+  private umSvc = inject(UnidadesMedidaService);
+  private http = inject(HttpClient);
+  private prodSvc = inject(ProductosService);
+  private provCatSvc = inject(ProveedorCatalogoService);
 
-  // ===== Data principal =====
-  pedidos: PedidoListItem[] = [];
-  pedidosFiltrados: PedidoListItem[] = [];
-  proveedoresOpts: ProveedorLite[] = [];
+  // ====== Listado ======
+  loading = signal(false);
+  pedidos = signal<PedidoProveedorListItem[]>([]);
+  q = signal<string>('');
 
-  // UI
-  cargando = false;
-  mensaje = '';
-  errorMsg = '';
-  // lista / filtros
-  searchTerm = '';
-  filtroProveedorId: number | null = null;
-  filtroEstado = '';
-  filtroDesde: string | null = null;
-  filtroHasta: string | null = null;
+  filtered = computed(() => {
+    const term = this.q().trim().toLowerCase();
+    if (!term) return this.pedidos();
+    return this.pedidos().filter(p =>
+      (p.numero || '').toLowerCase().includes(term) ||
+      (p.proveedorNombre || '').toLowerCase().includes(term)
+    );
+  });
 
-  // Paginación
-  itemsPorPagina = 10;
-  paginaActual = 0;
-  inicio = 0;
-  fin = 10;
-  totalPaginas = 1;
-  private searchTimer: any;
+  // ====== Catálogo y combos ======
+  proveedores: Opt[] = [];
+  proveedorId: number | null = null;
+  term = '';
+  cargandoCatalogo = false;
+  catalogo: CatalogoItem[] = [];
 
-  // ===== Crear =====
-  mostrarCrear = false;
-  submittedCrear = false;
-  guardandoCrear = false;
-  formCrearPedido: Omit<PedidoCreate, 'detalles'> & { detalles: PedidoDetalleCreate[] } = {
-    proveedorId: null as any,
-    numero: '',
-    observaciones: '',
-    detalles: []
+  // Placeholder inline (no requiere archivo en assets)
+  placeholderImg =
+    'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><rect width="100%" height="100%" fill="%23f5f5f5"/><text x="50%" y="55%" font-size="12" text-anchor="middle" fill="%23999">IMG</text></svg>';
+
+  // ====== Crear pedido (modal) ======
+  showCreate = false;
+  observaciones: string | null = null;
+  lineas: LineaTemp[] = [];
+  guardando = false;
+
+  // ====== Recepción (modal) ======
+  showRx = false;
+  pedidoRx: PedidoProveedorDto | null = null;
+  rxFecha = new Date().toISOString().slice(0, 10);
+  rxNumero: string | null = null;
+  rxFormaPagoId: number | null = null;
+  rxReferencia: string | null = null;
+  formasPago: FormaPagoItem[] = [];
+  rxRows: Array<{
+    detalleId: number;
+    producto: string;
+    presentacion: string;
+    pedida: number;
+    recibida: number;
+    pendiente: number;
+    recibirAhora: number;
+    costoUnitario: number;
+    notas?: string | null;
+  }> = [];
+
+  // ====== Modal: Ver detalle ======
+  showView = false;
+  pedidoView: PedidoProveedorDto | null = null;
+
+  // ====== Quick product (sub-modal) ======
+  showQuick = false;
+  quickSaving = false;
+  categorias: Opt[] = [];
+  marcas: Opt[] = [];
+  unidades: Array<{ id: number; simbolo: string }> = [];
+
+  qp = {
+    nombre: '',
+    categoriaId: null as number | null,
+    proveedorId: null as number | null,
+    activo: true,
+    precioCompraDefault: 0,
+    precioVentaDefault: 0,
+    fotoUrl: null as string | null,
   };
-  lineaTmp: PedidoDetalleCreate & { notas?: string | null } = {
-    presentacionId: null as any,
-    cantidad: 1,
-    precioUnitario: 0,
-    descuento: 0,
-    notas: ''
-  };
 
-  // ===== Detalle / edición =====
-  mostrarDetalle = false;
-  pedidoActual: PedidoFull | null = null;
-  pedidoEdit: { numero: string | null; observaciones: string | null } = { numero: null, observaciones: null };
+  // ====== Helpers de imagen ======
+  onImgError(evt: Event): void {
+    const img = evt.target as HTMLImageElement | null;
+    if (img) {
+      (img as any).onerror = null; // evita loop si falla el placeholder también
+      img.src = this.placeholderImg;
+    }
+  }
 
-  // Línea en edición (dentro del detalle)
-  editandoLinea: { id: number } | null = null;
-  lineaForm: PedidoDetalleCreate & { notas?: string | null } = {
-    presentacionId: null as any, cantidad: 1, precioUnitario: 0, descuento: 0, notas: ''
-  };
+  // ====== Stepper entero (±) en el catálogo ======
+  enforceInt(el: HTMLInputElement): void {
+    const raw = (el.value ?? '').toString();
+    const onlyDigits = raw.replace(/[^\d]/g, '');
+    const n = onlyDigits === '' ? 0 : parseInt(onlyDigits, 10);
+    el.value = String(isFinite(n) ? Math.max(0, n) : 0);
+  }
+  stepUp(el: HTMLInputElement): void {
+    this.enforceInt(el);
+    el.value = String(Math.max(0, parseInt(el.value || '0', 10) + 1));
+  }
+  stepDown(el: HTMLInputElement): void {
+    this.enforceInt(el);
+    el.value = String(Math.max(0, parseInt(el.value || '0', 10) - 1));
+  }
 
-  // ===== Recepción =====
-  mostrarRecepcion = false;
-  recForm: { fecha: string; numero: string | null; formaPagoId: number | null } = {
-    fecha: new Date().toISOString().slice(0,10),
-    numero: null,
-    formaPagoId: null
-  };
-
-  // Estados para filtros
-  estados = [
-    { value: 'borrador' as EstadoPedidoProveedor, label: 'Borrador' },
-    { value: 'enviado' as EstadoPedidoProveedor, label: 'Enviado' },
-    { value: 'aprobado' as EstadoPedidoProveedor, label: 'Aprobado' },
-    { value: 'parcialmenteRecibido' as EstadoPedidoProveedor, label: 'Parcialmente recibido' },
-    { value: 'cerrado' as EstadoPedidoProveedor, label: 'Cerrado' },
-    { value: 'cancelado' as EstadoPedidoProveedor, label: 'Cancelado' }
-  ];
-
-  // Toast
-  private Toast = Swal.mixin({ toast:true, position:'top-end', showConfirmButton:false, timer:2500, timerProgressBar:true });
-
+  // ====== Ciclo ======
   ngOnInit(): void {
-    this.cargarProveedores();
-    this.cargarPedidos();
+    this.reload();
+    this.loadProveedores();
   }
-  ngOnDestroy(): void { if (this.searchTimer) clearTimeout(this.searchTimer); }
 
-  @HostListener('document:keydown.escape') onEsc(){ if (this.mostrarCrear) this.cerrarCrear(); if (this.mostrarDetalle) this.cerrarDetalle(); if (this.mostrarRecepcion) this.cerrarRecepcion(); }
+  private loadProveedores(): void {
+    this.provSvc.list(true).subscribe({
+      next: rows => {
+        this.proveedores = (rows || []).map(r => ({ id: r.id, nombre: r.nombre }));
+        if (this.proveedores.length > 0 && !this.proveedorId) {
+          this.proveedorId = this.proveedores[0].id;
+        }
+      },
+      error: () => this.Toast.fire({icon:'error', title:'No se pudieron cargar los proveedores'})
+    });
 
-  /* ===================== LISTA ===================== */
-  cargarProveedores(): void {
-    this.svc.listProveedores().subscribe({
-      next: (ps) => this.proveedoresOpts = ps ?? [],
-      error: () => {}
+    this.catSvc.list(true).subscribe({
+      next: l => this.categorias = (l || []).map(x => ({id:x.id, nombre:x.nombre}))
     });
   }
 
-  cargarPedidos(): void {
-    this.cargando = true;
+  reload(): void {
+    this.loading.set(true);
     this.svc.list().subscribe({
-      next: (data) => {
-        this.pedidos = data ?? [];
-        this.aplicarFiltros();
-        this.cargando = false;
-      },
-      error: () => {
-        this.swalError('No se pudieron cargar los pedidos.');
-        this.cargando = false;
-      }
+      next: list => { this.pedidos.set(list || []); this.loading.set(false); },
+      error: () => { this.loading.set(false); this.Toast.fire({icon:'error', title:'No se pudo cargar pedidos'}); }
     });
   }
 
-  estadoTexto(e?: EstadoPedidoProveedor | null): string {
-    switch (e) {
-      case 'borrador': return 'Borrador';
-      case 'enviado': return 'Enviado';
-      case 'aprobado': return 'Aprobado';
-      case 'parcialmenteRecibido': return 'Parcialmente recibido';
-      case 'cerrado': return 'Cerrado';
-      case 'cancelado': return 'Cancelado';
-      default: return '—';
-    }
+  asDate(fecha: string | null | undefined): Date | null {
+    if (!fecha) return null;
+    const s = String(fecha);
+    const iso = s.includes('T') ? s : `${s}T00:00:00`;
+    const d = new Date(iso);
+    return isNaN(d.getTime()) ? null : d;
   }
 
-  onSearchInput(): void {
-    if (this.searchTimer) clearTimeout(this.searchTimer);
-    this.searchTimer = setTimeout(() => this.aplicarFiltros(), 250);
+  // ===================== Crear =====================
+  openCreate(): void {
+    this.showCreate = true;
+    this.proveedorId = this.proveedores.length > 0 ? this.proveedores[0].id : null;
+    this.observaciones = null;
+    this.lineas = [];
+    this.catalogo = [];
+    this.term = '';
+    if (this.proveedorId) this.cargarCatalogo();
   }
 
-  aplicarFiltros(): void {
-    let arr = [...this.pedidos];
-    const term = (this.searchTerm || '').trim().toLowerCase();
-
-    if (term) {
-      arr = arr.filter(p =>
-        (p.numero || '').toLowerCase().includes(term) ||
-        (p.proveedorNombre || '').toLowerCase().includes(term)
-      );
-    }
-    if (this.filtroProveedorId) {
-      arr = arr.filter(p => p.proveedorId === this.filtroProveedorId);
-    }
-    if (this.filtroEstado) {
-      arr = arr.filter(p => p.estado === (this.filtroEstado as EstadoPedidoProveedor));
-    }
-    if (this.filtroDesde) {
-      const d = new Date(this.filtroDesde + 'T00:00:00');
-      arr = arr.filter(p => new Date(p.fecha) >= d);
-    }
-    if (this.filtroHasta) {
-      const h = new Date(this.filtroHasta + 'T23:59:59');
-      arr = arr.filter(p => new Date(p.fecha) <= h);
-    }
-
-    this.pedidosFiltrados = arr;
-    this.paginaActual = 0;
-    this.actualizarPaginacion();
+  closeCreate(): void {
+    this.showCreate = false;
+    this.lineas = [];
+    this.catalogo = [];
+    this.term = '';
+    this.observaciones = null;
   }
 
-  actualizarPaginacion(): void {
-    this.inicio = this.paginaActual * this.itemsPorPagina;
-    this.fin = this.inicio + this.itemsPorPagina;
-    this.totalPaginas = Math.max(1, Math.ceil(this.pedidosFiltrados.length / this.itemsPorPagina));
-  }
-  paginaAnterior(): void { if (this.paginaActual > 0){ this.paginaActual--; this.actualizarPaginacion(); } }
-  paginaSiguiente(): void { if (this.paginaActual < this.totalPaginas - 1){ this.paginaActual++; this.actualizarPaginacion(); } }
-
-  /* ===================== CREAR ===================== */
-  abrirCrear(): void {
-    this.formCrearPedido = { proveedorId: null as any, numero: '', observaciones: '', detalles: [] };
-    this.lineaTmp = { presentacionId: null as any, cantidad: 1, precioUnitario: 0, descuento: 0, notas: '' };
-    this.submittedCrear = false;
-    this.mostrarCrear = true;
-  }
-  cerrarCrear(): void { this.mostrarCrear = false; }
-
-  agregarLineaTmp(): void {
-    const l = this.lineaTmp;
-    if (!l.presentacionId || l.cantidad <= 0) { this.Toast.fire({icon:'warning', title:'Completa la presentación y cantidad'}); return; }
-    this.formCrearPedido.detalles.push({
-      presentacionId: l.presentacionId,
-      cantidad: +l.cantidad,
-      precioUnitario: +l.precioUnitario,
-      descuento: +l.descuento || 0,
-      notas: (l.notas || '').trim() || null
+  cargarCatalogo(): void {
+    if (!this.proveedorId) { this.catalogo = []; return; }
+    this.cargandoCatalogo = true;
+    this.provCatSvc.list(this.proveedorId, { term: this.term, soloActivos: true }).subscribe({
+      next: rows => { this.catalogo = rows || []; this.cargandoCatalogo = false; },
+      error: e => { this.cargandoCatalogo = false; this.swalErrorFrom(e, 'No se pudo cargar el catálogo'); }
     });
-    this.lineaTmp = { presentacionId: null as any, cantidad: 1, precioUnitario: 0, descuento: 0, notas: '' };
   }
-  quitarLineaTmp(i:number): void { this.formCrearPedido.detalles.splice(i,1); }
+  buscarCatalogo(): void { setTimeout(() => this.cargarCatalogo(), 300); }
 
-  crearPedido(): void {
-    this.submittedCrear = true;
-    const body: PedidoCreate = {
-      proveedorId: this.formCrearPedido.proveedorId!,
-      numero: (this.formCrearPedido.numero || '').trim() || null,
-      observaciones: (this.formCrearPedido.observaciones || '').trim() || null,
-      detalles: this.formCrearPedido.detalles
+  addLineaFrom(it: CatalogoItem, qtyInput: HTMLInputElement): void {
+    const cantidad = Number(qtyInput.value || 0);
+    if (!cantidad || cantidad <= 0) {
+      this.Toast.fire({ icon: 'info', title: 'Ingresa una cantidad mayor a 0' });
+      return;
+    }
+    const precio = Number(it.precioSugerido || 0);
+    const idx = this.lineas.findIndex(x => x.presentacionId === it.presentacionId);
+    if (idx >= 0) {
+      const l = this.lineas[idx]; l.cantidad += cantidad; l.precioUnitario = precio; this.recalcLinea(l);
+      this.Toast.fire({ icon: 'success', title: 'Cantidad actualizada en línea existente' });
+    } else {
+      const nuevaLinea: LineaTemp = {
+        presentacionId: it.presentacionId,
+        producto: it.productoNombre,
+        presentacion: it.presentacionNombre,
+        cantidad, precioUnitario: precio,
+        totalLinea: +(cantidad * precio).toFixed(2),
+      };
+      this.lineas.push(nuevaLinea);
+      this.Toast.fire({ icon: 'success', title: 'Producto agregado al pedido' });
+    }
+    qtyInput.value = '0';
+  }
+
+  recalcLinea(l: LineaTemp): void {
+    const qty = Number(l.cantidad || 0); const price = Number(l.precioUnitario || 0);
+    l.totalLinea = +(qty * price).toFixed(2);
+  }
+
+  eliminarLinea(i: number): void { this.lineas.splice(i, 1); this.Toast.fire({ icon: 'info', title: 'Línea eliminada' }); }
+
+  get subtotal(): number { return +this.lineas.reduce((s, l) => s + l.totalLinea, 0).toFixed(2); }
+  get total(): number { return this.subtotal; }
+
+  guardar(ngf: NgForm): void {
+    if (!this.proveedorId) { this.Toast.fire({ icon: 'warning', title: 'Selecciona un proveedor' }); return; }
+    if (!this.lineas.length) { this.Toast.fire({ icon: 'warning', title: 'Agrega al menos una línea al pedido' }); return; }
+    this.guardando = true;
+
+    const dto: PedidoProveedorCreate = {
+      proveedorId: this.proveedorId,
+      observaciones: this.observaciones || undefined,
+      detalles: this.lineas.map(l => ({
+        presentacionId: l.presentacionId,
+        cantidad: l.cantidad,
+        precioUnitario: l.precioUnitario,
+        notas: l.notas || undefined,
+      })),
     };
-    if (!body.proveedorId){ this.Toast.fire({icon:'warning', title:'Selecciona proveedor'}); return; }
-    if (!body.detalles.length){ this.Toast.fire({icon:'warning', title:'Agrega al menos una línea'}); return; }
 
-    this.guardandoCrear = true;
-    this.svc.create(body).subscribe({
-      next: (r) => {
-        this.Toast.fire({icon:'success', title:`Pedido #${r.id} creado`});
-        this.guardandoCrear = false;
-        this.mostrarCrear = false;
-        this.cargarPedidos();
+    this.svc.create(dto).subscribe({
+      next: ({ id }) => {
+        this.guardando = false; this.closeCreate();
+        this.Toast.fire({ icon: 'success', title: `Pedido #${id} creado` });
+        this.reload();
       },
-      error: () => {
-        this.guardandoCrear = false;
-        this.swalError('No se pudo crear el pedido');
-      }
+      error: (e) => { this.guardando = false; this.swalErrorFrom(e, 'No se pudo crear el pedido'); }
     });
   }
 
-  /* ===================== DETALLE ===================== */
-  abrirDetalle(id: number): void {
-    this.svc.getById(id).subscribe({
-      next: (p) => {
-        this.pedidoActual = p;
-        this.pedidoEdit = { numero: p.numero, observaciones: p.observaciones };
-        this.editandoLinea = null;
-        this.lineaForm = { presentacionId: null as any, cantidad: 1, precioUnitario: 0, descuento: 0, notas: '' };
-        this.mostrarDetalle = true;
-      },
-      error: () => this.swalError('No se pudo cargar el pedido')
-    });
-  }
-  cerrarDetalle(): void { this.mostrarDetalle = false; this.pedidoActual = null; this.editandoLinea = null; }
-
-  // guardar encabezado (solo borrador)
-  guardarEncabezado(): void {
-    if (!this.pedidoActual || this.pedidoActual.estado!=='borrador') return;
-  }
-
-  editarLinea(d: PedidoFull['detalles'][number]): void {
-    this.editandoLinea = { id: d.id };
-    this.lineaForm = {
-      presentacionId: d.presentacionId,
-      cantidad: d.cantidad,
-      precioUnitario: d.precioUnitario,
-      descuento: d.descuento,
-      notas: d.notas || ''
-    };
-  }
-
-  eliminarLinea(d: PedidoFull['detalles'][number]): void {
-    if (!this.pedidoActual) return;
-    Swal.fire({ title:'¿Eliminar línea?', icon:'warning', showCancelButton:true, confirmButtonText:'Sí, eliminar', confirmButtonColor:'#d33' })
-      .then(res => {
-        if (!res.isConfirmed) return;
-        this.svc.deleteLinea(this.pedidoActual!.id, d.id).subscribe({
-          next: () => this.abrirDetalle(this.pedidoActual!.id),
-          error: () => this.swalError('No se pudo eliminar la línea')
-        });
-      });
-  }
-
-  guardarLinea(): void {
-  if (!this.pedidoActual) return;
-
-  const id = this.pedidoActual.id;
-  const body: PedidoDetalleCreate = {
-    presentacionId: this.lineaForm.presentacionId!,
-    cantidad: +this.lineaForm.cantidad,
-    precioUnitario: +this.lineaForm.precioUnitario,
-    descuento: +this.lineaForm.descuento || 0,
-    notas: (this.lineaForm.notas || '').trim() || null
-  };
-
-  if (!body.presentacionId || body.cantidad <= 0) {
-    this.Toast.fire({ icon: 'warning', title: 'Completa presentación y cantidad' });
-    return;
-  }
-
-  const onOk = () => {
-    this.Toast.fire({ icon: 'success', title: this.editandoLinea ? 'Línea actualizada' : 'Línea agregada' });
-    this.editandoLinea = null;
-    this.lineaForm = { presentacionId: null as any, cantidad: 1, precioUnitario: 0, descuento: 0, notas: '' };
-    this.abrirDetalle(id);
-  };
-  const onErr = () => this.swalError('No se pudo guardar la línea');
-
-  if (this.editandoLinea) {
-    this.svc.updateLinea(id, this.editandoLinea.id, body).subscribe({ next: onOk, error: onErr });
-  } else {
-    this.svc.addLinea(id, body).subscribe({ next: onOk, error: onErr });
-  }
-}
-
-
-  /* ===================== WORKFLOW ===================== */
-  enviar(p: PedidoListItem | PedidoFull): void {
-    Swal.fire({ title:'¿Enviar pedido?', text:`#${p.id}`, icon:'question', showCancelButton:true })
-      .then(r => {
-        if (!r.isConfirmed) return;
+  // ===================== Acciones de flujo =====================
+  enviar(p: PedidoProveedorListItem): void {
+    Swal.fire({
+      icon: 'question',
+      title: '¿Enviar pedido?',
+      text: `Se enviará el pedido ${p.numero || '#' + p.id}`,
+      showCancelButton: true,
+      confirmButtonText: 'Sí, enviar',
+      cancelButtonText: 'Cancelar'
+    }).then(result => {
+      if (result.isConfirmed) {
         this.svc.enviar(p.id).subscribe({
-          next: () => { this.Toast.fire({icon:'success', title:'Pedido enviado'}); this.cargarPedidos(); if (this.mostrarDetalle) this.abrirDetalle(p.id); },
-          error: (e) => this.swalError(e?.error ?? 'No se pudo enviar')
+          next: () => { this.Toast.fire({icon:'success', title:'Pedido enviado correctamente'}); this.reload(); },
+          error: e => this.swalErrorFrom(e, 'No se pudo enviar el pedido')
         });
-      });
-  }
-
-  aprobar(p: PedidoListItem | PedidoFull): void {
-    Swal.fire({ title:'¿Aprobar pedido?', text:`#${p.id}`, icon:'question', showCancelButton:true })
-      .then(r => {
-        if (!r.isConfirmed) return;
-        this.svc.aprobar(p.id).subscribe({
-          next: () => { this.Toast.fire({icon:'success', title:'Pedido aprobado'}); this.cargarPedidos(); if (this.mostrarDetalle) this.abrirDetalle(p.id); },
-          error: (e) => this.swalError(e?.error ?? 'No se pudo aprobar')
-        });
-      });
-  }
-
-  cancelar(p: PedidoListItem | PedidoFull): void {
-    Swal.fire({ title:'¿Cancelar pedido?', text:`#${p.id}`, icon:'warning', showCancelButton:true, confirmButtonColor:'#d33' })
-      .then(r => {
-        if (!r.isConfirmed) return;
-        this.svc.cancelar(p.id).subscribe({
-          next: () => { this.Toast.fire({icon:'success', title:'Pedido cancelado'}); this.cargarPedidos(); if (this.mostrarDetalle) this.abrirDetalle(p.id); },
-          error: (e) => this.swalError(e?.error ?? 'No se pudo cancelar')
-        });
-      });
-  }
-
-  /* ===================== RECEPCIÓN ===================== */
-  abrirRecepcion(): void {
-    if (!this.pedidoActual) return;
-    this.pedidoActual.detalles.forEach(d => {
-      const pendiente = Math.max(0, d.cantidad - d.cantidadRecibida);
-      d._recibir = pendiente > 0 ? pendiente : 0;
-      d._costo = d.precioUnitario;
-      d._notas = null;
+      }
     });
-    this.recForm = { fecha: new Date().toISOString().slice(0,10), numero: null, formaPagoId: null };
-    this.mostrarRecepcion = true;
   }
-  cerrarRecepcion(): void { this.mostrarRecepcion = false; }
+
+  aprobar(p: PedidoProveedorListItem): void {
+    Swal.fire({
+      icon:'question',
+      title:'¿Aprobar pedido?',
+      text:`Se aprobará el pedido ${p.numero || '#' + p.id}`,
+      showCancelButton:true,
+      confirmButtonText:'Sí, aprobar',
+      cancelButtonText:'Cancelar'
+    }).then(result => {
+      if (result.isConfirmed) {
+        this.svc.aprobar(p.id).subscribe({
+          next: () => { this.Toast.fire({icon:'success', title:'Pedido aprobado correctamente'}); this.reload(); },
+          error: e => this.swalErrorFrom(e, 'No se pudo aprobar el pedido')
+        });
+      }
+    });
+  }
+
+  cancelar(p: PedidoProveedorListItem): void {
+    const esParcial = this.isEstado(p, 'ParcialmenteRecibido');
+
+    Swal.fire({
+      icon: esParcial ? 'warning' : 'question',
+      title: esParcial ? 'Cancelar remanente pendiente' : '¿Cancelar pedido?',
+      html: esParcial
+        ? `<div style="text-align:left">
+             <p><strong>Este pedido ya tiene recepciones.</strong></p>
+             <p>Se <strong>cancelará el remanente pendiente</strong> (lo ya recibido no se afectará).</p>
+             <p class="small" style="color:#666;margin-top:8px">
+               Nota: Esta acción <strong>no revertirá</strong> compras ni inventario ya registrados.
+             </p>
+           </div>`
+        : `Se cancelará definitivamente el pedido ${p.numero || ('#' + p.id)}.`,
+      showCancelButton: true,
+      confirmButtonText: esParcial ? 'Sí, cancelar remanente' : 'Sí, cancelar',
+      cancelButtonText: 'No cancelar',
+      confirmButtonColor: '#d33'
+    }).then(r => {
+      if (!r.isConfirmed) return;
+      this.svc.cancelar(p.id).subscribe({
+        next: () => {
+          this.Toast.fire({icon: 'success', title: esParcial ? 'Remanente cancelado' : 'Pedido cancelado'});
+          this.reload();
+        },
+        error: e => this.swalErrorFrom(e, 'No se pudo cancelar el pedido')
+      });
+    });
+  }
+
+  // ===================== Recepción =====================
+  openRecibir(p: PedidoProveedorListItem): void {
+    this.loading.set(true);
+    this.svc.getById(p.id).subscribe({
+      next: full => {
+        this.pedidoRx = full;
+        this.rxFecha = new Date().toISOString().slice(0,10);
+        this.rxNumero = null;
+        this.rxFormaPagoId = null;
+        this.rxReferencia = null;
+
+        this.fpSvc.list(true).subscribe({
+          next: fps => {
+            this.formasPago = fps || [];
+            if (this.formasPago.length > 0) this.rxFormaPagoId = this.formasPago[0].id;
+          }
+        });
+
+        this.rxRows = full.detalles.map(d => ({
+          detalleId: d.id,
+          producto: d.productoNombre,
+          presentacion: d.presentacionNombre,
+          pedida: d.cantidad,
+          recibida: d.cantidadRecibida,
+          pendiente: +(d.cantidad - d.cantidadRecibida).toFixed(2),
+          recibirAhora: +(d.cantidad - d.cantidadRecibida).toFixed(2),
+          costoUnitario: d.precioUnitario,
+          notas: ''
+        }));
+
+        this.showRx = true;
+        this.loading.set(false);
+      },
+      error: e => { this.loading.set(false); this.swalErrorFrom(e, 'No se pudo abrir la recepción'); }
+    });
+  }
+
+  closeRx(): void {
+    this.showRx = false;
+    this.pedidoRx = null;
+    this.rxRows = [];
+    this.rxFormaPagoId = null;
+    this.rxReferencia = null;
+  }
+
+  rxRecalcRow(r: any): void {
+    r.recibirAhora = Math.max(0, Math.min(Number(r.recibirAhora || 0), r.pendiente));
+  }
+
+  get rxSubtotal(): number {
+    return +this.rxRows.reduce((s, r) =>
+      s + Number(r.recibirAhora || 0) * Number(r.costoUnitario || 0), 0).toFixed(2);
+  }
+  get rxTotal(): number { return this.rxSubtotal; }
+  get rxHayAlgo(): boolean { return this.rxRows.some(r => Number(r.recibirAhora || 0) > 0); }
+  get rxFormaPagoRequiereRef(): boolean {
+    const fp = this.formasPago.find(f => f.id === this.rxFormaPagoId);
+    return !!fp?.requiereReferencia;
+  }
 
   confirmarRecepcion(): void {
-    if (!this.pedidoActual) return;
-    const lineas = this.pedidoActual.detalles
-      .filter(d => (d._recibir ?? 0) > 0)
-      .map(d => ({
-        pedidoProveedorDetalleId: d.id,
-        cantidad: +(d._recibir as number),
-        costoUnitario: +(d._costo ?? 0),
-        notas: (d._notas || '').toString().trim() || null
-      }));
-    if (!lineas.length){ this.Toast.fire({icon:'warning', title:'No hay cantidades a recibir'}); return; }
+    if (!this.pedidoRx) return;
+    if (!this.rxFormaPagoId){ this.Toast.fire({icon:'warning',title:'Selecciona una forma de pago'}); return; }
+    if (!this.rxHayAlgo){ this.Toast.fire({icon:'warning',title:'Ingresa cantidades a recibir'}); return; }
+    if (this.rxFormaPagoRequiereRef && !this.rxReferencia?.trim()){
+      this.Toast.fire({icon:'warning', title:'Ingresa la referencia del depósito/transferencia'}); return;
+    }
 
-    const body: RecepcionCreate = {
-      fecha: this.recForm.fecha,
-      numero: (this.recForm.numero || '').trim() || null,
-      formaPagoId: this.recForm.formaPagoId ?? null,
-      lineas
+    const dto = {
+      fecha: this.rxFecha,
+      numero: this.rxNumero || undefined,
+      formaPagoId: this.rxFormaPagoId!,
+      referencia: this.rxReferencia || undefined,
+      lineas: this.rxRows
+        .filter(r => Number(r.recibirAhora||0) > 0)
+        .map(r => ({
+          pedidoProveedorDetalleId: r.detalleId,
+          cantidad: Number(r.recibirAhora),
+          costoUnitario: Number(r.costoUnitario),
+          notas: r.notas || undefined
+        }))
     };
-    this.svc.recepcion(this.pedidoActual.id, body).subscribe({
-      next: () => {
-        this.Toast.fire({icon:'success', title:'Recepción registrada'});
-        this.mostrarRecepcion = false;
-        this.abrirDetalle(this.pedidoActual!.id);
-        this.cargarPedidos();
-      },
-      error: (e) => this.swalError(e?.error ?? 'No se pudo registrar la recepción')
+
+    this.svc.recibir(this.pedidoRx.id, dto).subscribe({
+      next: () => { this.Toast.fire({icon:'success', title:'Recepción registrada exitosamente'}); this.closeRx(); this.reload(); },
+      error: e => this.swalErrorFrom(e, 'No se pudo registrar la recepción')
     });
   }
 
-  /* ===================== Utils ===================== */
-  private swalError(text: string): void { Swal.fire({ icon:'error', title:'Ups…', text }); }
+  // ===================== Ver detalle (pedido cerrado) =====================
+  verDetalle(p: PedidoProveedorListItem): void {
+    this.svc.getById(p.id).subscribe({
+      next: (full) => {
+        this.pedidoView = full;
+        this.showView = true;
+      },
+      error: e => this.swalErrorFrom(e, 'No se pudo cargar el detalle')
+    });
+  }
+  closeView(): void { this.showView = false; this.pedidoView = null; }
+
+  // ===================== Quick Add =====================
+  openQuickAdd(): void {
+    if (!this.proveedorId) {
+      this.Toast.fire({icon:'warning', title:'Selecciona un proveedor primero'});
+      return;
+    }
+    this.qp = {
+      nombre: '',
+      categoriaId: (this.categorias[0]?.id ?? null),
+      proveedorId: this.proveedorId,
+      activo: true,
+      precioCompraDefault: 0,
+      precioVentaDefault: 0,
+      fotoUrl: null
+    };
+    this.showQuick = true;
+  }
+
+  closeQuickAdd(): void { this.showQuick = false; }
+
+  onQuickFile(evt: Event): void {
+    const input = evt.target as HTMLInputElement;
+    const file = input.files && input.files[0];
+    if (file) this.uploadQuickImage(file);
+  }
+
+  onQuickDrop(evt: DragEvent): void {
+    evt.preventDefault();
+    const file = evt.dataTransfer?.files?.[0];
+    if (file) this.uploadQuickImage(file);
+  }
+
+  private uploadQuickImage(file: File): void {
+    this.quickSaving = true;
+    this.prodSvc.uploadImage(file).subscribe({
+      next: ({ url }) => { this.qp.fotoUrl = url; this.quickSaving = false; },
+      error: e => { this.quickSaving = false; this.swalErrorFrom(e, 'No se pudo subir la imagen'); }
+    });
+  }
+
+  quickCreate(): void {
+    if (!this.qp.nombre || !this.qp.categoriaId || !this.qp.proveedorId || !this.qp.fotoUrl) {
+      this.Toast.fire({icon:'warning', title:'Completa los campos obligatorios'});
+      return;
+    }
+    this.quickSaving = true;
+
+    this.prodSvc.create({
+      nombre: this.qp.nombre,
+      categoriaId: this.qp.categoriaId!,
+      proveedorId: this.qp.proveedorId!,
+      fotoUrl: this.qp.fotoUrl!,
+      precioCompraDefault: Number(this.qp.precioCompraDefault || 0),
+      precioVentaDefault: Number(this.qp.precioVentaDefault || 0),
+      activo: !!this.qp.activo
+    }).subscribe({
+      next: () => {
+        this.quickSaving = false;
+        this.Toast.fire({icon:'success', title:'Producto creado'});
+        this.closeQuickAdd();
+        this.cargarCatalogo();
+      },
+      error: e => { this.quickSaving = false; this.swalErrorFrom(e, 'No se pudo crear el producto'); }
+    });
+  }
+
+  // ===== Helpers estado/UI =====
+  private normEstado(s: any): string {
+    return (s ?? '')
+      .toString()
+      .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-zA-Z]/g, '')
+      .toLowerCase();
+  }
+
+  private estadoKeyFromValue(val: any): string {
+    if (typeof val === 'number') {
+      switch (val) {
+        case 0: return 'borrador';
+        case 1: return 'enviado';
+        case 2: return 'aprobado';
+        case 3: return 'parcialmenterecibido';
+        case 4: return 'cerrado';
+        case 5: return 'cancelado';
+        default: return '';
+      }
+    }
+    const k = this.normEstado(val);
+    if (!k) return '';
+    const map: Record<string,string> = {
+      borrador:'borrador', enviado:'enviado', aprobado:'aprobado',
+      parcialmenterecibido:'parcialmenterecibido',
+      cerrado:'cerrado', cancelado:'cancelado'
+    };
+    if (k === 'parcialmenterecibido') return 'parcialmenterecibido';
+    return map[k] ?? k;
+  }
+
+  estadoClass(estado: any) {
+    const k = this.estadoKeyFromValue(estado);
+    return {
+      pill:true,
+      borrador:k==='borrador',
+      enviado:k==='enviado',
+      aprobado:k==='aprobado',
+      parcial:k==='parcialmenterecibido',
+      cerrado:k==='cerrado',
+      cancelado:k==='cancelado'
+    };
+  }
+
+  isEstado(p: PedidoProveedorListItem, ...estados: string[]) {
+    const k = this.estadoKeyFromValue((p as any).estado);
+    const keys = estados.map(e => this.estadoKeyFromValue(e));
+    return keys.includes(k);
+  }
+
+  estadoLabel(estado: any) {
+    const k = this.estadoKeyFromValue(estado);
+    const map: Record<string,string> = {
+      borrador:'borrador',
+      enviado:'enviado',
+      aprobado:'aprobado',
+      parcialmenterecibido:'parcialmente recibido',
+      cerrado:'cerrado',
+      cancelado:'cancelado'
+    };
+    if (map[k]) return map[k];
+    if (typeof estado === 'number') return String(estado);
+    return (estado ?? '').toString();
+  }
+
+  private Toast = Swal.mixin({
+    toast: true,
+    position: 'top-end',
+    showConfirmButton: false,
+    timer: 2500,
+    timerProgressBar: true,
+    didOpen: (toast) => {
+      toast.addEventListener('mouseenter', Swal.stopTimer);
+      toast.addEventListener('mouseleave', Swal.resumeTimer);
+    }
+  });
+
+  // ====== NUEVO: Manejo de errores enriquecido ======
+  private fmtQ(n: any): string {
+    const num = Number(n ?? 0);
+    try {
+      return new Intl.NumberFormat('es-GT', {
+        style: 'currency',
+        currency: 'GTQ',
+        minimumFractionDigits: 2
+      }).format(num);
+    } catch {
+      return `Q ${num.toFixed(2)}`;
+    }
+  }
+
+  // Devuelve { text?, html? } para pasar a SweetAlert
+  private buildErrorView(e: any): { text?: string; html?: string } {
+    if (e?.status === 0) return { text: 'No hay conexión con el servidor.' };
+
+    const err = e?.error;
+
+    // 409 de caja: { error, disponible, solicitado }
+    if (e?.status === 409 && err && typeof err === 'object'
+        && 'error' in err && 'disponible' in err && 'solicitado' in err) {
+      const disp = this.fmtQ(err.disponible);
+      const sol  = this.fmtQ(err.solicitado);
+      return {
+        html: `
+          <div style="text-align:left">
+            <p><strong>${(err.error || 'Fondos insuficientes en caja')}</strong></p>
+            <ul style="margin:0;padding-left:18px">
+              <li><b>Disponible:</b> ${disp}</li>
+              <li><b>Intentaste pagar:</b> ${sol}</li>
+            </ul>
+            <p style="margin-top:10px;color:#666" class="small">
+              Ajusta las cantidades o cambia la forma de pago.
+            </p>
+          </div>`
+      };
+    }
+
+    // ProblemDetails / errores directos
+    if (typeof err === 'string') return { text: err };
+    if (err?.detail || err?.title || err?.message) {
+      return { text: (err.detail || err.title || err.message) };
+    }
+
+    // Validación { errors: { campo: [ 'msg1', ... ] } }
+    if (err?.errors && typeof err.errors === 'object') {
+      const items: string[] = [];
+      Object.values(err.errors).forEach((v: any) => {
+        if (Array.isArray(v)) v.forEach(x => items.push(String(x)));
+        else if (v != null) items.push(String(v));
+      });
+      if (items.length) {
+        return {
+          html: `<ul style="text-align:left; padding-left:18px; margin:0">
+                   ${items.map(m => `<li>${m}</li>`).join('')}
+                 </ul>`
+        };
+      }
+    }
+
+    // Fallback genérico
+    return { text: `Error ${e?.status || ''} ${e?.statusText || ''}`.trim() || 'Error desconocido.' };
+  }
+
+  private swalErrorFrom(e: any, titulo = 'Error'): void {
+    const view = this.buildErrorView(e);
+    Swal.fire({
+      icon: 'error',
+      title: titulo,
+      ...(view.html ? { html: view.html } : { text: view.text }),
+      confirmButtonText: 'Entendido'
+    });
+  }
+
+  trackByPedidoId = (_: number, item: PedidoProveedorListItem) => item.id;
+  trackByProveedorId = (_: number, item: Opt) => item.id;
+  trackByCatalogoId = (_: number, item: CatalogoItem) => item.presentacionId;
+  trackByLineaId = (_: number, item: LineaTemp) => item.presentacionId;
+  trackByCategoriaId = (_: number, item: Opt) => item.id;
+  trackByMarcaId = (_: number, item: Opt) => item.id;
+  trackByUnidadId = (_: number, item: {id: number; simbolo: string}) => item.id;
+  trackByFormaPagoId = (_: number, item: FormaPagoItem) => item.id;
+  trackByRxRowId = (_: number, item: any) => item.detalleId;
 }

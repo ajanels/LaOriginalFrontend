@@ -8,8 +8,6 @@ html, body, app-root {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
 }
-
-
 :root {
   /* layout scale */
   --container-max: 1200px;            /* ancho máx. del contenido */
@@ -24,4 +22,60 @@ html, body, app-root {
   --card-bg: #fff;
   --card-br: 14px;
   --card-shadow: 0 6px 24px rgba(0,0,0,.06);
+}
+
+/* en styles.css (o global.css), NO en productos.css */
+.swal2-container {
+  z-index: 300000 !important;  /* siempre por encima de todo */
+}
+
+/* ================= Overlay global para TODOS los modales ================= */
+/* Usa las variables ya definidas en tu styles.css */
+body.sidebar-collapsed{
+  /* cuando el menú esté colapsado, el overlay se corre menos */
+  --sidebar-w: var(--sidebar-w-collapsed);
+}
+
+/* Aplica al modal centrado y al overlay del drawer "ver detalle" */
+section.modal,
+.modal-backdrop{
+  position: fixed;
+  top: var(--navbar-h, 96px);
+  left: var(--sidebar-w, 280px);
+  right: 0;
+  bottom: 0;
+
+  /* Fondo pedido (mismo para centrados y drawer) */
+  background: rgba(46, 45, 45, 0.55) !important;
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+
+  z-index: 10000; /* SweetAlert ya está en 300000, así que seguirá encima */
+}
+
+/* Comportamiento del modal centrado (tu .modal-card queda igual) */
+section.modal{
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  overflow: auto;
+}
+
+/* Bloquear scroll del contenido al mostrar un modal */
+.page.modal-open{ overflow: hidden; }
+
+/* En móviles (o vistas sin sidebar visible) que cubra toda la pantalla */
+@media (max-width: 1024px){
+  section.modal,
+  .modal-backdrop{
+    top: 0;
+    left: 0;
+  }
+}
+
+/* El contenido del modal/drawer debe quedar encima del overlay */
+.container.drawer,
+section.modal .modal-card{
+  position: relative;
+  z-index: 10001;
 }

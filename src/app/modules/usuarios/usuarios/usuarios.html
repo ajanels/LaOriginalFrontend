@@ -72,8 +72,8 @@
     </div>
   </div>
 
-  <!-- card tabla -->
-  <div class="card">
+  <!-- card tabla (con acento morado) -->
+  <div class="card accent">
     <div class="table-wrapper" *ngIf="!loading(); else loadingTpl">
       <table class="grid" *ngIf="paged().length; else emptyTpl" aria-label="Listado de usuarios">
         <thead>
@@ -103,7 +103,6 @@
             <td class="acts">
               <button class="icon" type="button" (click)="openView(u)" title="Ver"><span class="material-icons">visibility</span></button>
               <button class="icon" type="button" (click)="openEdit(u)" title="Editar"><span class="material-icons">edit</span></button>
-              <!-- SIN botón eliminar en la tabla -->
             </td>
           </tr>
         </tbody>

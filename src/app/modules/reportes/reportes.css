@@ -1,0 +1,188 @@
+/* ======================= REPORTES (.rep-page) — estilo compacto “perfecto” ======================= */
+.page.rep-page{
+  --card-bg: rgba(255,255,255,0.9);
+  --shadow: 0 8px 28px rgba(0,0,0,.06);
+  --text: #101828;
+  --muted: #667085;
+  --primary: #6b46c1;
+  --primary-ghost: #efe9ff;
+  color: var(--text);
+
+  /* Fondo + overlay como el perfecto */
+  display:flex; flex-direction:column; gap:9px; padding:13px;
+  background:url("/assets/bg-yarns.jpg") center/cover no-repeat fixed;
+  min-height:calc(100vh - var(--topbar-h,97px));
+}
+.page.rep-page::before{
+  content:""; position:fixed; top:var(--topbar-h,97px); left:var(--side-w,280px); right:0; bottom:0;
+  background:rgba(255,255,255,.85); z-index:-1;
+}
+:host-context(.sidebar-collapsed) .page.rep-page::before{ left:var(--side-w-collapsed,92px); }
+
+/* ===== Utilidades (scopeadas) ===== */
+.page.rep-page .strong{ font-weight:700; }
+.page.rep-page .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
+.page.rep-page .text-right{ text-align:right; }
+.page.rep-page .nowrap{ white-space:nowrap; }
+.page.rep-page .one-line{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.page.rep-page .sub{ color:#707070; }
+
+/* ===== Título ===== */
+.page.rep-page .head-title{ margin-bottom:8px; }
+.page.rep-page .head-title h1{
+  margin:2px 0;
+  font-family:"Playfair Display", Georgia, serif;
+  font-weight:800;
+  font-size:clamp(24px,3.9vw,36px);
+  line-height:1.05; letter-spacing:.2px;
+  background: linear-gradient(90deg, #363636, #111); /* mantiene look */
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+
+/* ===== Header: filtros + tabs + acciones (compacto) ===== */
+.page.rep-page .head{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:8px; flex-wrap:nowrap; width:100%; margin-bottom:6px;
+}
+.page.rep-page .actions{
+  margin-left:auto; display:flex; align-items:center; gap:6px;
+  flex-wrap:nowrap; white-space:nowrap;
+}
+
+/* Filtros compactos */
+.page.rep-page .filters{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.page.rep-page .filters .date{ display:grid; gap:3px; font-size:11.5px; color:var(--muted); }
+.page.rep-page .filters .filter{
+  height:30px; border-radius:8px; border:1px solid #e5e5eb;
+  background:#fff; padding:0 9px; outline:none; font-size:12.5px;
+  box-shadow:0 1px 4px rgba(0,0,0,.05);
+}
+
+/* Tabs compactas (pill) */
+.page.rep-page .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
+.page.rep-page .tabs button{
+  height:28px; padding:0 10px; border-radius:999px; border:1px solid transparent;
+  background:var(--primary-ghost); color:var(--primary); font-weight:700; font-size:12px; letter-spacing:.2px;
+  transition:transform .05s ease-in-out, background .15s;
+}
+.page.rep-page .tabs button:hover{ transform:translateY(-1px); }
+.page.rep-page .tabs button.active{ background:var(--primary); color:#fff; }
+
+/* ===== Botones ===== */
+.page.rep-page button.primary,
+.page.rep-page button.ghost{
+  display:inline-flex; align-items:center; gap:7px; padding:5px 10px; height:28px;
+  border-radius:8px; font-size:12px; font-weight:700; cursor:pointer; transition:.15s ease;
+}
+.page.rep-page button.primary{
+  border:0; background:var(--primary); color:#fff; box-shadow:0 3px 7px rgba(107,70,193,.14);
+}
+.page.rep-page button.primary:hover{ filter:brightness(.97); }
+.page.rep-page button.ghost{
+  background:#fff; border:1px solid #ddd; color:var(--text); font-weight:600;
+}
+.page.rep-page button.ghost:hover{ background:#f7f7f7; }
+
+/* ===== KPIs (compacto) ===== */
+.page.rep-page .kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:10px; margin:10px 0; }
+.page.rep-page .kpi{
+  background:var(--card-bg); border-radius:10px; padding:10px 12px;
+  box-shadow:0 5px 12px rgba(0,0,0,.045);
+
+  /* Soporte Safari/iOS + estándar */
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.page.rep-page .kpi-label{ color:var(--muted); font-size:11.5px; }
+.page.rep-page .kpi-value{ font-size:20px; font-weight:800; margin-top:2px; color:#333; }
+
+/* ===== Card / Tabla (con franja lateral violeta) ===== */
+.page.rep-page .card{
+  background:var(--card-bg); border:1px solid #eee; border-radius:10px; padding:8px;
+  box-shadow:0 5px 12px rgba(0,0,0,.045); position:relative; overflow:hidden;
+
+  /* Soporte Safari/iOS + estándar */
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.page.rep-page .card::before{
+  content:""; position:absolute; top:0; bottom:0; left:-1px; width:5px;
+  background:#7419ad; opacity:.95; pointer-events:none;
+}
+.page.rep-page .table-wrapper{ overflow:auto; border-radius:10px; }
+
+/* ===== Grid ===== */
+.page.rep-page table.grid{
+  width:100%; border-collapse:separate; border-spacing:0; table-layout:auto; font-size:12.5px;
+}
+.page.rep-page .grid thead th{
+  position:sticky; top:0; z-index:2;
+  text-align:left; color:#555; font-weight:700; font-size:12px;
+  padding:6px 8px; border-bottom:2px solid #eee; background:#fafafa; white-space:nowrap;
+}
+.page.rep-page .grid tbody td{
+  padding:6px 8px; border-bottom:1px solid #f3f3f6; white-space:nowrap; vertical-align:middle;
+}
+.page.rep-page .grid tbody tr:hover{ background:#fbf7ff; }
+
+/* helpers dentro de grid */
+.page.rep-page .grid .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; color:#555; }
+.page.rep-page .grid .c{ text-align:center; }
+.page.rep-page .grid .r{ text-align:right; }
+.page.rep-page .grid .strong{ font-weight:800; }
+
+/* Empty / loading / note */
+.page.rep-page .empty{ text-align:center; padding:14px; color:var(--muted); display:flex; flex-direction:column; gap:6px; align-items:center; }
+.page.rep-page .loading{ margin:8px 0 2px; color:var(--muted); font-size:12.5px; }
+.page.rep-page .note{ color:var(--muted); margin-top:6px; display:inline-block; font-size:12.5px; }
+
+/* ===== Botón icono (utilidad) ===== */
+.page.rep-page button.icon{
+  border:0; background:#f6f3f7; color:#6b2f99; border-radius:7px;
+  padding:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:.15s ease;
+  min-width:24px; min-height:24px;
+}
+.page.rep-page button.icon:hover{ background:#ede8ef; transform:translateY(-1px); }
+.page.rep-page button.icon .material-icons{ font-size:17px; }
+
+/* ===== Grid helper 2 cols ===== */
+.page.rep-page .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+@media (max-width:900px){ .page.rep-page .grid-2{ grid-template-columns:1fr; } }
+
+/* ===== Responsive tabla móvil (como el perfecto) ===== */
+@media (max-width:900px){
+  .page.rep-page .head{ flex-wrap:nowrap; }
+  .page.rep-page .actions{ margin-left:auto; flex-wrap:nowrap; white-space:nowrap; }
+
+  .page.rep-page .grid thead{ display:none; }
+  .page.rep-page .grid tbody tr{
+    display:grid; grid-template-columns:1fr 1fr; gap:6px; border-bottom:1px solid #eee; padding:8px 0;
+  }
+  .page.rep-page .grid tbody td{ border:0; padding:4px 7px; white-space:normal; }
+}
+
+/* ===== Print ===== */
+@media print{
+  .page.rep-page .head, .page.rep-page .kpis .kpi{ box-shadow:none !important; }
+  .page.rep-page .tabs, .page.rep-page .actions{ display:none !important; }
+}
+
+/* ===== Estados deshabilitados (consistencia) ===== */
+.page.rep-page button.icon:not([disabled]):hover { background:#ede8ef; transform:translateY(-1px); }
+.page.rep-page button.icon[disabled]{ background:#f0f0f3; color:#9aa0a6; border-color:#e6e6e6; opacity:.75; cursor:not-allowed; transform:none; }
+.page.rep-page button.primary[disabled]{ background:#cbb6e2; color:#fff; opacity:.85; cursor:not-allowed; }
+.page.rep-page button.ghost[disabled]{ background:#f6f6f6; color:#9aa0a6; border-color:#e6e6e6; cursor:not-allowed; }
+
+/* ===== Fallback si NO hay soporte de backdrop-filter (Safari viejo / otros) ===== */
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
+  .page.rep-page .kpi,
+  .page.rep-page .card {
+    background: rgba(255,255,255,.98); /* aumenta opacidad para simular sin blur */
+  }
+}
+
+/* (Opcional) utilidad reutilizable de blur 6px */
+.page.rep-page .bf-6{
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}

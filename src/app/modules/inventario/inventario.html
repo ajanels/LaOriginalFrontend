@@ -1,1 +1,160 @@
-<p>inventario works!</p>
+<div class="page" [class.modal-open]="showKardex || showAjuste || showBajos">
+  <div class="head-title"><h1>Inventario</h1></div>
+
+  <div class="head">
+    <div class="actions">
+      <div class="search">
+        <span class="material-icons">search</span>
+        <input [ngModel]="q" (ngModelChange)="onSearch($any($event))"
+               placeholder="Buscar producto, código o SKU…" />
+      </div>
+    </div>
+    <div class="actions">
+      <button class="primary" (click)="reload()">
+        <span class="material-icons">refresh</span> Actualizar
+      </button>
+      <button class="primary" (click)="generarPedidoBajos()">
+        <span class="material-icons">list</span> Productos con bajo stock
+      </button>
+    </div>
+  </div>
+
+  <!-- Tabla -->
+  <div class="card">
+    <div class="table-wrapper" *ngIf="!loading; else loadingTpl">
+      <table class="grid">
+        <thead>
+          <tr>
+            <th>Imagen</th>
+            <th>Producto</th>
+            <th class="mono">Cantidad</th>
+            <th class="mono">Mínimo</th>
+            <th>Estado</th>
+            <th class="actions-col">Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of viewRows">
+            <td class="img-cell"><img [src]="r.fotoUrl || 'assets/noimg.svg'" alt="foto" /></td>
+            <td>
+              <div class="prod-name">{{ r.producto }}</div>
+              <div class="prod-code" *ngIf="r.productoCodigo; else noCode">Código: {{ r.productoCodigo }}</div>
+              <ng-template #noCode><div class="prod-code muted">Sin código</div></ng-template>
+            </td>
+            <td class="mono">{{ r.cantidad | number:'1.2-2' }}</td>
+            <td class="mono">
+              <span *ngIf="!editMin || editMin.id !== r.presentacionId">{{ r.minimo ?? 0 }}</span>
+              <input *ngIf="editMin && editMin.id === r.presentacionId" type="number" [(ngModel)]="editMin.value" min="0" step="0.01" class="inline-input" />
+              <div class="edit-actions" *ngIf="editMin && editMin.id === r.presentacionId">
+                <button class="icon primary" (click)="guardarMinimo()" title="Guardar"><span class="material-icons">check</span></button>
+                <button class="icon danger" (click)="cancelarEditar()" title="Cancelar"><span class="material-icons">close</span></button>
+              </div>
+            </td>
+            <td><span class="pill" [ngClass]="{ ok: !r.bajoMinimo, low: r.bajoMinimo }">{{ r.bajoMinimo ? 'Bajo' : 'OK' }}</span></td>
+            <td class="actions-cell">
+              <button class="icon" (click)="openKardex(r)" title="Ver Kardex"><span class="material-icons">receipt_long</span></button>
+              <button class="icon primary" (click)="openAjuste(r)" title="Ajuste de inventario"><span class="material-icons">tune</span></button>
+              <button class="icon" (click)="abrirEditarMin(r)" title="Editar mínimo"><span class="material-icons">edit</span></button>
+            </td>
+          </tr>
+          <tr *ngIf="!viewRows.length"><td colspan="6" class="empty">Sin resultados</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <ng-template #loadingTpl><div class="empty">Cargando…</div></ng-template>
+  </div>
+
+  <!-- Modal Kardex -->
+  <section class="modal" *ngIf="showKardex" (click)="closeKardex()">
+    <div class="modal-card large" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2>Kardex · {{ sel?.producto }}</h2>
+        </div>
+        <button class="icon close" (click)="closeKardex()"><span class="material-icons">close</span></button>
+      </header>
+      <div class="modal-body">
+        <table class="grid">
+          <thead>
+            <tr><th>Fecha</th><th>Tipo</th><th>Cantidad</th><th>Costo</th><th>Notas</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let k of kardex">
+              <td>{{ k.fechaUtc | date:'short' }}</td>
+              <td>{{ k.tipo }}</td>
+              <td>{{ k.cantidad }}</td>
+              <td>{{ k.costoUnitario || '—' }}</td>
+              <td>{{ k.notas || '—' }}</td>
+            </tr>
+            <tr *ngIf="!kardex.length"><td colspan="5" class="empty">Sin movimientos</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Ajuste -->
+  <section class="modal" *ngIf="showAjuste" (click)="closeAjuste()">
+    <div class="modal-card small" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2>Ajuste de inventario</h2>
+        </div>
+        <button class="icon close" (click)="closeAjuste()"><span class="material-icons">close</span></button>
+      </header>
+      <div class="modal-body">
+        <div class="info-row">
+          <div><strong>Producto:</strong> {{ sel?.producto }}</div>
+          <div><strong>Stock actual:</strong> {{ sel?.cantidad | number:'1.2-2' }}</div>
+        </div>
+        <form (ngSubmit)="guardarAjuste()">
+          <div class="form-row">
+            <label>Tipo
+              <select [(ngModel)]="ajTipo" name="tipo">
+                <option value="entrada">Entrada</option>
+                <option value="salida">Salida</option>
+              </select>
+            </label>
+            <label>Cantidad
+              <input type="number" [(ngModel)]="ajCantidad" name="cantidad" required />
+            </label>
+            <label *ngIf="ajTipo==='entrada'">Costo unitario
+              <input type="number" [(ngModel)]="ajCosto" name="costo" required />
+            </label>
+          </div>
+          <div class="form-row">
+            <label>Motivo
+              <input [(ngModel)]="ajMotivo" name="motivo" />
+            </label>
+          </div>
+          <footer class="modal-foot">
+            <button class="ghost" type="button" (click)="closeAjuste()">Cancelar</button>
+            <button class="primary" type="submit">Registrar</button>
+          </footer>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- Modal Bajo stock -->
+  <section class="modal" *ngIf="showBajos" (click)="closeBajos()">
+    <div class="modal-card small" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2>Productos con bajo stock</h2>
+        </div>
+        <button class="icon close" (click)="closeBajos()"><span class="material-icons">close</span></button>
+      </header>
+      <div class="modal-body">
+        <ul>
+          <li *ngFor="let b of bajosStock">
+            {{ b.producto }} → {{ b.cantidad }}
+          </li>
+        </ul>
+      </div>
+    </div>
+  </section>
+</div>

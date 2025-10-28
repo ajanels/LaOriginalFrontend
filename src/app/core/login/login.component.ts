@@ -3,6 +3,8 @@ import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
+
+// Desde core/login hasta services: ../../
 import { AuthService, LoginResponse } from '../../services/auth.service';
 
 @Component({
@@ -20,7 +22,7 @@ export class LoginComponent {
 
   constructor(private auth: AuthService, private router: Router) {}
 
-  onLogin() {
+  onLogin(): void {
     this.errorMessage = '';
     if (!this.username || !this.password) {
       this.errorMessage = 'Ingresa usuario y contraseña.';
@@ -38,14 +40,19 @@ export class LoginComponent {
       next: (_res: LoginResponse) => {
         this.loading = false;
         Swal.close();
-        this.router.navigate(['/home']);
+        if (this.auth.isPasswordChangeRequired()) {
+          this.router.navigate(['/cambiar-password']);
+        } else {
+          this.router.navigate(['/home']);
+        }
       },
-      error: (err) => {
+      error: (err: any) => { // tipado para noImplicitAny
         this.loading = false;
         Swal.close();
         const msg =
           err?.error?.detail ||
           err?.error?.title ||
+          err?.error?.message ||
           err?.error ||
           'Credenciales incorrectas, inténtelo de nuevo.';
         this.errorMessage = typeof msg === 'string' ? msg : 'Error de autenticación';

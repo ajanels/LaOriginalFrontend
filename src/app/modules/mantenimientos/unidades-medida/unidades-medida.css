@@ -75,7 +75,16 @@ button.icon.toggle.inactive{ background:#eaf7ef; color:#2e7d32; }
 button.icon.close{ background:#f3f3f3; color:#555; }
 
 /* Card / tabla */
-.card{ background:#fff; border:1px solid #eee; border-radius:20px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.06); }
+.card{
+  background:#fff; border:1px solid #eee; border-radius:20px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.06);
+  position:relative; overflow:hidden; /* necesario para la tira morada */
+}
+/* tira morada en tarjetas */
+.card::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:4px;
+  background:#7a2ea8; opacity:.85;
+}
+
 .table-wrapper{ overflow-x:auto; }
 table.grid{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:1000px; }
 .grid thead th{ text-align:left; font-weight:700; font-size:14px; color:#6a6a6a; padding:14px 12px; border-bottom:1px solid #eee; white-space:nowrap; background:#fafafa; }
@@ -137,7 +146,14 @@ table.grid{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:
   box-shadow:0 24px 80px rgba(0,0,0,.28);
   display:flex; flex-direction:column; overflow:hidden;
   animation:popIn .18s ease-out both;
+  position:relative; /* tira morada */
 }
+/* tira morada en modal */
+.modal-card::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:4px;
+  background:#7a2ea8; opacity:.85;
+}
+
 .modal-card, .modal-card *{ box-sizing:border-box; }
 .modal-head{ display:flex; align-items:center; justify-content:space-between; padding:16px; border-bottom:1px solid #eee; background:linear-gradient(180deg,#ffffff 0%, #faf8fc 100%); }
 .modal-title-wrap{ display:flex; align-items:center; gap:10px; }

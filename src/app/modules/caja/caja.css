@@ -1,0 +1,324 @@
+/* ===== Variables base ===== */
+:root{
+  --topbar-h: 97px;
+  --side-w: 280px;
+  --side-w-collapsed: 92px;
+}
+
+/* ===== Página y cabeceras (tipografía + escala “perfecto”) ===== */
+.page{
+  display:flex; flex-direction:column; gap:9px; padding:13px;
+}
+.head-title h1{
+  font-family:"Playfair Display", Georgia, serif; font-weight:700;
+  font-size:clamp(24px,3.9vw,36px);
+  line-height:1.05; margin:2px 0 0; color:#333; letter-spacing:.2px;
+}
+
+/* ===== Utilidades ===== */
+.strong{ font-weight:700; color:#333; }
+.muted{ color:#777; }
+.right{ text-align:right; }
+.small{ font-size:12px; }
+.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", "Courier New", monospace; color:#565656; }
+
+/* ===== Chips/KPIs (compacto “perfecto”) ===== */
+.chip-group{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.chip{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:4px 8px; border-radius:999px; font-size:12px; font-weight:700;
+  background:#f3f4f7; color:#556;
+}
+.chip.ok{ background:#eaf7ef; color:#2e7d32; }
+.chip.bad{ background:#fde9eb; color:#b4232b; }
+.chip.code{ background:#eaf3ff; color:#1e5bb8; }
+
+.kpis{
+  display:grid; grid-template-columns: repeat(4, 1fr) auto;
+  gap:10px; align-items:start;
+}
+.kpi{
+  background:#fff; border:1px solid #eee; border-radius:10px;
+  padding:9px 10px; box-shadow:0 5px 12px rgba(0,0,0,.045);
+}
+.kpi-title{ color:#666; font-size:11.5px; font-weight:700; letter-spacing:.3px; }
+.kpi-val{ font-weight:800; font-size:17px; color:#333; }
+.kpi-val.in{ color:#2e7d32; } 
+.kpi-val.out{ color:#b4232b; } 
+.kpi-val.strong{ color:#7a2ea8; }
+.kpi-actions{ display:flex; gap:6px; justify-content:flex-end; align-items:center; }
+
+/* ===== Filtros y barra ===== */
+.filters{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+
+.search{
+  display:flex; align-items:center; gap:6px;
+  background:#fff; border:1px solid #ddd; border-radius:8px;
+  padding:5px 10px; box-shadow:0 1px 4px rgba(0,0,0,.05); transition:.15s ease;
+}
+.search:focus-within{ border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.10); }
+.search input{ border:0; outline:0; background:transparent; width:100%; font-size:12.5px; min-width:220px; }
+.search .material-icons{ font-size:15px; color:#777; }
+
+.filter{
+  height:30px; border-radius:8px; border:1px solid #e5e5e5;
+  background:#fff; padding:0 9px; outline:none; font-size:12.5px;
+}
+
+/* ===== Botones (escala y estilo del “perfecto”) ===== */
+button.primary, button.ghost, button.danger, button.secondary{
+  display:inline-flex; align-items:center; justify-content:center;
+  gap:7px; padding:5px 10px; min-height:28px;
+  border-radius:8px; font-size:12.5px; line-height:1; box-sizing:border-box;
+  cursor:pointer; transition:.15s ease; font-weight:700;
+}
+
+/* variantes */
+button.primary{
+  border:0; background:#7a2ea8; color:#fff;
+  box-shadow:0 3px 8px rgba(122,46,168,.18);
+}
+button.primary:hover{ filter:brightness(.97); }
+
+button.ghost{
+  background:#fff; border:1px solid #ddd; color:#333;
+}
+button.ghost:hover{ background:#f7f7f7; border-color:#ddd; }
+
+button.danger{
+  background:#b4232b; color:#fff; border:0;
+}
+
+button.secondary{
+  background:#fff; color:#7a2ea8; border:1px solid #c8a9dc;
+}
+
+/* Botón icono */
+button.icon{
+  border:0; background:#f6f3f7; color:#6b2f99; border-radius:7px;
+  padding:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center;
+  transition:.15s ease; min-width:24px; min-height:24px;
+}
+button.icon:hover{ background:#ede8ef; transform:translateY(-1px); }
+button.icon .material-icons{ font-size:17px; line-height:1; display:inline-block; }
+
+/* ===== Tarjetas / tablas ===== */
+.card{
+  background:#fff; border:1px solid #eee; border-radius:10px;
+  padding:8px; box-shadow:0 5px 12px rgba(0,0,0,.045);
+  position:relative; overflow:hidden;
+}
+.card::before{
+  content:""; position:absolute; top:0; bottom:0;
+  left:-1px; width:5px; background:#7419ad; opacity:.95; pointer-events:none;
+}
+
+.table-wrapper{ overflow-x:auto; }
+table.grid{
+  width:100%; border-collapse:separate; border-spacing:0; table-layout:auto;
+  min-width:1000px; font-size:12.5px;
+}
+.grid thead th{
+  text-align:left; font-weight:700; font-size:12px; color:#555;
+  padding:6px 8px; border-bottom:2px solid #eee; background:#fafafa;
+  position:sticky; top:0; z-index:1;
+}
+.grid tbody td, .grid tfoot td{
+  padding:6px 8px; border-bottom:1px solid #f3f3f6;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;
+}
+.grid tbody tr:hover{ background:#fbf7ff; }
+
+/* ===== Vacío ===== */
+.empty{
+  text-align:center; color:#8a8a8a; padding:14px;
+  display:flex; flex-direction:column; gap:8px; align-items:center;
+}
+.empty .material-icons{ color:#d5d5d5; font-size:36px; }
+.empty-card{
+  background:#fff; border:1px solid #eee; border-radius:10px;
+  padding:16px; box-shadow:0 5px 12px rgba(0,0,0,.045);
+  display:flex; justify-content:center;
+}
+.empty-card .empty h3{ margin:6px 0 4px; color:#333; }
+.empty-card .empty p{ margin:0 0 12px; }
+
+/* ===== Pills ===== */
+.pill{
+  display:inline-block; padding:3px 8px; border-radius:999px;
+  font-size:12px; border:1px solid transparent; font-weight:700; letter-spacing:.2px;
+}
+.pill.in{ background:#eaf7ef; color:#2e7d32; border-color:#cdecd6; }
+.pill.out{ background:#fde9eb; color:#b4232b; border-color:#f6c7cd; }
+.pill.open{ background:#eaf3ff; color:#1e5bb8; border-color:#cfe3ff; }
+.pill.close{ background:#edf2f7; color:#3a4956; border-color:#dae2ea; }
+
+/* ===== Modal (alineado al estilo perfecto, mismas posiciones) ===== */
+.page.modal-open{ overflow:hidden; }
+
+.modal{
+  position:fixed;
+  top: var(--topbar-h, 97px);
+  left: var(--side-w, 280px);
+  right:0; bottom:0;
+  display:grid; place-items:center;
+  overflow:auto; padding:20px; z-index:10000;
+  background: rgba(46,45,45,.55);
+  -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+}
+:host-context(.sidebar-collapsed) .modal{ left: var(--side-w-collapsed, 92px); }
+@media (max-width:1024px){ .modal{ top:0; left:0; } }
+
+.modal-card{
+  width:min(1200px, calc(100vw - var(--side-w, 280px) - 72px));
+  margin:0; background:#fff; border:1px solid #eee; border-radius:10px;
+  box-shadow:0 18px 60px rgba(0,0,0,.16);
+  display:flex; flex-direction:column; overflow:hidden; font-size:14px;
+  max-height: calc(100vh - var(--topbar-h, 97px) - 72px);
+}
+.modal-card.small{ width:min(920px,  calc(100vw - var(--side-w, 280px) - 72px)); }
+
+/* === Conteo de efectivo (CIERRE) — más compacto para evitar scroll === */
+/* Aplica porque el modal de cierre usa .modal-card.large en el HTML */
+.modal-card.large{
+  /* reduce ancho y altura máximos para comprimir contenido visible */
+  width: min(980px, calc(100vw - var(--side-w, 280px) - 88px));
+  max-height: 1200px;
+  font-size: 12.25px; /* leve reducción global */
+}
+
+/* cabecera y pie más apretados */
+.modal-card.large .modal-head{ padding:7px 9px; }
+.modal-card.large .modal-foot{ padding:7px 9px; gap:8px; }
+
+/* cuerpo: reduce padding para ganar vertical */
+.modal-card.large .modal-body{ padding:8px; }
+
+/* tablas de denominaciones más compactas */
+.modal-card.large .denoms-2cols{ gap:10px; }
+.modal-card.large .denoms-table{ border-radius:8px; }
+.modal-card.large .denoms-head,
+.modal-card.large .denoms-row{
+  grid-template-columns: 120px 1fr 120px; /* columnas más angostas */
+  gap:8px;
+}
+.modal-card.large .denoms-head{
+  padding:6px 8px; font-size:12px;
+}
+.modal-card.large .denoms-row{
+  padding:5px 8px;
+}
+.modal-card.large .denoms-row input{
+  height:26px; padding:0 6px; font-size:12px;
+}
+
+/* totales y alertas compactos */
+.modal-card.large .totales-cierre{ gap:6px; }
+.modal-card.large .totales-cierre .fila{
+  padding:8px 10px;
+}
+.modal-card.large .badge{ font-size:11px; padding:2px 7px; }
+.modal-card.large .alert{ font-size:12px; padding:8px 9px; }
+
+/* botones del bloque de ajuste más compactos */
+.modal-card.large .ajuste-row{ gap:8px; }
+.modal-card.large .secondary{ padding:4px 10px; min-height:26px; font-size:12px; }
+
+/* Responsivo del cierre */
+@media (max-width: 1024px){
+  .modal-card.large{ width:95vw; max-width:95vw; }
+}
+
+/* ===== cabecera/pie generales ===== */
+.modal-head{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:8px 10px; border-bottom:1px solid #eee; background:#fcfbfe;
+}
+.modal-actions{ display:flex; align-items:center; gap:6px; }
+.modal-title-wrap{ display:flex; align-items:center; gap:6px; }
+.modal-dot{ width:6px; height:6px; border-radius:999px; background:#7a2ea8; display:inline-block; }
+.modal-body{ padding:10px; overflow-y:auto; overflow-x:hidden; }
+.modal-foot{
+  padding:7px 10px; border-top:1px solid #eee;
+  display:flex; align-items:center; justify-content:space-between; gap:10px; background:#fcfbfe;
+}
+
+/* ===== Formularios en modales (escala perfecta) ===== */
+label{
+  display:flex; flex-direction:column; gap:6px;
+  font-size:12.5px; color:#1b1a1a; font-weight:600; min-width:0;
+}
+
+input, select{
+  height:30px; border-radius:8px; border:1px solid #e5e5e5; background:#fff;
+  padding:0 8px; outline:none; width:100%; max-width:100%;
+  font-size:12.5px; transition:.15s ease; box-sizing:border-box; margin-bottom:8px;
+}
+input:focus, select:focus{
+  border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.10);
+}
+
+/* grid específico para modales (misma posición) */
+.form-grid{
+  display:grid; grid-template-columns: 1fr 1fr;
+  column-gap:16px; row-gap:12px; margin-bottom:12px;
+}
+.form-grid .span-2{ grid-column: 1 / -1; }
+
+/* ===== Denominaciones en dos columnas (base) ===== */
+.denoms-2cols{ display:grid; grid-template-columns: 1fr 1fr; gap:14px; }
+.denoms-table{ border:1px solid #eee; border-radius:10px; overflow:hidden; background:#fff; }
+.denoms-head, .denoms-row{ display:grid; grid-template-columns: 140px 1fr 160px; gap:10px; align-items:center; }
+.denoms-head{
+  padding:8px 10px; background:#faf9fc; border-bottom:1px solid #efe9f7; font-weight:700; color:#6a6a6a;
+}
+.denoms-row{ padding:7px 10px; border-bottom:1px solid #f3f3f6; }
+.denoms-row:last-child{ border-bottom:0; }
+
+/* Totales, badge y alertas (base) */
+.totales-cierre{ margin-top:12px; display:grid; gap:8px; }
+.totales-cierre .fila{
+  display:flex; justify-content:space-between; align-items:center;
+  padding:10px 12px; border:1px dashed #e3d7ef; border-radius:8px; background:#fbf9ff;
+}
+.total-badge{ display:flex; align-items:center; gap:8px; }
+.badge{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:3px 8px; border-radius:999px; font-weight:800; font-size:12px;
+  border:1px solid transparent; text-transform:uppercase; letter-spacing:.3px;
+}
+.badge.ok{ background:#eaf7ef; color:#1b5e20; border-color:#cdecd6; }
+.badge.bad{ background:#fde9eb; color:#b4232b; border-color:#f6c7cd; }
+.alert{ margin-top:6px; padding:9px 10px; border-radius:8px; background:#fff7e6; border:1px solid #ffe4b3; color:#8a5a00; font-size:12.5px; }
+.ajuste-row{ display:flex; align-items:center; gap:10px; margin-top:4px; }
+
+/* Estados deshabilitados (coherentes) */
+button.primary[disabled], button.ghost[disabled], button.secondary:disabled, button.danger[disabled]{ opacity:.75; cursor:not-allowed; }
+button.ghost:disabled{ background:#f6f6f6; color:#9aa0a6; border-color:#e6e6e6; }
+button.primary[disabled]{ background:#cbb6e2; color:#fff; }
+button.icon[disabled]{ background:#f0f0f3; color:#9aa0a6; border-color:#e6e6e6; transform:none; }
+
+/* ===== Paginación ===== */
+.pager{ display:flex; align-items:center; gap:9px; padding:9px; justify-content:flex-end; }
+
+/* ===== Accesibilidad ===== */
+button:focus-visible, input:focus-visible, select:focus-visible{
+  outline:2px solid #7a2ea8; outline-offset:2px;
+}
+
+/* ===== Responsive ===== */
+@media (max-width:1100px){
+  .modal{ padding:12px; }
+  .modal-body{ padding:10px; }
+  .form-grid{ grid-template-columns:1fr; }
+  .denoms-2cols{ grid-template-columns:1fr; }
+}
+@media (max-height:680px){
+  .modal{ align-items:flex-start; }
+  .modal-card{ margin-top:16px; }
+}
+
+/* ===== Fallback si NO hay soporte de backdrop-filter (Safari iOS, etc.) ===== */
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))){
+  .modal{ background:rgba(46,45,45,.70); }
+}

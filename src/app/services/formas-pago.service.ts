@@ -9,19 +9,22 @@ export interface FormaPagoItem {
   descripcion?: string | null;
   activo: boolean;
   requiereReferencia: boolean;
+  afectaCaja: boolean;
+  afectaBanco: boolean;
   esCredito: boolean;
 }
 
-interface ToggleResponse { id: number; nombre: string; activo: boolean; }
+export type ToggleResponse = { id: number; nombre: string; activo: boolean };
+export type FormaPagoCreate = Omit<FormaPagoItem, 'id'>;
 
 @Injectable({ providedIn: 'root' })
 export class FormasPagoService {
   private http = inject(HttpClient);
   private API = `${environment.apiBase}/FormasPago`;
 
-  list(soloActivos: boolean = false, term?: string): Observable<FormaPagoItem[]> {
+  list(soloActivos = false, term?: string): Observable<FormaPagoItem[]> {
     let params = new HttpParams().set('soloActivos', String(soloActivos));
-    if (term && term.trim()) params = params.set('term', term.trim());
+    if (term?.trim()) params = params.set('term', term.trim());
     return this.http.get<FormaPagoItem[]>(this.API, { params });
   }
 
@@ -29,11 +32,11 @@ export class FormasPagoService {
     return this.http.get<FormaPagoItem>(`${this.API}/${id}`);
   }
 
-  create(dto: Omit<FormaPagoItem, 'id'>): Observable<FormaPagoItem> {
+  create(dto: FormaPagoCreate): Observable<FormaPagoItem> {
     return this.http.post<FormaPagoItem>(this.API, dto);
   }
 
-  update(id: number, dto: Partial<FormaPagoItem>): Observable<void> {
+  update(id: number, dto: FormaPagoCreate): Observable<void> {
     return this.http.put<void>(`${this.API}/${id}`, { id, ...dto });
   }
 

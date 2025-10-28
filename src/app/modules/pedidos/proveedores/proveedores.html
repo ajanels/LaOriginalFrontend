@@ -1,445 +1,494 @@
-<div class="page" [class.modal-open]="mostrarCrear || mostrarDetalle || mostrarRecepcion" role="main" aria-labelledby="title-pedidos">
-  <!-- Mensajes -->
-  <div *ngIf="mensaje" class="toast ok" role="status" aria-live="polite">{{ mensaje }}</div>
-  <div *ngIf="errorMsg" class="toast err" role="alert" aria-live="assertive">{{ errorMsg }}</div>
-
-  <!-- Título -->
+<div class="page" [class.modal-open]="showCreate || showRx || showQuick || showView">
   <div class="head-title">
-    <h1 id="title-pedidos">Pedidos a proveedores</h1>
+    <h1>Compras a proveedores</h1>
   </div>
 
-  <!-- Filtros + crear -->
   <div class="head">
     <div class="actions">
       <div class="search" aria-label="Buscar pedidos">
         <span class="material-icons" aria-hidden="true">search</span>
-        <input
-          id="buscadorPedidos"
-          type="text"
-          inputmode="search"
-          placeholder="Busca por número o proveedor…"
-          title="Buscar"
-          [(ngModel)]="searchTerm"
-          (input)="onSearchInput()"
-          autocomplete="off"
-        />
+        <input [ngModel]="q()" (ngModelChange)="q.set($event)" placeholder="Buscar por número o proveedor…" autocomplete="off" title="Buscar" />
       </div>
-
-      <label class="sr" for="filtroProveedor">Filtrar por proveedor</label>
-      <select id="filtroProveedor" class="filter" [(ngModel)]="filtroProveedorId" (change)="aplicarFiltros()"
-              aria-label="Proveedor" title="Filtrar por proveedor">
-        <option [ngValue]="null">Todos los proveedores</option>
-        <option *ngFor="let p of proveedoresOpts" [ngValue]="p.id">{{ p.nombre }}</option>
-      </select>
-
-      <label class="sr" for="filtroEstado">Filtrar por estado</label>
-      <select id="filtroEstado" class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()"
-              aria-label="Estado" title="Filtrar por estado">
-        <option value="">Todos</option>
-        <option *ngFor="let e of estados" [value]="e.value">{{ e.label }}</option>
-      </select>
-
-      <label class="sr" for="filtroDesde">Desde</label>
-      <input id="filtroDesde" type="date" class="filter" [(ngModel)]="filtroDesde" (change)="aplicarFiltros()"
-             aria-label="Desde" title="Fecha desde" />
-
-      <label class="sr" for="filtroHasta">Hasta</label>
-      <input id="filtroHasta" type="date" class="filter" [(ngModel)]="filtroHasta" (change)="aplicarFiltros()"
-             aria-label="Hasta" title="Fecha hasta" />
-
-      <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear pedido">
-        <span class="material-icons" aria-hidden="true">add</span>
-        Nuevo pedido
-      </button>
     </div>
+
+    <button class="primary" type="button" (click)="openCreate()">
+      <span class="material-icons" aria-hidden="true">add</span> Realizar cotización
+    </button>
   </div>
 
-  <!-- Tabla -->
+  <!-- ====== LISTADO ====== -->
   <div class="card">
-    <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando pedidos…</div>
-
-    <div class="table-wrapper" *ngIf="!cargando">
-      <table class="grid" role="table" aria-label="Listado de pedidos">
+    <div class="table-wrapper" *ngIf="!loading(); else loadingTpl">
+      <table class="grid" aria-label="Pedidos a proveedores">
         <thead>
           <tr>
-            <th>#</th><th>Fecha</th><th>Número</th><th>Proveedor</th><th>Estado</th>
-            <th style="text-align:right">Subtotal</th><th style="text-align:right">Desc</th><th style="text-align:right">Total</th>
+            <th>Fecha</th>
+            <th>Número</th>
+            <th>Proveedor</th>
+            <th class="mono">Subtotal</th>
+            <th class="mono">Total</th>
+            <th>Estado</th>
             <th class="acts-col">Acciones</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of pedidosFiltrados.slice(inicio, fin); let i = index">
-            <td class="mono">{{ inicio + i + 1 }}</td>
-            <td>{{ p.fecha | date:'yyyy-MM-dd' }}</td>
-            <td class="mono">{{ p.numero || '—' }}</td>
-            <td><strong>{{ p.proveedorNombre }}</strong></td>
+          <tr *ngFor="let p of filtered(); trackBy: trackByPedidoId">
+            <td>{{ asDate(p.fecha)?.toLocaleDateString() }}</td>
+            <td class="strong">{{ p.numero || ('#'+p.id) }}</td>
+            <td>{{ p.proveedorNombre }}</td>
+            <td class="mono">Q {{ p.subtotal | number:'1.2-2' }}</td>
+            <td class="mono">Q {{ p.total | number:'1.2-2' }}</td>
             <td>
-              <span class="state-pill"
-                    [ngClass]="{
-                      'state-borrador': p.estado==='borrador',
-                      'state-enviado': p.estado==='enviado',
-                      'state-aprobado': p.estado==='aprobado',
-                      'state-parcial': p.estado==='parcialmenteRecibido',
-                      'state-cerrado': p.estado==='cerrado',
-                      'state-cancelado': p.estado==='cancelado'
-                    }">{{ estadoTexto(p.estado) }}</span>
+              <span [ngClass]="estadoClass(p.estado)" class="pill">{{ estadoLabel(p.estado) }}</span>
             </td>
-            <td style="text-align:right">{{ p.subtotal | number:'1.2-2' }}</td>
-            <td style="text-align:right">{{ p.descuento | number:'1.2-2' }}</td>
-            <td style="text-align:right"><strong>{{ p.total | number:'1.2-2' }}</strong></td>
             <td>
               <div class="acts">
-                <button class="icon" type="button" title="Abrir" (click)="abrirDetalle(p.id)">
-                  <span class="material-icons" aria-hidden="true">open_in_new</span>
+                <button class="icon" title="Enviar" *ngIf="isEstado(p,'borrador')" (click)="enviar(p)">
+                  <span class="material-icons">send</span>
                 </button>
-
-                <button *ngIf="p.estado==='borrador'" class="icon" type="button" title="Enviar"
-                        (click)="enviar(p)">
-                  <span class="material-icons" aria-hidden="true">send</span>
+                <button class="icon" title="Aprobar" *ngIf="isEstado(p,'enviado')" (click)="aprobar(p)">
+                  <span class="material-icons">check_circle</span>
                 </button>
-
-                <button *ngIf="p.estado==='enviado'" class="icon" type="button" title="Aprobar"
-                        (click)="aprobar(p)">
-                  <span class="material-icons" aria-hidden="true">check_circle</span>
+                <button class="icon primary" title="Registrar recepción" *ngIf="isEstado(p,'aprobado','parcialmenterecibido')" (click)="openRecibir(p)">
+                  <span class="material-icons">inventory_2</span>
                 </button>
-
-                <button *ngIf="p.estado!=='cerrado' && p.estado!=='cancelado'"
-                        class="danger" type="button" title="Cancelar"
+                <button class="icon" title="Ver detalle" *ngIf="isEstado(p,'cerrado')" (click)="verDetalle(p)">
+                  <span class="material-icons">visibility</span>
+                </button>
+                <button class="icon danger"
+                        [title]="isEstado(p,'parcialmenterecibido') ? 'Cancelar remanente pendiente' : 'Cancelar'"
+                        *ngIf="isEstado(p,'borrador','enviado','aprobado','parcialmenterecibido')"
                         (click)="cancelar(p)">
-                  <span class="material-icons" aria-hidden="true">block</span> Cancelar
+                  <span class="material-icons">cancel</span>
                 </button>
+                <span class="no-actions" *ngIf="isEstado(p,'cancelado')">—</span>
               </div>
             </td>
           </tr>
-
-          <tr *ngIf="pedidosFiltrados.length === 0">
-            <td colspan="9" class="empty">No hay pedidos que coincidan con el filtro.</td>
+          <tr *ngIf="!filtered().length">
+            <td colspan="7" class="empty">
+              <span class="material-icons">inbox</span>
+              No hay pedidos que coincidan
+            </td>
           </tr>
         </tbody>
       </table>
     </div>
+    <ng-template #loadingTpl>
+      <div class="empty"><div class="spinner"></div><span>Cargando…</span></div>
+    </ng-template>
+  </div>
+</div>
 
-    <div class="pager" *ngIf="totalPaginas > 1">
-      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
-      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas }}</strong></span>
-      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+<!-- ================= MODAL CREAR PEDIDO ================= -->
+<section class="modal" *ngIf="showCreate" (click)="closeCreate()">
+  <div class="modal-card" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Nuevo cotizacion</h2>
+      </div>
+      <div class="modal-actions">
+        <button class="ghost small" type="button" (click)="openQuickAdd()" [disabled]="!proveedorId || quickSaving">
+          <span class="material-icons">add_box</span> Nuevo producto
+        </button>
+        <button class="icon close" type="button" (click)="closeCreate()" aria-label="Cerrar">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </header>
+
+    <div class="modal-body">
+      <form #fCrear="ngForm" (ngSubmit)="guardar(fCrear)" novalidate>
+        <div class="form-row">
+          <label>Proveedor *
+            <select required [(ngModel)]="proveedorId" name="proveedorId" (ngModelChange)="cargarCatalogo()" title="Proveedor" [disabled]="cargandoCatalogo">
+              <option [ngValue]="null" disabled>Seleccione un proveedor…</option>
+              <option *ngFor="let p of proveedores; trackBy: trackByProveedorId" [ngValue]="p.id">{{ p.nombre }}</option>
+            </select>
+          </label>
+
+          <label class="span-2">Observaciones
+            <input [(ngModel)]="observaciones" name="observaciones" placeholder="Notas adicionales (opcional)" title="Observaciones del pedido" />
+          </label>
+        </div>
+
+        <div class="catalog-head">
+          <h3>Catálogo del proveedor</h3>
+          <div class="search" aria-label="Buscar en catálogo">
+            <span class="material-icons" aria-hidden="true">search</span>
+            <input [(ngModel)]="term" name="term" (ngModelChange)="buscarCatalogo()" placeholder="Buscar producto…" autocomplete="off" title="Buscar en catálogo" [disabled]="!proveedorId || cargandoCatalogo" />
+          </div>
+        </div>
+
+        <div class="catalog-section">
+          <div class="table-wrapper" *ngIf="proveedorId; else selectProviderTpl">
+            <div *ngIf="cargandoCatalogo" class="empty">
+              <div class="spinner small"></div>
+              <span>Cargando catálogo…</span>
+            </div>
+
+            <table class="grid catalog-table" *ngIf="!cargandoCatalogo" aria-label="Catálogo">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th class="mono">Precio compra</th>
+                  <th class="mono">Cantidad</th>
+                  <th>Agregar</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let it of catalogo; trackBy: trackByCatalogoId">
+                  <!-- Producto con imagen -->
+                  <td class="strong">
+                    <div style="display:flex;align-items:center;gap:12px;min-width:240px;">
+                      <img
+                        [src]="it.fotoUrl || placeholderImg"
+                        alt="img"
+                        style="width:42px;height:42px;border-radius:8px;object-fit:cover;border:1px solid #eee;"
+                        (error)="onImgError($event)"
+                      />
+                      <div>{{ it.productoNombre }}</div>
+                    </div>
+                  </td>
+
+                  <!-- Precio -->
+                  <td class="mono">Q {{ (it.precioSugerido || 0) | number:'1.2-2' }}</td>
+
+                  <!-- Cantidad con stepper entero -->
+                  <td>
+                    <div class="qty-stepper">
+                      <button type="button" class="step" title="Restar 1" (click)="stepDown(qtyInput)">−</button>
+
+                      <input
+                        type="text"
+                        #qtyInput
+                        value="0"
+                        class="qty-input"
+                        title="Cantidad a agregar"
+                        inputmode="numeric"
+                        pattern="[0-9]*"
+                        (input)="enforceInt(qtyInput)"
+                        (blur)="enforceInt(qtyInput)"
+                      />
+
+                      <button type="button" class="step" title="Sumar 1" (click)="stepUp(qtyInput)">+</button>
+                    </div>
+                  </td>
+
+                  <!-- Agregar -->
+                  <td>
+                    <button class="icon primary" type="button" title="Agregar al pedido" (click)="addLineaFrom(it, qtyInput)">
+                      <span class="material-icons">add_shopping_cart</span>
+                    </button>
+                  </td>
+                </tr>
+
+                <tr *ngIf="!catalogo.length && !cargandoCatalogo">
+                  <td colspan="4" class="empty">No hay productos en el catálogo de este proveedor</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <ng-template #selectProviderTpl>
+            <div class="empty">
+              <span class="material-icons">person</span>
+              <p>Selecciona un proveedor para ver su catálogo</p>
+            </div>
+          </ng-template>
+        </div>
+
+        <div class="order-details">
+          <h3 class="sub">Detalle de la cotización</h3>
+          <div class="table-wrapper">
+            <table class="grid order-table" aria-label="Detalle del pedido">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Presentación</th>
+                  <th class="mono">Cantidad</th>
+                  <th class="mono">Precio unitario</th>
+                  <th class="mono">Total línea</th>
+                  <th>Acciones</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let l of lineas; let i = index; trackBy: trackByLineaId">
+                  <td class="strong">{{ l.producto }}</td>
+                  <td>{{ l.presentacion }}</td>
+                  <td>
+                    <input type="number" min="0.01" step="0.01" [(ngModel)]="l.cantidad" [name]="'cant' + i" (ngModelChange)="recalcLinea(l)" title="Cantidad" class="qty-input" />
+                  </td>
+                  <td class="mono">Q {{ l.precioUnitario | number:'1.2-2' }}</td>
+                  <td class="mono">Q {{ l.totalLinea | number:'1.2-2' }}</td>
+                  <td>
+                    <button class="icon danger" type="button" (click)="eliminarLinea(i)" title="Eliminar línea">
+                      <span class="material-icons">delete</span>
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="!lineas.length">
+                  <td colspan="6" class="empty">
+                    <span class="material-icons">add_shopping_cart</span>
+                    Agrega productos desde el catálogo
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="totals" *ngIf="lineas.length">
+            <div>Subtotal:</div>
+            <div class="mono">Q {{ subtotal | number:'1.2-2' }}</div>
+            <div>Total:</div>
+            <div class="mono total-strong">Q {{ total | number:'1.2-2' }}</div>
+          </div>
+        </div>
+
+        <footer class="modal-foot">
+          <button class="ghost" type="button" (click)="closeCreate()" [disabled]="guardando">Cancelar</button>
+          <button class="primary" type="submit" [disabled]="guardando || !lineas.length || !proveedorId">
+            <span *ngIf="guardando" class="material-icons spinning">hourglass_empty</span>
+            {{ guardando ? 'Creando...' : 'Crear pedido' }}
+          </button>
+        </footer>
+      </form>
     </div>
   </div>
+</section>
 
-  <!-- Backdrops -->
-  <div class="modal-backdrop" *ngIf="mostrarCrear" (click)="cerrarCrear()" aria-hidden="true"></div>
-  <div class="modal-backdrop" *ngIf="mostrarDetalle" (click)="cerrarDetalle()" aria-hidden="true"></div>
-  <div class="modal-backdrop" *ngIf="mostrarRecepcion" (click)="cerrarRecepcion()" aria-hidden="true"></div>
+<!-- ================= MODAL RECEPCIÓN ================= -->
+<section class="modal" *ngIf="showRx" (click)="closeRx()">
+  <div class="modal-card large" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Recepción de compra {{ pedidoRx?.numero || ('#'+pedidoRx?.id) }}</h2>
+      </div>
+      <button class="icon close" type="button" (click)="closeRx()" aria-label="Cerrar">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
 
-  <!-- ================= MODAL: CREAR ================= -->
-  <section class="modal" *ngIf="mostrarCrear" role="dialog" aria-modal="true" aria-labelledby="modal-title-crear">
-    <div class="modal-card" role="document">
-      <header class="modal-head">
-        <div class="modal-title-wrap">
-          <span class="modal-dot"></span>
-          <h2 id="modal-title-crear">Nuevo pedido</h2>
+    <div class="modal-body">
+      <div class="reception-info">
+        <div class="form-row reception">
+          <label>Fecha de recepción *
+            <input type="date" [(ngModel)]="rxFecha" title="Fecha de recepción" required />
+          </label>
+          <label>Número de compra
+            <input [(ngModel)]="rxNumero" placeholder="Número de factura (opcional)" title="Número del documento de compra" />
+          </label>
+          <label>Forma de pago *
+            <select [(ngModel)]="rxFormaPagoId" title="Forma de pago" required>
+              <option [ngValue]="null" disabled>Seleccione forma de pago…</option>
+              <option *ngFor="let fp of formasPago; trackBy: trackByFormaPagoId" [ngValue]="fp.id">{{ fp.nombre }}</option>
+            </select>
+          </label>
         </div>
-        <button class="icon close" type="button" (click)="cerrarCrear()" title="Cerrar">
-          <span class="material-icons" aria-hidden="true">close</span>
-        </button>
-      </header>
 
-      <div class="modal-body">
-        <form (ngSubmit)="crearPedido()" #formCrear="ngForm" novalidate>
-          <div class="form-grid">
-            <div class="field">
-              <label for="cProv">Proveedor <span class="req">*</span></label>
-              <select id="cProv" required [(ngModel)]="formCrearPedido.proveedorId" name="proveedorId"
-                      aria-label="Proveedor" title="Proveedor">
-                <option [ngValue]="null" disabled>Selecciona…</option>
-                <option *ngFor="let p of proveedoresOpts" [ngValue]="p.id">{{ p.nombre }}</option>
-              </select>
-              <div class="error" *ngIf="submittedCrear && !formCrearPedido.proveedorId">Selecciona un proveedor.</div>
-            </div>
+        <div class="form-row" *ngIf="rxFormaPagoRequiereRef">
+          <label class="span-2">Referencia de depósito/transferencia *
+            <input [(ngModel)]="rxReferencia" placeholder="Ej. 2048896268 / número de boleta o transferencia" />
+          </label>
+        </div>
+      </div>
 
-            <div class="field">
-              <label for="cNum">Número</label>
-              <input id="cNum" type="text" maxlength="40" [(ngModel)]="formCrearPedido.numero" name="numero"
-                     placeholder="Opcional" title="Número interno o referencia" />
-            </div>
-
-            <div class="field span-2">
-              <label for="cObs">Observaciones</label>
-              <textarea id="cObs" rows="3" maxlength="200" [(ngModel)]="formCrearPedido.observaciones" name="observaciones"
-                        placeholder="Notas del pedido" title="Observaciones"></textarea>
-            </div>
-
-            <!-- Sección líneas -->
-            <div class="section span-2">
-              <h3>Agregar líneas</h3>
-              <div class="form-grid">
-                <div class="field">
-                  <label for="lPres">Presentación ID <span class="req">*</span></label>
-                  <input id="lPres" type="number" min="1" step="1" [(ngModel)]="lineaTmp.presentacionId" name="presId"
-                         placeholder="Id" title="ID de la presentación" />
-                </div>
-                <div class="field">
-                  <label for="lCant">Cantidad <span class="req">*</span></label>
-                  <input id="lCant" type="number" min="0.01" step="0.01" [(ngModel)]="lineaTmp.cantidad" name="cant"
-                         placeholder="0.00" title="Cantidad" />
-                </div>
-                <div class="field">
-                  <label for="lPU">Precio unitario <span class="req">*</span></label>
-                  <input id="lPU" type="number" min="0" step="0.01" [(ngModel)]="lineaTmp.precioUnitario" name="punit"
-                         placeholder="0.00" title="Precio unitario" />
-                </div>
-                <div class="field">
-                  <label for="lDesc">Descuento</label>
-                  <input id="lDesc" type="number" min="0" step="0.01" [(ngModel)]="lineaTmp.descuento" name="desc"
-                         placeholder="0.00" title="Descuento" />
-                </div>
-                <div class="field span-2">
-                  <label for="lNotas">Notas</label>
-                  <input id="lNotas" type="text" maxlength="200" [(ngModel)]="lineaTmp.notas" name="lnotas"
-                         placeholder="Opcional" title="Notas de la línea" />
-                </div>
-
-                <div class="field span-2">
-                  <button class="ghost" type="button" (click)="agregarLineaTmp()">Agregar línea</button>
-                </div>
-
-                <div class="span-2" *ngIf="formCrearPedido.detalles.length">
-                  <table class="grid" aria-label="Líneas agregadas">
-                    <thead><tr><th>#</th><th>Presentación</th><th>Cant</th><th>Precio</th><th>Desc</th><th>Total</th><th></th></tr></thead>
-                    <tbody>
-                      <tr *ngFor="let l of formCrearPedido.detalles; let j=index">
-                        <td class="mono">{{ j+1 }}</td>
-                        <td class="mono">{{ l.presentacionId }}</td>
-                        <td>{{ l.cantidad }}</td>
-                        <td>{{ l.precioUnitario | number:'1.2-2' }}</td>
-                        <td>{{ l.descuento | number:'1.2-2' }}</td>
-                        <td>{{ (l.cantidad*l.precioUnitario - (l.descuento||0)) | number:'1.2-2' }}</td>
-                        <td>
-                          <button class="icon" type="button" title="Quitar" (click)="quitarLineaTmp(j)">
-                            <span class="material-icons" aria-hidden="true">delete</span>
-                          </button>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            </div>
-
+      <div class="reception-details">
+        <h3>Productos a recibir</h3>
+        <div class="card">
+          <div class="table-wrapper">
+            <table class="grid reception-table" aria-label="Recepción de líneas">
+              <thead>
+                <tr>
+                  <th>Producto</th>
+                  <th>Presentación</th>
+                  <th class="mono">Pedida</th>
+                  <th class="mono">Recibida</th>
+                  <th class="mono">Pendiente</th>
+                  <th class="mono">Recibir ahora</th>
+                  <th class="mono">Costo unitario</th>
+                  <th class="mono">Total línea</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let r of rxRows; trackBy: trackByRxRowId">
+                  <td class="strong">{{ r.producto }}</td>
+                  <td>{{ r.presentacion }}</td>
+                  <td class="mono">{{ r.pedida | number:'1.2-2' }}</td>
+                  <td class="mono">{{ r.recibida | number:'1.2-2' }}</td>
+                  <td class="mono">{{ r.pendiente | number:'1.2-2' }}</td>
+                  <td>
+                    <input type="number" min="0" step="0.01" [(ngModel)]="r.recibirAhora" (ngModelChange)="rxRecalcRow(r)" title="Cantidad a recibir ahora" class="qty-input" [max]="r.pendiente" />
+                  </td>
+                  <td class="mono">Q {{ r.costoUnitario | number:'1.2-2' }}</td>
+                  <td class="mono">Q {{ (r.recibirAhora * r.costoUnitario) | number:'1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
-          <footer class="modal-foot">
-            <div class="left"><button type="button" class="ghost" (click)="cerrarCrear()">Cancelar</button></div>
-            <button type="submit" class="primary" [disabled]="guardandoCrear">{{ guardandoCrear ? 'Guardando…' : 'Crear' }}</button>
-          </footer>
-        </form>
+          <div class="totals reception-totals">
+            <div>Subtotal de recepción:</div>
+            <div class="mono">Q {{ rxSubtotal | number:'1.2-2' }}</div>
+            <div>Total de recepción:</div>
+            <div class="mono total-strong">Q {{ rxTotal | number:'1.2-2' }}</div>
+          </div>
+        </div>
       </div>
     </div>
-  </section>
 
-  <!-- ================= MODAL: DETALLE / EDICIÓN ================= -->
-  <section class="modal" *ngIf="mostrarDetalle" role="dialog" aria-modal="true" aria-labelledby="modal-title-det">
-    <div class="modal-card" role="document">
-      <header class="modal-head">
-        <div class="modal-title-wrap">
-          <span class="modal-dot"></span>
-          <h2 id="modal-title-det">Pedido #{{ pedidoActual?.id }} — {{ estadoTexto(pedidoActual?.estado) }}</h2>
+    <footer class="modal-foot">
+      <button class="ghost" type="button" (click)="closeRx()">Cancelar</button>
+      <button class="primary" type="button" [disabled]="!rxHayAlgo || !rxFormaPagoId || (rxFormaPagoRequiereRef && !rxReferencia)" (click)="confirmarRecepcion()">
+        <span class="material-icons">inventory_2</span> Registrar recepción
+      </button>
+    </footer>
+  </div>
+</section>
+
+<!-- ============ SUB-MODAL: NUEVO PRODUCTO RÁPIDO ============ -->
+<section class="modal sub-modal" *ngIf="showQuick" (click)="closeQuickAdd()">
+  <div class="modal-card small" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Nuevo producto</h2>
+      </div>
+      <button class="icon close" type="button" (click)="closeQuickAdd()" aria-label="Cerrar">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
+
+    <div class="modal-body">
+      <div class="form-row quick">
+        <label>Nombre *
+          <input [(ngModel)]="qp.nombre" placeholder="Nombre del producto" />
+        </label>
+        <label>Categoría *
+          <select [(ngModel)]="qp.categoriaId">
+            <option [ngValue]="null" disabled>Seleccione…</option>
+            <option *ngFor="let c of categorias; trackBy: trackByCategoriaId" [ngValue]="c.id">{{ c.nombre }}</option>
+          </select>
+        </label>
+        <label>Proveedor *
+          <select [(ngModel)]="qp.proveedorId">
+            <option *ngFor="let p of proveedores; trackBy: trackByProveedorId" [ngValue]="p.id">{{ p.nombre }}</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="form-row quick">
+        <label>Precio compra por defecto
+          <input type="number" min="0" step="0.01" [(ngModel)]="qp.precioCompraDefault" class="price-input" />
+        </label>
+        <label>Precio venta por defecto
+          <input type="number" min="0" step="0.01" [(ngModel)]="qp.precioVentaDefault" class="price-input" />
+        </label>
+        <label>Activo
+          <select [(ngModel)]="qp.activo">
+            <option [ngValue]="true">Sí</option>
+            <option [ngValue]="false">No</option>
+          </select>
+        </label>
+      </div>
+
+      <div class="uploader" (drop)="onQuickDrop($event)" (dragover)="$event.preventDefault()">
+        <span class="material-icons">upload</span>
+        <div>
+          <p>Arrastra una imagen aquí o</p>
+          <label class="ghost small" style="cursor:pointer">
+            <input type="file" accept="image/*" (change)="onQuickFile($event)" hidden />
+            Selecciona un archivo
+          </label>
         </div>
-        <button class="icon close" type="button" (click)="cerrarDetalle()" title="Cerrar">
-          <span class="material-icons" aria-hidden="true">close</span>
-        </button>
-      </header>
-
-      <div class="modal-body" *ngIf="pedidoActual">
-        <!-- Encabezado -->
-        <div class="form-grid">
-          <div class="field">
-            <label for="dNum">Número</label>
-            <input id="dNum" type="text" maxlength="40" [(ngModel)]="pedidoEdit.numero" name="dnum"
-                   [readonly]="pedidoActual.estado!=='borrador'" placeholder="Opcional" title="Número" />
-          </div>
-          <div class="field">
-            <label for="dProv">Proveedor</label>
-            <input id="dProv" type="text" [value]="pedidoActual.proveedorNombre" readonly title="Proveedor" />
-          </div>
-          <div class="field span-2">
-            <label for="dObs">Observaciones</label>
-            <textarea id="dObs" rows="3" maxlength="200" [(ngModel)]="pedidoEdit.observaciones" name="dobs"
-                      [readonly]="pedidoActual.estado!=='borrador'" placeholder="Notas" title="Observaciones"></textarea>
-          </div>
-        </div>
-
-        <!-- Líneas -->
-        <div class="section">
-          <h3>Líneas</h3>
-          <table class="grid" aria-label="Líneas del pedido">
-            <thead>
-              <tr>
-                <th>#</th><th>Presentación</th><th>Unidad</th><th>SKU</th>
-                <th style="text-align:right">Cant</th>
-                <th style="text-align:right">Recib.</th>
-                <th style="text-align:right">Precio</th>
-                <th style="text-align:right">Desc</th>
-                <th style="text-align:right">Total</th>
-                <th *ngIf="pedidoActual.estado==='borrador'"></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let d of pedidoActual.detalles; let k=index">
-                <td class="mono">{{ k+1 }}</td>
-                <td>{{ d.presentacionNombre }}</td>
-                <td class="mono">{{ d.unidad }}</td>
-                <td class="mono">{{ d.sku || '—' }}</td>
-                <td style="text-align:right">{{ d.cantidad }}</td>
-                <td style="text-align:right">{{ d.cantidadRecibida }}</td>
-                <td style="text-align:right">{{ d.precioUnitario | number:'1.2-2' }}</td>
-                <td style="text-align:right">{{ d.descuento | number:'1.2-2' }}</td>
-                <td style="text-align:right">{{ d.totalLinea | number:'1.2-2' }}</td>
-                <td *ngIf="pedidoActual.estado==='borrador'">
-                  <button class="icon" type="button" title="Editar" (click)="editarLinea(d)">
-                    <span class="material-icons" aria-hidden="true">edit</span>
-                  </button>
-                  <button class="icon" type="button" title="Eliminar" (click)="eliminarLinea(d)">
-                    <span class="material-icons" aria-hidden="true">delete</span>
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Agregar/editar línea (solo borrador) -->
-        <div class="section" *ngIf="pedidoActual.estado==='borrador'">
-          <h3>{{ editandoLinea ? 'Editar línea' : 'Agregar línea' }}</h3>
-          <div class="form-grid">
-            <div class="field">
-              <label for="ePres">Presentación ID</label>
-              <input id="ePres" type="number" min="1" step="1" [(ngModel)]="lineaForm.presentacionId" name="ePres"
-                     placeholder="Id" title="ID de la presentación" />
-            </div>
-            <div class="field">
-              <label for="eCant">Cantidad</label>
-              <input id="eCant" type="number" min="0.01" step="0.01" [(ngModel)]="lineaForm.cantidad" name="eCant"
-                     placeholder="0.00" title="Cantidad" />
-            </div>
-            <div class="field">
-              <label for="ePU">Precio unitario</label>
-              <input id="ePU" type="number" min="0" step="0.01" [(ngModel)]="lineaForm.precioUnitario" name="ePU"
-                     placeholder="0.00" title="Precio unitario" />
-            </div>
-            <div class="field">
-              <label for="eDesc">Descuento</label>
-              <input id="eDesc" type="number" min="0" step="0.01" [(ngModel)]="lineaForm.descuento" name="eDesc"
-                     placeholder="0.00" title="Descuento" />
-            </div>
-            <div class="field span-2">
-              <label for="eNotas">Notas</label>
-              <input id="eNotas" type="text" maxlength="200" [(ngModel)]="lineaForm.notas" name="eNotas"
-                     placeholder="Opcional" title="Notas" />
-            </div>
-
-            <div class="field span-2">
-              <button class="ghost" type="button" (click)="guardarLinea()">
-                {{ editandoLinea ? 'Guardar cambios de línea' : 'Agregar línea' }}
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Acciones del flujo -->
-        <footer class="modal-foot">
-          <div class="left">
-            <button class="ghost" type="button" (click)="cerrarDetalle()">Cerrar</button>
-          </div>
-
-          <div class="actions">
-            <button *ngIf="pedidoActual.estado==='borrador'" class="primary" type="button" (click)="enviar(pedidoActual)">
-              <span class="material-icons">send</span> Enviar
-            </button>
-
-            <button *ngIf="pedidoActual.estado==='enviado'" class="primary" type="button" (click)="aprobar(pedidoActual)">
-              <span class="material-icons">check_circle</span> Aprobar
-            </button>
-
-            <button *ngIf="pedidoActual.estado==='aprobado' || pedidoActual.estado==='parcialmenteRecibido'"
-                    class="primary" type="button" (click)="abrirRecepcion()">
-              <span class="material-icons">download_done</span> Recibir
-            </button>
-
-            <button *ngIf="pedidoActual.estado!=='cerrado' && pedidoActual.estado!=='cancelado'"
-                    class="danger" type="button" (click)="cancelar(pedidoActual)">
-              <span class="material-icons">block</span> Cancelar
-            </button>
-          </div>
-        </footer>
+        <img *ngIf="qp.fotoUrl" [src]="qp.fotoUrl" alt="preview"/>
       </div>
     </div>
-  </section>
 
-  <!-- ================= MODAL: RECEPCIÓN ================= -->
-  <section class="modal" *ngIf="mostrarRecepcion" role="dialog" aria-modal="true" aria-labelledby="modal-title-rec">
-    <div class="modal-card" role="document">
-      <header class="modal-head">
-        <div class="modal-title-wrap">
-          <span class="modal-dot"></span>
-          <h2 id="modal-title-rec">Recepción del pedido #{{ pedidoActual?.id }}</h2>
-        </div>
-        <button class="icon close" type="button" (click)="cerrarRecepcion()" title="Cerrar">
-          <span class="material-icons" aria-hidden="true">close</span>
-        </button>
-      </header>
+    <footer class="modal-foot">
+      <button class="ghost" type="button" (click)="closeQuickAdd()">Cancelar</button>
+      <button class="primary" type="button" [disabled]="quickSaving" (click)="quickCreate()">
+        <span *ngIf="quickSaving" class="material-icons spinning">hourglass_empty</span>
+        {{ quickSaving ? 'Creando…' : 'Crear producto' }}
+      </button>
+    </footer>
+  </div>
+</section>
 
-      <div class="modal-body" *ngIf="pedidoActual">
-        <div class="form-grid">
-          <div class="field">
-            <label for="rFecha">Fecha</label>
-            <input id="rFecha" type="date" [(ngModel)]="recForm.fecha" name="rFecha" title="Fecha de recepción" />
-          </div>
-          <div class="field">
-            <label for="rNum">Número de documento</label>
-            <input id="rNum" type="text" maxlength="40" [(ngModel)]="recForm.numero" name="rNum" placeholder="Factura/Doc" title="Número de documento" />
-          </div>
-          <div class="field">
-            <label for="rFP">Forma de pago</label>
-            <input id="rFP" type="number" min="1" step="1" [(ngModel)]="recForm.formaPagoId" name="rFP" placeholder="Id" title="Forma de pago (Id)" />
-          </div>
-        </div>
+<!-- ============ MODAL: VER DETALLE DE PEDIDO ============ -->
+<section class="modal" *ngIf="showView" (click)="closeView()">
+  <div class="modal-card large" (click)="$event.stopPropagation()">
+    <header class="modal-head">
+      <div class="modal-title-wrap">
+        <span class="modal-dot"></span>
+        <h2>Detalle de la compra {{ pedidoView?.numero || ('#' + pedidoView?.id) }}</h2>
+      </div>
+      <button class="icon close" type="button" (click)="closeView()" aria-label="Cerrar">
+        <span class="material-icons">close</span>
+      </button>
+    </header>
 
-        <div class="section">
-          <h3>Líneas a recibir</h3>
-          <table class="grid" aria-label="Recepción de líneas">
-            <thead>
-              <tr>
-                <th>#</th><th>Presentación</th><th>Pendiente</th><th>Recibir</th><th>Costo</th><th>Notas</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let d of pedidoActual.detalles; let i=index">
-                <td class="mono">{{ i+1 }}</td>
-                <td>{{ d.presentacionNombre }}</td>
-                <td class="mono">{{ (d.cantidad - d.cantidadRecibida) | number:'1.2-2' }}</td>
-                <td>
-                  <input type="number" min="0" step="0.01" [(ngModel)]="d._recibir" [name]="'rec'+i"
-                         placeholder="0.00" title="Cantidad a recibir" />
-                </td>
-                <td>
-                  <input type="number" min="0" step="0.01" [(ngModel)]="d._costo" [name]="'cos'+i"
-                         placeholder="0.00" title="Costo unitario" />
-                </td>
-                <td>
-                  <input type="text" maxlength="200" [(ngModel)]="d._notas" [name]="'not'+i"
-                         placeholder="Opcional" title="Notas" />
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    <div class="modal-body" *ngIf="pedidoView as v">
+      <div class="form-row">
+        <label>Proveedor</label>
+        <div class="strong">{{ v.proveedorNombre }}</div>
 
-        <footer class="modal-foot">
-          <div class="left"><button class="ghost" type="button" (click)="cerrarRecepcion()">Cancelar</button></div>
-          <button class="primary" type="button" (click)="confirmarRecepcion()">Confirmar recepción</button>
-        </footer>
+        <label>Fecha</label>
+        <div>{{ asDate(v.fecha)?.toLocaleString() }}</div>
+
+        <label>Estado</label>
+        <div><span [ngClass]="estadoClass(v.estado)" class="pill">{{ estadoLabel(v.estado) }}</span></div>
+      </div>
+
+      <div class="form-row">
+        <label class="span-2">Observaciones</label>
+        <div class="span-2">{{ v.observaciones || '—' }}</div>
+      </div>
+
+      <div class="form-row">
+        <label>Forma de pago</label>
+        <div>{{ v.formaPago || '—' }}</div>
+      </div>
+
+      <div class="table-wrapper">
+        <table class="grid" aria-label="Detalle de líneas">
+          <thead>
+            <tr>
+              <th>Producto</th>
+              <th>Presentación</th>
+              <th class="mono">Cantidad</th>
+              <th class="mono">Recibida</th>
+              <th class="mono">Precio unitario</th>
+              <th class="mono">Total línea</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let d of v.detalles">
+              <td class="strong">{{ d.productoNombre }}</td>
+              <td>{{ d.presentacionNombre }} <span class="unit">({{ d.unidad }})</span></td>
+              <td class="mono">{{ d.cantidad | number:'1.2-2' }}</td>
+              <td class="mono">{{ d.cantidadRecibida | number:'1.2-2' }}</td>
+              <td class="mono">Q {{ d.precioUnitario | number:'1.2-2' }}</td>
+              <td class="mono">Q {{ d.totalLinea | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="totals">
+        <div>Subtotal:</div>
+        <div class="mono">Q {{ v.subtotal | number:'1.2-2' }}</div>
+        <div>Descuento:</div>
+        <div class="mono">Q {{ v.descuento | number:'1.2-2' }}</div>
+        <div>Total:</div>
+        <div class="mono total-strong">Q {{ v.total | number:'1.2-2' }}</div>
       </div>
     </div>
-  </section>
-</div>
+
+    <footer class="modal-foot">
+      <button class="primary" type="button" (click)="closeView()">Cerrar</button>
+    </footer>
+  </div>
+</section>

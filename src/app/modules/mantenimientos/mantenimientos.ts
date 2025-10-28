@@ -18,3 +18,5 @@ type Card = {
   styleUrls: ['./mantenimientos.css']
 })
 export class Mantenimientos {}
+
+

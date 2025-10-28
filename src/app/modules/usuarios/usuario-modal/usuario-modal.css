@@ -1,19 +1,17 @@
 :root{
-  /* Ajusta estos dos si tu header o sidebar cambian de tamaño */
-  --topbar-h: 97px;     /* altura de la barra superior */
-  --side-w: 280px;      /* ancho del sidebar */
-  --radius: 16px;
+  /* Ajusta estos si tu header o sidebar cambian de tamaño */
+  --topbar-h: 97px;           /* altura barra superior */
+  --side-w: 280px;            /* ancho sidebar */
+  --radius: 10px;             /* compacto perfecto */
 }
 
-/* ====== Backdrop dentro del workspace ====== */
-/* aquí se ajusta el fondo oscuro */
+
 .modal-backdrop{
   position: fixed;
-  top: var(--topbar-h, 97px);          /* ⬅ fallback */
-  left: var(--side-w, 280px);          /* ⬅ fallback */
-  right: 0;
-  bottom: 0;
-  background: rgba(0,0,0,.55);
+  top: var(--topbar-h, 97px);
+  left: var(--side-w, 280px);
+  right: 0; bottom: 0;
+  background: rgba(46,45,45,.55);
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
   z-index: 9999;
@@ -23,135 +21,160 @@
 /* ====== Drawer (ver detalle) ====== */
 .container{ position: fixed; inset: 0; z-index: 10000; display: flex; }
 .container.drawer{ justify-content: flex-end; align-items: stretch; }
+
 .container.drawer .panel{
+  margin-top: 97px;
   width: min(560px,96vw);
   height: 100%;
   background:#fff;
   border-left:1px solid #eee;
-  border-radius: var(--radius) 0 0 var(--radius);
+  border-radius: var(--radius) 0 0 var(--radius);  /* 10px compacto */
   overflow:auto;
+  box-shadow: 0 10px 28px rgba(0,0,0,.12);         /* sutil */
 }
+
 .panel-head{
-  position: sticky; top:0; z-index:1; background:#fff;
-  display:flex; align-items:center; gap:12px;
-  padding:16px 18px; border-bottom:1px solid #eee;
+  position: sticky; top:0; z-index:1; background:#fcfbfe;
+  display:flex; align-items:center; gap:8px;       /* compacto */
+  padding:8px 10px;                                 /* compacto */
+  border-bottom:1px solid #eee;
 }
-.panel-head h2{ margin:0; font-size:20px; font-weight:700; }
-.panel-head .icon{ margin-left:auto; background:transparent; border:0; cursor:pointer; width:36px; height:36px; border-radius:999px; }
+.panel-head h2{
+  margin:0; font-size:15px; font-weight:700; color:#222; /* perfecto */
+}
+.panel-head .icon{
+  margin-left:auto; background:transparent; border:0; cursor:pointer;
+  width:32px; height:32px; border-radius:999px;          /* compacto */
+}
 .panel-head .icon:hover{ background:#f3f3f5; }
-.view{ padding:16px 18px 20px; }
-.view .avatar{ display:flex; align-items:center; gap:12px; margin-bottom:10px; }
-.view .avatar img{ width:64px; height:64px; border-radius:999px; object-fit:cover; }
-.view .avatar .placeholder{ width:64px; height:64px; border-radius:999px; display:grid; place-items:center; background:#eee; color:#666; font-weight:800; font-size:20px; }
-.view dl{ display:grid; grid-template-columns:1fr 1fr; gap:12px 14px; }
-.view dl>div{ background:#fafafa; border:1px solid #eee; border-radius:12px; padding:10px 12px; }
-.view dt{ font-size:12px; color:#777; margin-bottom:6px; }
-.view dd{ margin:0; color:#222; font-weight:600; }
-.panel-actions{ padding:14px 18px 18px; border-top:1px solid #f2f2f4; display:flex; justify-content:flex-end; gap:10px; }
+
+.view{ padding:10px 12px 12px; }                  /* compacto */
+.view .avatar{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.view .avatar img{ width:44px; height:44px; border-radius:999px; object-fit:cover; }
+.view .avatar .placeholder{
+  width:44px; height:44px; border-radius:999px; display:grid; place-items:center;
+  background:#eee; color:#665; font-weight:800; font-size:14px;
+}
+.view dl{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; } /* compacto */
+.view dl>div{ background:#fafafa; border:1px solid #eee; border-radius:8px; padding:9px 10px; }
+.view dt{ font-size:11.5px; color:#777; margin-bottom:4px; }
+.view dd{ margin:0; color:#222; font-weight:700; font-size:12.5px; }
+.panel-actions{
+  padding:10px 12px; border-top:1px solid #f2f2f4;
+  display:flex; justify-content:flex-end; gap:8px;      
+}
 .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
 /* ====== Modal centrado (crear/editar) ====== */
 .modal{
   position: fixed;
-  top: var(--topbar-h, 97px);          /* ⬅ fallback */
-  left: var(--side-w, 280px);          /* ⬅ fallback */
-  right: 0;
-  bottom: 0;
+  top: var(--topbar-h, 97px);
+  left: var(--side-w, 280px);
+  right: 0; bottom: 0;
   z-index: 10000;
 
-  display: grid;
-  place-items: center;
-  padding: 24px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+
+  padding: 20px 12px 12px;               /* compacto perfecto */
   overflow: auto;
+
+  /* mismo fondo que el backdrop */
+  background: rgba(46,45,45,.55);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
 }
 
 .modal-card{
-  width: min(1100px, calc(100vw - var(--side-w) - 72px));
-  max-width: 1100px;
-
-  max-height: calc(100vh - var(--topbar-h) - 72px);
+  width: min(980px, calc(100vw - var(--side-w) - 40px)); /* compacto perfecto */
+  max-width: 980px;
+  max-height: calc(100vh - var(--topbar-h) - 44px);      /* compacto perfecto */
 
   background:#fff;
   border:1px solid #eee;
-  border-radius: 20px;
-  box-shadow: 0 18px 60px rgba(0,0,0,.18);
+  border-radius: 10px;                           /* 10px */
+  box-shadow:0 10px 28px rgba(0,0,0,.20);
   overflow:hidden;
 
-  display:flex;
-  flex-direction:column;
+  display:flex; flex-direction:column;
   animation: popIn .18s ease-out both;
 }
 
-/* Cabezal modal */
+/* Cabezal modal (perfecto) */
 .modal-head{
   display:flex; align-items:center; justify-content:space-between;
-  padding:16px 18px; border-bottom:1px solid #eee;
-  background: linear-gradient(180deg,#ffffff 0%, #faf8fc 100%);
+  padding:8px 10px;                                     /* compacto */
+  border-bottom:1px solid #eee; background:#fcfbfe;
   position: sticky; top:0; z-index:1;
 }
-.modal-title-wrap{ display:flex; align-items:center; gap:10px; }
-.modal-dot{ width:10px; height:10px; border-radius:999px; background:#7a2ea8; }
-.icon.close{ background:#f3f3f3; color:#555; border:0; border-radius:10px; padding:8px; cursor:pointer; }
-.icon.close:hover{ filter:brightness(1.03); }
+.modal-title-wrap{ display:flex; align-items:center; gap:6px; } /* compacto */
+.modal-title-wrap h2{ margin:0; font-size:15px; font-weight:700; color:#222; }
+.modal-dot{ width:6px; height:6px; border-radius:50%; background:#7a2ea8; }
+.icon.close{
+  background:#f3f3f3; color:#555; border:0; border-radius:7px; padding:3px;
+  min-width:24px; min-height:24px; cursor:pointer;      /* compacto perfecto */
+}
+.icon.close:hover{ background:#efe8e8; }
 
-/* ====== Formulario 4 columnas ====== */
+/* ====== Formulario 4 columnas (compacto perfecto) ====== */
 .form.four-col{
-  --gap: 12px;
+  --gap: 10px;
   display:grid; gap: var(--gap);
-  padding:16px;
+  padding:10px;
   grid-template-columns: repeat(4, minmax(0,1fr));
-  grid-auto-flow: row;                 /* evita saltos raros */
-  overflow: auto;                      /* scroll interno; head/foot fijos */
-  flex: 1;
+  grid-auto-flow: row;
+  overflow:auto;
+  flex:1;
 }
-
+.form.four-col *{ box-sizing: border-box; }
 .form.four-col label{
-  display:flex; flex-direction:column; gap:6px;
-  font-weight:600; color:#333; min-width:0;
+  display:flex; flex-direction:column; gap:4px;         /* compacto */
+  font-weight:600; color:#333; min-width:0; font-size:12.5px;
 }
-.form.four-col *{ box-sizing: border-box; }  /* evita que se encimen */
 .form.four-col input,
 .form.four-col select{
-  width:100%;
-  height:44px;
-  border-radius:12px;
-  border:1px solid #e5e5e5;
-  background:#fff;
-  padding:0 12px;
-  outline:none;
+  width:100%; height:30px;                              /* compacto perfecto */
+  border-radius:8px; border:1px solid #e5e5e5;
+  background:#fff; padding:0 10px; outline:none; font-size:12.5px;
+  transition:.15s;
 }
 .form.four-col input:focus,
 .form.four-col select:focus{
-  border-color:#b07ad9;
-  box-shadow:0 0 0 3px rgba(176,122,217,.14);
+  border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.10);
 }
-
 .form.four-col .span-2{ grid-column: span 2; }
 .form.four-col .span-4{ grid-column: 1 / -1; }
 
-/* ====== Footer botones iguales ====== */
+/* ====== Footer ====== */
 .modal-foot{
   display:flex; align-items:center; justify-content:space-between;
-  gap:12px; padding:14px 16px; border-top:1px solid #eee;
+  gap:6px; padding:7px 10px;                            /* compacto perfecto */
+  border-top:1px solid #eee; background:#fcfbfe;
+  position: sticky; bottom:0; z-index:1;
 }
-.modal-foot .left{ display:flex; align-items:center; gap:12px; }
+.modal-foot .left{ display:flex; align-items:center; gap:6px; }
 
+/* ====== Botones (compactos perfectos) ====== */
 button.primary,
 button.ghost,
 button.danger{
-  --h: 42px;
-  min-height: var(--h);
-  height: var(--h);
-  padding: 0 16px;
-  border-radius: 12px;
-  font-weight: 700;
-  display: inline-flex; align-items: center; gap: 8px;
-  cursor: pointer;
+  height:30px; min-height:30px;                         /* compacto */
+  padding:0 12px; border-radius:8px;                    /* compacto */
+  font-weight:700; font-size:12.5px; letter-spacing:.15px;
+  display:inline-flex; align-items:center; gap:7px; cursor:pointer;
+  transition:.15s ease;
 }
-button.primary{ background:#7a2ea8; color:#fff; border:0; box-shadow:0 6px 14px rgba(122,46,168,.18); }
+button.primary{
+  background:#7a2ea8; color:#fff; border:0;
+  box-shadow:0 3px 8px rgba(122,46,168,.18);
+}
+button.primary:hover{ filter:brightness(.97); }
 button.ghost{ background:#fff; border:1px solid #e5e5e5; color:#333; }
+button.ghost:hover{ background:#f7f7f7; border-color:#ddd; }
 button.danger{ background:#fbe9eb; border:1px solid #f4c7ce; color:#b4232b; }
 
+/* ====== Animaciones ====== */
 @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 @keyframes popIn{ from{opacity:0; transform:translateY(6px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)} }
 
@@ -162,4 +185,13 @@ button.danger{ background:#fbe9eb; border:1px solid #f4c7ce; color:#b4232b; }
 @media (max-width: 720px){
   .container.drawer .panel{ width:100%; border-radius:0; }
   .form.four-col{ grid-template-columns: 1fr; }
+  .modal{ padding-top:20px; }
+  .modal-card{ max-width:95vw; }
 }
+
+/* ====== Fallback si NO hay soporte de backdrop-filter ====== */
+@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))){
+  .modal,
+  .modal-backdrop{ background: rgba(46,45,45,.70); } /* un poco más sólido */
+}
+

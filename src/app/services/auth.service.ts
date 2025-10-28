@@ -19,6 +19,8 @@ export interface AuthUser {
 
   RolId?: number;    rolId?: number;
   RolNombre?: string; rolNombre?: string;
+
+  mustChangePassword?: boolean; // flag del backend
 }
 
 export interface LoginRequest {
@@ -32,6 +34,7 @@ export interface LoginResponse {
   token: string;
   expiresIn?: number;
   user?: AuthUser;
+  mustChangePassword?: boolean; // top-level
 }
 
 const TOKEN_KEY = 'laoriginal.jwt';
@@ -50,6 +53,20 @@ export class AuthService {
   token      = computed(() => this._token());
   user       = computed(() => this._user());
   isLoggedIn = computed(() => !!this._token());
+  isPasswordChangeRequired = computed(() => !!this._user()?.mustChangePassword);
+
+  // === helper: leer claim del JWT ===
+  private readJwtFlag(token?: string | null): boolean {
+    if (!token) return false;
+    try {
+      const payload = token.split('.')[1];
+      const json = JSON.parse(atob(payload.replace(/-/g, '+').replace(/_/g, '/')));
+      const v = json['pwd_change_required'];
+      return v === '1' || v === 1 || v === true || v === 'true';
+    } catch {
+      return false;
+    }
+  }
 
   // ===== LOGIN =====
   login(body: LoginRequest): Observable<LoginResponse>;
@@ -63,8 +80,19 @@ export class AuthService {
     return this.http.post<LoginResponse>(`${this.AUTH_URL}/login`, payload).pipe(
       tap(res => {
         if (res?.token) this.setToken(res.token);
+
         if (res?.user) {
-          this.setUser(this.normalizeUser(res.user));
+          const u = this.normalizeUser(res.user);
+
+          // Consolidar flag desde 3 fuentes (respuesta, user y JWT)
+          const flag =
+            (res as any).mustChangePassword ??
+            (res.user as any).mustChangePassword ??
+            this.readJwtFlag(res.token) ??
+            false;
+
+          (u as any).mustChangePassword = !!flag;
+          this.setUser(u);
         } else {
           this.me().subscribe({ next: u => this.setUser(this.normalizeUser(u)) });
         }
@@ -73,7 +101,19 @@ export class AuthService {
   }
 
   me(): Observable<AuthUser> {
-    return this.http.get<AuthUser>(`${this.AUTH_URL}/me`, { headers: this.authHeaders() });
+    return this.http.get<AuthUser>(`${this.AUTH_URL}/me`, { headers: this.authHeaders() })
+      .pipe(tap(u => this.setUser(this.normalizeUser(u))));
+  }
+
+  changePassword(currentPassword: string, newPassword: string) {
+    return this.http.post<{ ok: boolean; token: string }>(
+      `${this.AUTH_URL}/change-password`,
+      { currentPassword, newPassword },
+      { headers: this.authHeaders() }
+    ).pipe(tap(r => {
+      if (r?.token) this.setToken(r.token);
+      this.me().subscribe(); // refresca user y limpia mustChangePassword
+    }));
   }
 
   logout(): void {
@@ -92,8 +132,7 @@ export class AuthService {
     const u = this._user();
     const nombre =
       u?.rol?.nombre ??
-      (u as any)?.RolNombre ?? (u as any)?.rolNombre ?? // ← camelCase / PascalCase
-      '';
+      (u as any)?.RolNombre ?? (u as any)?.rolNombre ?? '';
     return this.normalizeRole(nombre);
   }
 
@@ -101,7 +140,7 @@ export class AuthService {
     if (!r) return '';
     const plain = r.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase().trim();
     if (plain === 'administrador') return 'admin';
-    return plain; // admin, vendedor, etc.
+    return plain;
   }
 
   // ===== Helpers UI =====
@@ -145,11 +184,8 @@ export class AuthService {
   private normalizeUser(u: AuthUser): AuthUser {
     const first = u.PrimerNombre ?? u.primerNombre ?? u.nombre ?? u.username ?? '';
     const foto  = u.FotoUrl ?? u.fotoUrl ?? u.picture ?? u.imageUrl ?? null;
-
-    // lee rol de: u.rol || (RolNombre/rolNombre + RolId/rolId)
     const rawName = (u as any).RolNombre ?? (u as any).rolNombre ?? null;
     const rawId   = (u as any).RolId     ?? (u as any).rolId     ?? null;
-
     const rol = u.rol ?? (rawName ? { id: Number(rawId ?? 0), nombre: String(rawName) } : null);
 
     return {

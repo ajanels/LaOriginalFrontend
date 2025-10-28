@@ -40,10 +40,13 @@ button.danger{ display:inline-flex; align-items:center; gap:6px; background:#fde
 button.danger .material-icons{ font-size:18px; }
 
 /* Card */
-.card{ background:#fff; border:1px solid #eee; border-radius:20px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.06); }
-
-/* Table */
-/* ... (resto igual que te pasé) ... */
+.card{
+  background:#fff; border:1px solid #eee; border-radius:20px; padding:10px; box-shadow:0 10px 30px rgba(0,0,0,.06);
+  position:relative; overflow:hidden;              /* necesario para la tira morada */
+}
+.card::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:4px; background:#7a2ea8; opacity:.85;  /* tira morada */
+}
 
 /* Table (ajustado a 4 columnas) */
 .table-wrapper{ overflow-x:auto; }
@@ -54,15 +57,6 @@ table.grid{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:
 
 /* Swatch (solo color, sin texto) */
 .swatch{ display:inline-block; width:18px; height:18px; border-radius:4px; border:1px solid #ddd; vertical-align:middle; }
-
-/* Acciones */
-.acts-col{ width:150px; }
-.acts{ display:flex; align-items:center; gap:8px; }
-
-/* ... (resto igual: pills, botones, modal, backdrop fijo, etc.) ... */
-
-/* Swatch */
-.swatch{ display:inline-block; width:18px; height:18px; border-radius:4px; border:1px solid #ddd; margin-right:8px; vertical-align:middle; }
 .hex{ color:#555; }
 
 /* State pills */
@@ -121,7 +115,12 @@ table.grid{ width:100%; border-collapse:collapse; table-layout:fixed; min-width:
   box-shadow:0 24px 80px rgba(0,0,0,.28);
   display:flex; flex-direction:column; overflow:hidden;
   animation:popIn .18s ease-out both;
+  position:relative;                         /* tira morada */
 }
+.modal-card::before{
+  content:""; position:absolute; inset:0 auto 0 0; width:4px; background:#7a2ea8; opacity:.85;
+}
+
 .modal-card, .modal-card *{ box-sizing:border-box; }
 
 /* Head */

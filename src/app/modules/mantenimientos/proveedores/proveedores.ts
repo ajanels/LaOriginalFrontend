@@ -2,26 +2,27 @@ import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/cor
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
-import { ProveedoresService, Proveedor } from '../../../services/proveedores.service';
+import { ProveedoresService, ProveedorItem } from '../../../services/proveedores.service';
 
 @Component({
-  selector: 'app-proveedores',
+  selector: 'app-mant-proveedores',
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './proveedores.html',
-  styleUrls: ['./proveedores.css']
+  styleUrls: ['./proveedores.css'],
 })
-export class Proveedores implements OnInit, OnDestroy {
+export class MantProveedoresComponent implements OnInit, OnDestroy {
   private svc = inject(ProveedoresService);
 
-  proveedores: Proveedor[] = [];
-  proveedoresFiltrados: Proveedor[] = [];
+  // Data
+  proveedores: ProveedorItem[] = [];
+  filtrados: ProveedorItem[] = [];
 
-  // Form
-  nuevo: Partial<Proveedor> = {
-    nombre: '', nit: '', contacto: '', telefono: '', email: '', direccion: '', notas: '', activo: true
+  // Formulario (simple y compatible con cualquier backend)
+  nuevo: Partial<ProveedorItem> = {
+    nombre: '', activo: true
   };
-  editando: Proveedor | null = null;
+  editando: ProveedorItem | null = null;
   submitted = false;
 
   // UI
@@ -32,15 +33,15 @@ export class Proveedores implements OnInit, OnDestroy {
   // Filtros / paginación
   searchTerm = '';
   filtroEstado = '';
-  itemsPorPagina = 5;
+  itemsPorPagina = 10;
   paginaActual = 0;
   inicio = 0;
-  fin = 5;
+  fin = 10;
   totalPaginas = 1;
   private searchTimer: any;
 
   private Toast = Swal.mixin({
-    toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true
+    toast: true, position: 'top-end', showConfirmButton: false, timer: 2300, timerProgressBar: true
   });
 
   ngOnInit(): void { this.cargar(); }
@@ -48,11 +49,11 @@ export class Proveedores implements OnInit, OnDestroy {
 
   @HostListener('document:keydown.escape') onEsc() { if (this.mostrarModal) this.cerrarModal(); }
 
-  // ===== Data =====
+  // ===== Cargar =====
   cargar(): void {
     this.cargando = true;
     this.svc.list(false).subscribe({
-      next: (data) => { this.proveedores = data ?? []; this.aplicarFiltros(); this.cargando = false; },
+      next: (rows: ProveedorItem[]) => { this.proveedores = rows ?? []; this.aplicarFiltros(); this.cargando = false; },
       error: () => { this.swalError('No se pudieron cargar los proveedores.'); this.cargando = false; }
     });
   }
@@ -60,24 +61,14 @@ export class Proveedores implements OnInit, OnDestroy {
   // ===== Crear / Editar =====
   abrirCrear(): void {
     this.editando = null;
-    this.nuevo = { nombre: '', nit: '', contacto: '', telefono: '', email: '', direccion: '', notas: '', activo: true };
+    this.nuevo = { nombre: '', activo: true };
     this.submitted = false;
     this.mostrarModal = true;
   }
 
-  editarProveedor(p: Proveedor): void {
+  editarProveedor(p: ProveedorItem): void {
     this.editando = { ...p };
-    this.nuevo = {
-      id: p.id,
-      nombre: p.nombre,
-      nit: p.nit,
-      contacto: p.contacto || '',
-      telefono: p.telefono || '',
-      email: p.email || '',
-      direccion: p.direccion || '',
-      notas: p.notas || '',
-      activo: p.activo
-    };
+    this.nuevo = { id: p.id, nombre: p.nombre, activo: p.activo };
     this.submitted = false;
     this.mostrarModal = true;
   }
@@ -85,38 +76,19 @@ export class Proveedores implements OnInit, OnDestroy {
   cerrarModal(): void {
     this.mostrarModal = false;
     this.submitted = false;
-    this.nuevo = { nombre: '', nit: '', contacto: '', telefono: '', email: '', direccion: '', notas: '', activo: true };
+    this.nuevo = { nombre: '', activo: true };
     this.editando = null;
   }
 
   guardar(): void {
     this.submitted = true;
-
     if (!this.nuevo?.nombre?.trim()) {
       this.Toast.fire({ icon: 'warning', title: 'El nombre es requerido' });
       return;
     }
-    if (!this.isNitValido(this.nuevo?.nit || '')) {
-      this.Toast.fire({ icon: 'warning', title: 'El NIT debe tener exactamente 9 números' });
-      return;
-    }
-    if (!this.isEmailValido(this.nuevo.email)) {
-      this.Toast.fire({ icon: 'warning', title: 'Email inválido' });
-      return;
-    }
 
-    // Normalizaciones
-    const nit = (this.nuevo.nit as string); 
-    const telefono = (this.nuevo.telefono || '').replace(/\D+/g, '').slice(0, 8) || '';
-
-    const dto: Omit<Proveedor, 'id'> = {
+    const dto = {
       nombre: this.nuevo.nombre!.trim(),
-      nit,
-      contacto: this.trimOrNull(this.nuevo.contacto),
-      telefono: telefono || null,
-      email: this.trimOrNull(this.nuevo.email),
-      direccion: this.trimOrNull(this.nuevo.direccion),
-      notas: this.trimOrNull(this.nuevo.notas),
       activo: !!this.nuevo.activo
     };
 
@@ -126,31 +98,25 @@ export class Proveedores implements OnInit, OnDestroy {
       this.svc.update(this.editando.id, dto).subscribe({
         next: () => {
           const i = this.proveedores.findIndex(x => x.id === this.editando!.id);
-          if (i > -1) this.proveedores[i] = { ...this.proveedores[i], ...dto } as Proveedor;
+          if (i > -1) this.proveedores[i] = { ...this.proveedores[i], ...dto } as ProveedorItem;
           this.aplicarFiltros();
           this.Toast.fire({ icon: 'success', title: 'Proveedor actualizado' });
           this.cargando = false;
           this.cerrarModal();
         },
         error: (err) => {
-          if (err?.status === 409) {
-            this.swalError(err?.error?.message || 'Ya existe otro proveedor con ese Nombre o NIT.');
-          } else if (err?.status === 400) {
-            const detalles = this.extractModelStateErrors(err?.error);
-            this.swalError(detalles || err?.error?.message || 'Datos inválidos. Revisa NIT/Email.');
-          } else if (err?.status === 401 || err?.status === 403) {
-            this.swalError('No tienes permisos para editar proveedores.');
-          } else {
-            this.swalError(err?.error?.message || 'Error al actualizar el proveedor');
-          }
+          if (err?.status === 409) this.swalError(err?.error?.message || 'Ya existe otro proveedor con ese nombre.');
+          else if (err?.status === 400) this.swalError('Solicitud inválida (Id del body debe coincidir).');
+          else this.swalError('Error al actualizar el proveedor');
           this.cargando = false;
         }
       });
       return;
     }
 
+    // Crear
     this.svc.create(dto).subscribe({
-      next: (p) => {
+      next: (p: ProveedorItem) => {
         this.proveedores.unshift(p);
         this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: 'Proveedor creado' });
@@ -158,24 +124,18 @@ export class Proveedores implements OnInit, OnDestroy {
         this.cerrarModal();
       },
       error: (err) => {
-        if (err?.status === 409) {
-          this.swalError(err?.error?.message || 'Ya existe un proveedor con ese Nombre o NIT.');
-        } else if (err?.status === 400) {
-          const detalles = this.extractModelStateErrors(err?.error);
-          this.swalError(detalles || 'Datos inválidos.');
-        } else {
-          this.swalError('Error al guardar el proveedor');
-        }
+        if (err?.status === 409) this.swalError(err?.error?.message || 'Ya existe un proveedor con ese nombre.');
+        else this.swalError('Error al guardar el proveedor');
         this.cargando = false;
       }
     });
   }
 
-  async eliminarProveedor(): Promise<void> {
-    if (!this.editando) return;
+  // ===== Eliminar =====
+  async eliminarProveedor(p: ProveedorItem): Promise<void> {
     const res = await Swal.fire({
       title: '¿Eliminar proveedor?',
-      text: `Se eliminará permanentemente "${this.editando.nombre}".`,
+      text: `Se eliminará permanentemente "${p.nombre}".`,
       icon: 'warning', showCancelButton: true,
       confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar',
       confirmButtonColor: '#d33'
@@ -183,27 +143,19 @@ export class Proveedores implements OnInit, OnDestroy {
     if (!res.isConfirmed) return;
 
     this.cargando = true;
-    this.svc.delete(this.editando.id).subscribe({
+    this.svc.delete(p.id).subscribe({
       next: () => {
-        this.proveedores = this.proveedores.filter(x => x.id !== this.editando!.id);
+        this.proveedores = this.proveedores.filter(x => x.id !== p.id);
         this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: 'Eliminado' });
         this.cargando = false;
-        this.cerrarModal();
       },
-      error: (err) => {
-        if (err?.status === 401 || err?.status === 403) {
-          this.swalError('No tienes permisos para eliminar este proveedor.');
-        } else {
-          this.swalError('No se pudo eliminar');
-        }
-        this.cargando = false;
-      }
+      error: () => { this.swalError('No se pudo eliminar'); this.cargando = false; }
     });
   }
 
-  // ===== Estado =====
-  async confirmarToggle(p: Proveedor): Promise<void> {
+  // ===== Estado (toggle) =====
+  async confirmarToggle(p: ProveedorItem): Promise<void> {
     const activar = !p.activo;
     const res = await Swal.fire({
       title: activar ? '¿Activar proveedor?' : '¿Desactivar proveedor?',
@@ -216,10 +168,10 @@ export class Proveedores implements OnInit, OnDestroy {
     this.cambiarEstado(p);
   }
 
-  cambiarEstado(p: Proveedor): void {
+  cambiarEstado(p: ProveedorItem): void {
     this.cargandoFila[p.id] = true;
     const previo = p.activo;
-    p.activo = !p.activo; 
+    p.activo = !p.activo;
 
     this.svc.toggleActivo(p.id, p.activo).subscribe({
       next: (resp) => {
@@ -227,13 +179,9 @@ export class Proveedores implements OnInit, OnDestroy {
         this.Toast.fire({ icon: 'success', title: `Proveedor ${resp.activo ? 'activado' : 'desactivado'}` });
         this.cargandoFila[p.id] = false;
       },
-      error: (err) => {
+      error: () => {
         p.activo = previo;
-        if (err?.status === 401 || err?.status === 403) {
-          this.swalError('No tienes permisos para cambiar el estado.');
-        } else {
-          this.swalError('No se pudo cambiar el estado');
-        }
+        this.swalError('No se pudo cambiar el estado');
         this.cargandoFila[p.id] = false;
       }
     });
@@ -248,17 +196,12 @@ export class Proveedores implements OnInit, OnDestroy {
   aplicarFiltros(): void {
     let list = [...this.proveedores];
     const term = (this.searchTerm || '').trim().toLowerCase();
-    if (term) {
-      list = list.filter(p =>
-        (p.nombre || '').toLowerCase().includes(term) ||
-        (p.nit || '').toLowerCase().includes(term)
-      );
-    }
+    if (term) list = list.filter(p => (p.nombre || '').toLowerCase().includes(term));
     if (this.filtroEstado) {
       const activo = this.filtroEstado === 'true';
       list = list.filter(p => p.activo === activo);
     }
-    this.proveedoresFiltrados = list;
+    this.filtrados = list;
     this.paginaActual = 0;
     this.actualizarPaginacion();
   }
@@ -267,40 +210,11 @@ export class Proveedores implements OnInit, OnDestroy {
   actualizarPaginacion(): void {
     this.inicio = this.paginaActual * this.itemsPorPagina;
     this.fin = this.inicio + this.itemsPorPagina;
-    this.totalPaginas = Math.max(1, Math.ceil(this.proveedoresFiltrados.length / this.itemsPorPagina));
+    this.totalPaginas = Math.max(1, Math.ceil(this.filtrados.length / this.itemsPorPagina));
   }
   paginaAnterior(): void { if (this.paginaActual > 0) { this.paginaActual--; this.actualizarPaginacion(); } }
   paginaSiguiente(): void { if (this.paginaActual < this.totalPaginas - 1) { this.paginaActual++; this.actualizarPaginacion(); } }
 
-  // ===== Validaciones / Utils =====
-  onNitInput(): void {
-    const digits = (this.nuevo.nit || '').replace(/\D+/g, '').slice(0, 9);
-    this.nuevo.nit = digits;
-  }
-  isNitValido(n?: string | null): boolean { return /^\d{9}$/.test(n ?? ''); }
-
-  onTelefonoInput(): void {
-    const onlyDigits = (this.nuevo.telefono || '').replace(/\D+/g, '').slice(0, 8);
-    this.nuevo.telefono = onlyDigits;
-  }
-
-  private isEmailValido(v?: string | null): boolean {
-    if (!v) return true; 
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
-  }
-
-  private trimOrNull(v?: string | null): string | null {
-    const t = (v ?? '').trim();
-    return t ? t : null;
-  }
-
-  private extractModelStateErrors(errBody: any): string | null {
-    const errors = errBody?.errors;
-    if (!errors) return null;
-    const msgs: string[] = [];
-    Object.keys(errors).forEach(k => (errors[k] as string[]).forEach(m => msgs.push(m)));
-    return msgs.length ? msgs.join(' ') : null;
-  }
-
+  // Utils
   private swalError(text: string): void { Swal.fire({ icon: 'error', title: 'Ups…', text }); }
 }

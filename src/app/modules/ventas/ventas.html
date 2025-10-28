@@ -1,1 +1,168 @@
-<p>ventas works!</p>
+<div class="ventas-page" [class.has-cart]="seleccionados.length > 0">
+  <!-- Header fijo -->
+  <div class="sticky-header">
+    <div class="head-title"><h1>Ventas</h1></div>
+    <div class="head">
+      <div class="actions" style="flex:1">
+        <div class="search">
+          <span class="material-icons">search</span>
+          <input [(ngModel)]="filtro" (ngModelChange)="filtrar()" placeholder="Buscar producto o código…"/>
+        </div>
+        <button class="icon" title="Limpiar" (click)="clearSearch()">
+          <span class="material-icons">close</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Grid principal -->
+  <div class="ventas-grid">
+    <!-- Productos -->
+    <section class="productos">
+      <div class="cards">
+        <div class="card" *ngFor="let p of productos; trackBy: trackByProducto">
+          <img [src]="p.fotoUrl || 'assets/noimg.svg'" [alt]="p.producto"/>
+          <div class="info">
+            <h4>{{ p.producto }}</h4>
+
+            <!-- DISPONIBLE real y (opcional) RESERVADO -->
+            <div class="meta">
+              Disponible: {{ dispoDe(p) }}
+              <span *ngIf="p.reservado != null && p.reservado !== undefined"> · Reservado: {{ p.reservado }}</span>
+            </div>
+
+            <div class="meta" *ngIf="p.productoCodigo">Código: {{ p.productoCodigo }}</div>
+            <div class="precio" *ngIf="p.precioVenta != null">Q {{ p.precioVenta | number:'1.2-2' }}</div>
+          </div>
+
+          <button class="btn-pink"
+                  (click)="agregarProducto(p)"
+                  [disabled]="disponibleRestante(p.presentacionId, p) <= 0">
+            {{ disponibleRestante(p.presentacionId, p) <= 0 ? 'sin disponible.' : 'agregar' }}
+          </button>
+        </div>
+
+        <div class="empty" *ngIf="!productos.length">
+          <span class="material-icons">inventory_2</span>
+          Sin productos
+        </div>
+      </div>
+    </section>
+
+    <!-- Carrito -->
+    <aside class="carrito" *ngIf="seleccionados.length > 0">
+      <h2>Carrito</h2>
+
+      <div class="cart-cols">
+        <div>Descripción</div>
+        <div style="text-align:center">Cantidad</div>
+        <div>Precio unitario</div>
+        <div>Subtotal</div>
+        <div>Acción</div>
+      </div>
+
+      <div class="cart-list">
+        <div class="row" *ngFor="let s of seleccionados; let i = index; trackBy: trackBySel">
+          <div class="col desc">
+            {{ s.producto }}
+            <div class="mini meta">Disp. restante: {{ disponibleRestante(s.presentacionId, undefined, i) }}</div>
+          </div>
+
+          <div class="col qty">
+            <button class="chip" (click)="dec(s)">-</button>
+            <input type="number" min="1" [value]="s.cantidadVenta" (change)="onQtyInput(s, $event, i)"/>
+            <button class="chip" (click)="inc(s)" [disabled]="s.cantidadVenta >= disponibleRestante(s.presentacionId, undefined, i)">+</button>
+          </div>
+
+          <div class="col unit">Q {{ s.precioVenta || 0 | number:'1.2-2' }}</div>
+          <div class="col sub">Q {{ (s.precioVenta || 0) * s.cantidadVenta | number:'1.2-2' }}</div>
+
+          <div class="col act">
+            <button class="chip danger" (click)="quitarProducto(s.presentacionId)">x</button>
+          </div>
+        </div>
+
+        <div class="empty" *ngIf="!seleccionados.length">
+          <span class="material-icons">shopping_cart</span>
+          Aún no has agregado productos
+        </div>
+      </div>
+
+      <div class="total">
+        <span>Total de la venta</span>
+        <strong>Q {{ totalVenta | number:'1.2-2' }}</strong>
+      </div>
+
+      <div class="actions-bottom">
+        <button class="btn-pink big" [disabled]="!seleccionados.length" (click)="abrirCobro()">vender</button>
+        <button class="btn-danger" [disabled]="!seleccionados.length" (click)="cancelarCarrito()">cancelar</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ===== Modal de Cobro ===== -->
+  <div *ngIf="showCobro">
+    <div class="modal-backdrop" (click)="cerrarCobro()"></div>
+
+    <div class="modal">
+      <div class="modal-header">
+        <h3>Cobro</h3>
+        <button class="icon" (click)="cerrarCobro()">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Cliente (autocomplete) -->
+        <div class="form-row">
+          <label>Cliente</label>
+          <div class="ac-wrapper">
+            <input
+              [(ngModel)]="clienteNombre"
+              (input)="onClienteInput()"
+              (keydown.enter)="onClienteEnter($event)"
+              placeholder="Nombre del cliente…"/>
+            <ul class="ac-list" *ngIf="clienteSugerencias.length">
+              <li *ngFor="let c of clienteSugerencias" (click)="seleccionarCliente(c)">
+                {{ c.nombre }}
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Forma de pago -->
+        <div class="form-row">
+          <label>Forma de pago</label>
+          <select [(ngModel)]="formaPagoId" (ngModelChange)="onFPChangeId($event)">
+            <option *ngFor="let fp of formasPago" [ngValue]="fp.id">{{ fp.nombre | uppercase }}</option>
+          </select>
+        </div>
+
+        <!-- Referencia (depósito o FP con requiereReferencia) -->
+        <div class="form-row" *ngIf="fpRequiereRef">
+          <label>Referencia</label>
+          <input [(ngModel)]="referencia" placeholder="No. de depósito/transferencia"/>
+        </div>
+
+        <!-- Total -->
+        <div class="form-row">
+          <label>Total</label>
+          <input [value]="totalVenta | number:'1.2-2'" readonly />
+        </div>
+
+        <!-- Efectivo: Recibido / Cambio -->
+        <div class="form-row" *ngIf="esEfectivo">
+          <label>Recibido</label>
+          <input type="number" [(ngModel)]="recibido" min="0" step="0.01" />
+        </div>
+        <div class="form-row" *ngIf="esEfectivo">
+          <label>Cambio</label>
+          <input [value]="(toNumber(recibido) - totalVenta) | number:'1.2-2'" readonly />
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn-danger" (click)="cerrarCobro()">cerrar</button>
+        <button class="btn-pink big" (click)="confirmarCobro()">confirmar cobro</button>
+      </div>
+    </div>
+  </div>
+</div>
