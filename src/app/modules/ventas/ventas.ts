@@ -61,7 +61,7 @@ export class Ventas {
     nombre: 'La Original',
     direccion: 'chicua prmero, sector ajanel',
     email: 'laoriginal@gmail.com',
-    telefono: '32-16-43-55',
+    telefono: '32-15-41-44',
     logoUrl: '/icons/oficialoriginal.png' 
   };
 
