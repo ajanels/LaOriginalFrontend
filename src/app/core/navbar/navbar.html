@@ -13,7 +13,12 @@
 
     <span class="username">{{ name | titlecase }}</span>
 
-    <button class="logout-btn" (click)="logout()" aria-label="Cerrar sesión" title="Cerrar sesión">
+    <button
+      class="logout-btn"
+      type="button"
+      (click)="logout()"
+      aria-label="Cerrar sesión"
+      title="Cerrar sesión">
       <span class="material-icons">logout</span>
     </button>
   </div>

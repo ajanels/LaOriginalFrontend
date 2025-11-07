@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
@@ -67,6 +67,58 @@ export class PedidosClientesComponent implements OnInit {
   q = signal<string>('');
   pedidos = signal<PedidoClienteListDto[]>([]);
 
+  // ====== NUEVO: Vista (activos / entregados) + paginación ======
+  view = signal<'activos' | 'entregados'>('activos');
+  page = signal<number>(0);
+  pageSize = signal<number>(8); 
+
+  /** Lista filtrada por búsqueda (todas las filas) */
+  filteredAll = computed(() => {
+    const term = this.q().trim().toLowerCase();
+    const rows = this.pedidos();
+    if (!term) return rows;
+    return rows.filter(p =>
+      (p.cliente || '').toLowerCase().includes(term) ||
+      (p.descripcion || '').toLowerCase().includes(term)
+    );
+  });
+
+  /** Separación por estado */
+  activos = computed(() =>
+    this.filteredAll().filter(p => Number(p.estado) !== EstadoPedidoCliente.Entregado)
+  );
+  entregados = computed(() =>
+    this.filteredAll().filter(p => Number(p.estado) === EstadoPedidoCliente.Entregado)
+  );
+
+  /** Lista según vista actual */
+  listForView = computed(() =>
+    this.view() === 'activos' ? this.activos() : this.entregados()
+  );
+
+  total = computed(() => this.listForView().length);
+  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
+
+  paged = computed(() => {
+    const list = this.listForView();
+    const size = this.pageSize();
+    const lastIndex = Math.max(0, this.totalPages() - 1);
+    const page = Math.min(this.page(), lastIndex);
+    const start = page * size;
+    return list.slice(start, start + size);
+  });
+
+  rangeStart = computed(() => this.total() ? this.page() * this.pageSize() + 1 : 0);
+  rangeEnd   = computed(() => Math.min(this.total(), (this.page() + 1) * this.pageSize()));
+  canPrev    = computed(() => this.page() > 0);
+  canNext    = computed(() => this.page() < this.totalPages() - 1);
+
+  goActivos()     { if (this.view() !== 'activos')     { this.view.set('activos'); this.page.set(0); } }
+  goEntregados()  { if (this.view() !== 'entregados')  { this.view.set('entregados'); this.page.set(0); } }
+  prev()          { if (this.canPrev()) this.page.set(this.page() - 1); }
+  next()          { if (this.canNext()) this.page.set(this.page() + 1); }
+
+  // ====== Modales
   showChoice = signal(false);
   showFull   = signal(false);
   showPago   = signal(false);
@@ -85,9 +137,7 @@ export class PedidosClientesComponent implements OnInit {
 
   detalle: PedidoClienteDetailDto | null = null;
 
-  clienteTerm = signal('');
-  clientesSug = signal<Cliente[]>([]);
-  clientesLoading = signal(false);
+  clienteTerm = signal(''); clientesSug = signal<Cliente[]>([]); clientesLoading = signal(false);
 
   // Form “Completo”
   form = {
@@ -122,12 +172,8 @@ export class PedidosClientesComponent implements OnInit {
   };
 
   // Catálogo
-  catTerm = signal('');
-  catLoading = false;
-  catRows = signal<CatalogItemDto[]>([]);
-  catTake = 30;
+  catTerm = signal(''); catLoading = false; catRows = signal<CatalogItemDto[]>([]); catTake = 30;
 
-  // ======= Helpers de categorías
   private norm = (s: any) =>
     String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
 
@@ -181,30 +227,24 @@ export class PedidosClientesComponent implements OnInit {
       next: rows => this.formasPago.set(rows || []),
       error: () => {}
     });
+
+    // Resetear página cuando cambian vista, búsqueda o la lista
+    effect(() => { const _ = [this.view(), this.q(), this.pedidos()]; this.page.set(0); });
   }
 
   // ====== DATA
   reload(): void {
     this.loading.set(true);
     this.svc.list().subscribe({
-      next: rows => { this.pedidos.set(rows || []); this.loading.set(false); },
+      next: rows => { this.pedidos.set(rows || []); this.loading.set(false); this.page.set(0); },
       error: (e: any) => { this.loading.set(false); this.swalErrorFrom(e, 'No se pudo cargar los pedidos'); }
     });
   }
 
-  filtered = computed(() => {
-    const term = this.q().trim().toLowerCase();
-    if (!term) return this.pedidos();
-    return this.pedidos().filter(p =>
-      (p.cliente || '').toLowerCase().includes(term) ||
-      (p.descripcion || '').toLowerCase().includes(term)
-    );
-  });
-
+  // ===== Helpers de UI existentes =====
   trackByPedidoId = (_: number, it: PedidoClienteListDto) => it.id;
   trackByCatId = (_: number, it: CatalogItemDto) => it.id;
 
-  // ====== Estados (pills y texto)
   estadoBadge(estado: string | number) {
     const k = Number(estado);
     return {
@@ -217,7 +257,6 @@ export class PedidosClientesComponent implements OnInit {
       cancelado:    k === EstadoPedidoCliente.Cancelado
     };
   }
-
   estadoTexto(estado: string | number) {
     const k = Number(estado);
     switch (k) {
@@ -231,7 +270,6 @@ export class PedidosClientesComponent implements OnInit {
     }
   }
 
-  // ====== Reglas de visibilidad/flujo (para el HTML)
   showBtnConvertirVenta = (_: PedidoClienteListDto) => false;
 
   isFinalizado(p: PedidoClienteListDto): boolean {
@@ -241,7 +279,6 @@ export class PedidosClientesComponent implements OnInit {
     return est === EstadoPedidoCliente.Entregado || tieneVenta;
   }
 
-  // ====== Crear/editar
   crearPedido(): void { this.showChoice.set(true); }
   closeCreate() { this.showChoice.set(false); }
 
@@ -254,10 +291,7 @@ export class PedidosClientesComponent implements OnInit {
   closeFull() { this.showFull.set(false); this.editingId = null; }
   closePers() { this.showPers.set(false); this.editingId = null; }
 
-  // ====== Clientes (buscador)
-  private sanitizePhone(v: any): string {
-    return String(v ?? '').replace(/\D/g, '').slice(0, 8);
-  }
+  private sanitizePhone(v: any): string { return String(v ?? '').replace(/\D/g, '').slice(0, 8); }
   onPedidoPhoneChange(v: any) { this.form.telefono = this.sanitizePhone(v); }
   onNewClientPhoneChange(v: any) { this.newClient.telefono = this.sanitizePhone(v); }
   onPersPhoneChange(v: any) { this.formPers.telefono = this.sanitizePhone(v); }
@@ -275,13 +309,11 @@ export class PedidosClientesComponent implements OnInit {
   }
 
   pickCliente(c: Cliente): void {
-    // Completo
     this.form.clienteId = c.id;
     this.form.clienteNombre = c.nombre;
     this.form.telefono = c.telefono ? this.sanitizePhone(c.telefono) : '';
     this.form.direccion = c.direccion ?? '';
 
-    // Pers
     this.formPers.clienteId = c.id;
     this.formPers.clienteNombre = c.nombre;
     this.formPers.telefono = c.telefono ? this.sanitizePhone(c.telefono) : '';
@@ -325,7 +357,6 @@ export class PedidosClientesComponent implements OnInit {
     });
   }
 
-  // ====== Guardado
   private makeUtcIsoFromDateInput(v: string | ''): string | undefined {
     if (!v) return undefined;
     const [y, m, d] = v.split('-').map(Number);
@@ -462,7 +493,6 @@ export class PedidosClientesComponent implements OnInit {
     }
   }
 
-  // ====== Anticipo / pagos
   openAnticipo(): void {
     if (!this.pedidoCreadoId) { this.reload(); Swal.fire('Listo', 'Pedido creado.', 'success'); return; }
     this.anticipo.monto = 0; this.anticipo.formaPagoId = null; this.anticipo.referencia = ''; this.anticipo.notas = '';
@@ -516,7 +546,6 @@ export class PedidosClientesComponent implements OnInit {
     this.reload();
   }
 
-  // ====== Detalle
   openDetail(id: number) {
     if (this.loadingDetail) return;
     this.loadingDetail = true;
@@ -535,7 +564,6 @@ export class PedidosClientesComponent implements OnInit {
   }
   closeDetail() { this.showDetail.set(false); this.detalle = null; }
 
-  // ====== Editar
   openEditarPedido(id: number) {
     this.svc.getById(id).subscribe({
       next: (d) => {
@@ -547,7 +575,6 @@ export class PedidosClientesComponent implements OnInit {
           this.formPers.clienteNombre = d.clienteNombre || '';
           this.formPers.telefono = this.sanitizePhone(d.telefono || '');
           this.formPers.direccion = d.direccionEntrega || '';
-          // Fecha de calendario (medianoche UTC) -> string yyyy-MM-dd sin desplazamiento
           this.formPers.fechaEntrega = d.fechaEntregaCompromisoUtc ? new Date(d.fechaEntregaCompromisoUtc).toISOString().slice(0,10) : '';
           this.formPers.estado = Number(d.estado);
           this.formPers.detalles = (d.detalles || []).map(it => ({
@@ -588,7 +615,6 @@ export class PedidosClientesComponent implements OnInit {
         this.form.clienteNombre = d.clienteNombre || '';
         this.form.telefono = this.sanitizePhone(d.telefono || '');
         this.form.direccion = d.direccionEntrega || '';
-        // Fecha de calendario (medianoche UTC) -> string yyyy-MM-dd sin desplazamiento
         this.form.fechaEntrega = d.fechaEntregaCompromisoUtc ? new Date(d.fechaEntregaCompromisoUtc).toISOString().slice(0,10) : '';
         this.form.estado = Number(d.estado);
         this.form.totalManual = d.total ?? 0;
@@ -612,7 +638,6 @@ export class PedidosClientesComponent implements OnInit {
     });
   }
 
-  // ====== Devoluciones
   openDevolucionDesdeLista(id: number) {
     this.svc.getById(id).subscribe({
       next: d => {
@@ -723,7 +748,6 @@ export class PedidosClientesComponent implements OnInit {
 
   closeDevolucion() { this.showDevolucion.set(false); this.devolPedidoId = null; }
 
-  // ====== Acciones sobre pedidos en lista
   eliminarPedido(row: PedidoClienteListDto) {
     const estado = Number(row.estado);
     if (estado !== EstadoPedidoCliente.Borrador) return;
@@ -873,7 +897,6 @@ export class PedidosClientesComponent implements OnInit {
     });
   }
 
-  // ====== Utilidades de error (ENRIQUECIDO)
   private fmtQ(n: any): string {
     const num = Number(n ?? 0);
     try {
@@ -887,13 +910,11 @@ export class PedidosClientesComponent implements OnInit {
     }
   }
 
-  // Devuelve { text?, html? } formateado para mostrar en SweetAlert
   private buildErrorView(e: any): { text?: string; html?: string } {
     if (e?.status === 0) return { text: 'No hay conexión con el servidor.' };
 
     const err = e?.error;
 
-    // 409 de caja con detalle { error, disponible, solicitado }
     if (e?.status === 409 && err && typeof err === 'object'
         && 'error' in err && 'disponible' in err && 'solicitado' in err) {
       const disp = this.fmtQ(err.disponible);
@@ -913,13 +934,11 @@ export class PedidosClientesComponent implements OnInit {
       };
     }
 
-    // ProblemDetails o mensajes directos
     if (typeof err === 'string') return { text: err };
     if (err?.detail || err?.title || err?.message) {
       return { text: (err.detail || err.title || err.message) };
     }
 
-    // Validación { errors: { campo: [...] } }
     if (err?.errors && typeof err.errors === 'object') {
       const items: string[] = [];
       Object.values(err.errors).forEach((v: any) => {
@@ -935,7 +954,6 @@ export class PedidosClientesComponent implements OnInit {
       }
     }
 
-    // Fallback genérico
     return { text: `Error ${e?.status || ''} ${e?.statusText || ''}`.trim() || 'Error desconocido.' };
   }
 
@@ -978,7 +996,6 @@ export class PedidosClientesComponent implements OnInit {
     return !!fp?.requiereReferencia;
   }
 
-  // ====== Reset forms
   resetFull() {
     this.form = {
       clienteId: null,
@@ -1017,7 +1034,6 @@ export class PedidosClientesComponent implements OnInit {
     this.clientesSug.set([]);
   }
 
-  // ====== Helpers UI
   resumenDescripcion(desc?: string | null, max = 3): string {
     if (!desc) return '—';
     const tokensAll = desc.split(/[|·]/g).map(s => s.trim()).filter(Boolean);
@@ -1072,7 +1088,6 @@ export class PedidosClientesComponent implements OnInit {
   }
   removeLine(i: number) { this.formPers.detalles.splice(i, 1); this.recalcPersTotals(); }
 
-  // ====== Catálogo
   openCatalog() {
     this.catTerm.set('');
     this.catRows.set([]);
@@ -1152,12 +1167,21 @@ export class PedidosClientesComponent implements OnInit {
   lineProducto = (presentacionId: number, fallback?: string | null) =>
     this.presCache.get(presentacionId)?.productoNombre || (fallback || '');
 
-  // Avisos stock
   private warnNoStock(nombre: string) {
     Swal.fire('Sin stock', `“${nombre}” no tiene unidades disponibles en inventario.`, 'info');
   }
   private warnInsuficiente(nombre: string, disp: number) {
     Swal.fire('Stock insuficiente', `Para “${nombre}” solo hay ${disp.toFixed(2)} disponibles.`, 'warning');
+  }
+
+  private displayItemName(it: CatalogItemDto): string {
+    const prod = (it.producto || '').trim();
+    const pres = (it.nombre || '').trim();
+    const genericas = new Set(['unidad', 'unidades', 'u', 'pieza', 'pza', 'pz', 'default', '-']);
+    const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const presIsGeneric = !pres || genericas.has(norm(pres)) || norm(prod) === norm(pres);
+    if (presIsGeneric) return prod || `#${it.id}`;
+    return prod ? `${prod} — ${pres}` : (pres || `#${it.id}`);
   }
 
   pickFromCatalog(it: CatalogItemDto) {
@@ -1221,16 +1245,6 @@ export class PedidosClientesComponent implements OnInit {
     this.recalcPersTotals();
   }
 
-  private displayItemName(it: CatalogItemDto): string {
-    const prod = (it.producto || '').trim();
-    const pres = (it.nombre || '').trim();
-    const genericas = new Set(['unidad', 'unidades', 'u', 'pieza', 'pza', 'pz', 'default', '-']);
-    const norm = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    const presIsGeneric = !pres || genericas.has(norm(pres)) || norm(prod) === norm(pres);
-    if (presIsGeneric) return prod || `#${it.id}`;
-    return prod ? `${prod} — ${pres}` : (pres || `#${it.id}`);
-  }
-
   showBtnDevolucion(p: PedidoClienteListDto): boolean {
     const est = Number(p.estado);
     if (est === EstadoPedidoCliente.Borrador) return false;
@@ -1252,13 +1266,11 @@ export class PedidosClientesComponent implements OnInit {
     return paid > 0 || cnt > 0;
   }
 
-
   asDmy(v?: string | Date | null): string {
     if (!v) return '—';
     const d = new Date(v);
     return new Intl.DateTimeFormat('es-GT', { day:'2-digit', month:'2-digit', year:'numeric' }).format(d);
   }
-  // Local: dd/MM/yyyy HH:mm
   asDmyTime(v?: string | Date | null): string {
     if (!v) return '—';
     const d = new Date(v);
@@ -1267,7 +1279,6 @@ export class PedidosClientesComponent implements OnInit {
       hour:'2-digit', minute:'2-digit', hour12: false
     }).format(d);
   }
-  
   asDmyUtc(v?: string | Date | null): string {
     if (!v) return '—';
     const d = new Date(v);

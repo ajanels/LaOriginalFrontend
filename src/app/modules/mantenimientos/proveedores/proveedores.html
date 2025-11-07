@@ -1,12 +1,13 @@
-<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-prov">
+<div class="prov-page page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-prov">
   <!-- Título -->
   <div class="head-title">
     <h1 id="title-prov">Proveedores</h1>
   </div>
 
-  <!-- Filtros + crear -->
+  <!-- Head: buscador + segmentado + botón -->
   <div class="head">
     <div class="actions">
+      <!-- Buscador -->
       <div class="search" aria-label="Buscar proveedores">
         <span class="material-icons" aria-hidden="true">search</span>
         <input
@@ -15,22 +16,21 @@
           placeholder="Busca por nombre…"
           [(ngModel)]="searchTerm"
           (input)="onSearchInput()"
-          autocomplete="off"
-        />
+          autocomplete="off"/>
       </div>
 
-      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
-        <option value="">Todos</option>
-        <option value="true">Activos</option>
-        <option value="false">Inactivos</option>
-      </select>
-
-      <select class="filter" [(ngModel)]="itemsPorPagina" (change)="cambiarPaginacion()" aria-label="Ítems por página">
-        <option [ngValue]="5">5 / pág</option>
-        <option [ngValue]="10">10 / pág</option>
-        <option [ngValue]="25">25 / pág</option>
-        <option [ngValue]="50">50 / pág</option>
-      </select>
+      <!-- Segmentado -->
+      <div class="segmented" role="group" aria-label="Filtrar por estado">
+        <button type="button" class="seg" [class.active]="filtroEstado==='true'" (click)="setFiltro('true')">
+          Activos <span class="seg-badge">{{ cont.activos }}</span>
+        </button>
+        <button type="button" class="seg" [class.active]="filtroEstado==='false'" (click)="setFiltro('false')">
+          Inactivos <span class="seg-badge">{{ cont.inactivos }}</span>
+        </button>
+        <button type="button" class="seg" [class.active]="filtroEstado===''" (click)="setFiltro('')">
+          Todos <span class="seg-badge">{{ cont.todos }}</span>
+        </button>
+      </div>
     </div>
 
     <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear proveedor">
@@ -47,16 +47,14 @@
       <table class="grid" role="table" aria-label="Listado de proveedores">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th class="center">Estado</th>
-            <th class="acts-col">Acciones</th>
+            <th scope="col">Nombre</th>
+            <th scope="col" class="center">Estado</th>
+            <th scope="col" class="acts-col">Acciones</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of filtrados.slice(inicio, fin)">
-            <td>
-              <strong>{{ p.nombre }}</strong>
-            </td>
+            <td><strong>{{ p.nombre }}</strong></td>
             <td class="center">
               <span class="state-pill" [ngClass]="p.activo ? 'activo' : 'inactivo'">
                 {{ p.activo ? 'Activo' : 'Inactivo' }}
@@ -64,17 +62,12 @@
             </td>
             <td>
               <div class="acts">
-                <button class="icon edit" type="button" (click)="editarProveedor(p)" title="Editar {{p.nombre}}">
-                  <span class="material-icons" aria-hidden="true">edit</span>
-                </button>
-                <button
-                  class="icon toggle"
-                  [ngClass]="p.activo ? 'active' : 'inactive'"
-                  type="button"
-                  (click)="confirmarToggle(p)"
-                  [disabled]="cargandoFila[p.id]"
-                  [attr.aria-busy]="cargandoFila[p.id] ? 'true' : null"
-                  title="{{ p.activo ? 'Desactivar' : 'Activar' }} {{p.nombre}}">
+                
+                <button class="icon toggle" [ngClass]="p.activo ? 'active' : 'inactive'"
+                        type="button" (click)="confirmarToggle(p)"
+                        [disabled]="cargandoFila[p.id]"
+                        [attr.aria-busy]="cargandoFila[p.id] ? 'true' : null"
+                        title="{{ p.activo ? 'Desactivar' : 'Activar' }} {{p.nombre}}">
                   <span class="material-icons" aria-hidden="true">
                     {{ cargandoFila[p.id] ? 'hourglass_top' : (p.activo ? 'block' : 'check_circle') }}
                   </span>
@@ -93,17 +86,26 @@
       </table>
     </div>
 
-    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
-      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
-      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
-      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    <!-- Paginación -->
+    <div class="pager" role="navigation" aria-label="Paginación" *ngIf="!cargando && filtrados.length > 0">
+      <span class="pager-info">Página {{ paginaActual + 1 }} de {{ totalPaginas }}</span>
+      <div class="spacer"></div>
+
+      <button class="pager-btn" type="button" (click)="paginaAnterior()" [disabled]="paginaActual === 0">
+        <span class="material-icons">chevron_left</span>
+        <span>Anterior</span>
+      </button>
+
+      <button class="pager-btn" type="button" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1">
+        <span>Siguiente</span>
+        <span class="material-icons">chevron_right</span>
+      </button>
     </div>
   </div>
 
-  <!-- Backdrop -->
+  <!-- Backdrop + Modal -->
   <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
 
-  <!-- Modal -->
   <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
     <div class="modal-card" role="document">
       <header class="modal-head">
@@ -118,21 +120,24 @@
 
       <div class="modal-body">
         <form class="form" (ngSubmit)="guardar()" #formProv="ngForm" novalidate>
-          <div class="form-grid">
-            <div class="field span-2">
-              <label for="nombre">Nombre <span class="req">*</span></label>
-              <input
-                id="nombre" type="text" required minlength="2" maxlength="80"
-                [(ngModel)]="nuevo.nombre" name="nombre"
-                [class.invalid]="submitted && !nuevo.nombre?.trim()" />
-              <small class="hint">Entre 2 y 80 caracteres.</small>
-              <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
-            </div>
+          <div class="form-grid prov-grid">
+          <!-- Nombre -->
+          <div class="field nombre">
+            <label for="nombre">Nombre <span class="req">*</span></label>
+            <input
+              id="nombre"
+              type="text"
+              required
+              minlength="2"
+              maxlength="80"
+              [(ngModel)]="nuevo.nombre"
+              name="nombre"
+              [class.invalid]="submitted && !nuevo.nombre?.trim()" />
+            <small class="hint">Entre 2 y 80 caracteres.</small>
+            <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
+          </div>          
+        </div>
 
-            <div class="field span-2">
-              <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
-            </div>
-          </div>
 
           <footer class="modal-foot">
             <div class="left">
@@ -143,11 +148,9 @@
               </button>
             </div>
 
-            <div class="right">
-              <button type="submit" class="primary" [disabled]="cargando">
-                {{ editando ? 'Guardar cambios' : 'Crear' }}
-              </button>
-            </div>
+            <button type="submit" class="primary" [disabled]="cargando">
+              {{ editando ? 'Guardar cambios' : 'Crear' }}
+            </button>
           </footer>
         </form>
       </div>

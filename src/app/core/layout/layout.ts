@@ -36,16 +36,8 @@ export class LayoutComponent implements OnInit, OnDestroy {
     { label: 'Inventario',  icon: 'inventory_2',   route: '/inventario' },
     { label: 'Ventas',      icon: 'shopping_cart', route: '/ventas' },
     { label: 'Reportes',    icon: 'bar_chart',     route: '/reportes' },
-
-    // Pedidos como submenú
-    {
-      label: 'Pedidos', icon: 'local_shipping', expanded: false, children: [
-        { label: 'Clientes',    route: '/pedidos/clientes' },
-        { label: 'Proveedores', route: '/pedidos/proveedores' },
-      ]
-    },
-
-    // Mantenimientos directo (sin desplegable)
+    { label: 'Pedido de Clientes', icon: 'contacts',   route: '/pedidos/clientes' },
+    { label: 'Compras a proveedores', icon: 'shopping_cart_checkout', route: '/pedidos/proveedores' },
     { label: 'Mantenimientos', icon: 'settings', route: '/mantenimientos' },
   ];
 

@@ -6,14 +6,15 @@ import { UnidadesMedidaService, UnidadMedida } from '../../../services/unidades-
 
 @Component({
   selector: 'app-unidades-medida',
-  imports: [CommonModule,FormsModule],
+  standalone: true,
+  imports: [CommonModule, FormsModule],
   templateUrl: './unidades-medida.html',
-  styleUrl: './unidades-medida.css'
+  styleUrls: ['./unidades-medida.css']
 })
-
 export class UnidadesMedida implements OnInit, OnDestroy {
   private svc = inject(UnidadesMedidaService);
 
+  // Data
   unidades: UnidadMedida[] = [];
   unidadesFiltradas: UnidadMedida[] = [];
 
@@ -29,13 +30,16 @@ export class UnidadesMedida implements OnInit, OnDestroy {
 
   // Filtros / paginación
   searchTerm = '';
-  filtroEstado = '';
+  view: 'activos' | 'inactivos' | 'todos' = 'activos';
   itemsPorPagina = 5;
   paginaActual = 0;
   inicio = 0;
   fin = 5;
   totalPaginas = 1;
   private searchTimer: any;
+
+  get activosCount(): number   { return this.unidades.filter(u =>  u.activo).length; }
+  get inactivosCount(): number { return this.unidades.filter(u => !u.activo).length; }
 
   private Toast = Swal.mixin({
     toast: true, position: 'top-end', showConfirmButton: false, timer: 2500, timerProgressBar: true
@@ -79,21 +83,13 @@ export class UnidadesMedida implements OnInit, OnDestroy {
   guardar(): void {
     this.submitted = true;
 
-    if (!this.nuevo?.nombre?.trim()) {
-      this.Toast.fire({ icon: 'warning', title: 'El nombre es requerido' });
-      return;
-    }
-    if (!this.nuevo?.simbolo?.trim()) {
-      this.Toast.fire({ icon: 'warning', title: 'El símbolo es requerido' });
-      return;
-    }
+    if (!this.nuevo?.nombre?.trim()) { this.Toast.fire({ icon: 'warning', title: 'El nombre es requerido' }); return; }
+    if (!this.nuevo?.simbolo?.trim()) { this.Toast.fire({ icon: 'warning', title: 'El símbolo es requerido' }); return; }
 
-    // Normalización
-    const nombre = this.nuevo.nombre!.trim();
+    const nombre  = this.nuevo.nombre!.trim();
     const simbolo = this.normalizeSimbolo(this.nuevo.simbolo!);
     const dto: Omit<UnidadMedida, 'id'> = {
-      nombre,
-      simbolo,
+      nombre, simbolo,
       descripcion: (this.nuevo.descripcion || '').trim() || null,
       activo: !!this.nuevo.activo
     };
@@ -137,6 +133,7 @@ export class UnidadesMedida implements OnInit, OnDestroy {
     });
   }
 
+  // ===== Eliminar =====
   async eliminarUnidad(): Promise<void> {
     if (!this.editando) return;
     const res = await Swal.fire({
@@ -181,13 +178,14 @@ export class UnidadesMedida implements OnInit, OnDestroy {
   cambiarEstado(u: UnidadMedida): void {
     this.cargandoFila[u.id] = true;
     const previo = u.activo;
-    u.activo = !u.activo; 
+    u.activo = !u.activo;
 
     this.svc.toggleActivo(u.id, u.activo).subscribe({
       next: (resp) => {
         u.activo = resp.activo;
         this.Toast.fire({ icon: 'success', title: `Unidad ${resp.activo ? 'activada' : 'desactivada'}` });
         this.cargandoFila[u.id] = false;
+        this.aplicarFiltros();
       },
       error: (err) => {
         u.activo = previo;
@@ -199,6 +197,8 @@ export class UnidadesMedida implements OnInit, OnDestroy {
   }
 
   // ===== Filtros / Paginación =====
+  setView(v: 'activos' | 'inactivos' | 'todos'){ if(this.view!==v){ this.view=v; this.paginaActual=0; this.aplicarFiltros(); } }
+
   onSearchInput(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.aplicarFiltros(), 250);
@@ -207,16 +207,17 @@ export class UnidadesMedida implements OnInit, OnDestroy {
   aplicarFiltros(): void {
     let list = [...this.unidades];
     const term = (this.searchTerm || '').trim().toLowerCase();
+
     if (term) {
       list = list.filter(u =>
-        (u.nombre || '').toLowerCase().includes(term) ||
+        (u.nombre  || '').toLowerCase().includes(term) ||
         (u.simbolo || '').toLowerCase().includes(term)
       );
     }
-    if (this.filtroEstado) {
-      const activo = this.filtroEstado === 'true';
-      list = list.filter(u => u.activo === activo);
-    }
+
+    if (this.view === 'activos')       list = list.filter(u =>  u.activo);
+    else if (this.view === 'inactivos') list = list.filter(u => !u.activo);
+
     this.unidadesFiltradas = list;
     this.paginaActual = 0;
     this.actualizarPaginacion();
@@ -237,10 +238,8 @@ export class UnidadesMedida implements OnInit, OnDestroy {
     s = s.replace(/[^A-Z0-9%/.\-]/g, '').slice(0, 8);
     this.nuevo.simbolo = s;
   }
-
   private normalizeSimbolo(v: string): string {
     return (v || '').toUpperCase().replace(/\s+/g, '').replace(/[^A-Z0-9%/.\-]/g, '').slice(0, 8);
   }
-
   private swalError(text: string): void { Swal.fire({ icon: 'error', title: 'Ups…', text }); }
 }

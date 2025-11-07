@@ -1,8 +1,8 @@
 import { Component, OnInit, OnDestroy, inject, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { CategoriasService, Categoria } from '../../../services/categorias.service';
 import Swal from 'sweetalert2';
+import { CategoriasService, Categoria } from '../../../services/categorias.service';
 
 @Component({
   selector: 'app-categorias',
@@ -14,32 +14,37 @@ import Swal from 'sweetalert2';
 export class Categorias implements OnInit, OnDestroy {
   private svc = inject(CategoriasService);
 
+  // ===== Data =====
   categorias: Categoria[] = [];
   categoriasFiltradas: Categoria[] = [];
 
-  // Form
+  // ===== Form =====
   nuevaCategoria: Partial<Categoria> = { nombre: '', descripcion: '', activo: true };
   editando: Categoria | null = null;
   submitted = false;
 
-  // UI
+  // ===== UI =====
   cargando = false;
   mensaje = '';
   errorMsg = '';
   mostrarModal = false;
   cargandoFila: Record<number, boolean> = {};
 
-  // Filtros / paginación
+  // ===== Filtros / Paginación =====
   searchTerm = '';
-  filtroEstado = '';
-  itemsPorPagina = 10;
+  readonly itemsPorPagina = 9; // <-- fijo a 9
   paginaActual = 0;
   inicio = 0;
-  fin = 10;
+  fin = this.itemsPorPagina;
   totalPaginas = 1;
   private searchTimer: any;
 
-  // Toast preconfigurado
+  // Vista por estado (segmentado)
+  view: 'activos' | 'inactivos' | 'todos' = 'activos';
+  get activosCount(): number   { return this.categorias.filter(c =>  c.activo).length; }
+  get inactivosCount(): number { return this.categorias.filter(c => !c.activo).length; }
+
+  // Toast
   private Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
@@ -221,6 +226,7 @@ export class Categorias implements OnInit, OnDestroy {
         cat.activo = resp.activo;
         this.Toast.fire({ icon: 'success', title: `Categoría ${resp.activo ? 'activada' : 'desactivada'}` });
         this.cargandoFila[cat.id] = false;
+        this.aplicarFiltros();
       },
       error: () => {
         cat.activo = previo;
@@ -231,6 +237,14 @@ export class Categorias implements OnInit, OnDestroy {
   }
 
   // ===== Filtros / Paginación =====
+  setView(v: 'activos'|'inactivos'|'todos'): void {
+    if (this.view !== v) {
+      this.view = v;
+      this.paginaActual = 0;
+      this.aplicarFiltros();
+    }
+  }
+
   onSearchInput(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.aplicarFiltros(), 250);
@@ -238,18 +252,14 @@ export class Categorias implements OnInit, OnDestroy {
 
   aplicarFiltros(): void {
     let filtradas = [...this.categorias];
-    const term = (this.searchTerm || '').trim().toLowerCase();
-    if (term) filtradas = filtradas.filter(c => c.nombre.toLowerCase().includes(term));
-    if (this.filtroEstado) {
-      const activo = this.filtroEstado === 'true';
-      filtradas = filtradas.filter(c => c.activo === activo);
-    }
-    this.categoriasFiltradas = filtradas;
-    this.paginaActual = 0;
-    this.actualizarPaginacion();
-  }
 
-  cambiarPaginacion(): void {
+    const term = (this.searchTerm || '').trim().toLowerCase();
+    if (term) filtradas = filtradas.filter(c => (c.nombre || '').toLowerCase().includes(term));
+
+    if (this.view === 'activos')       filtradas = filtradas.filter(c =>  c.activo);
+    else if (this.view === 'inactivos') filtradas = filtradas.filter(c => !c.activo);
+
+    this.categoriasFiltradas = filtradas;
     this.paginaActual = 0;
     this.actualizarPaginacion();
   }

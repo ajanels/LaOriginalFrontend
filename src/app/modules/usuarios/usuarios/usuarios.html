@@ -72,7 +72,7 @@
     </div>
   </div>
 
-  <!-- card tabla (con acento morado) -->
+  <!-- card tabla -->
   <div class="card accent">
     <div class="table-wrapper" *ngIf="!loading(); else loadingTpl">
       <table class="grid" *ngIf="paged().length; else emptyTpl" aria-label="Listado de usuarios">
@@ -107,13 +107,17 @@
           </tr>
         </tbody>
       </table>
+    </div>
 
-      <!-- paginación (fija a 5) -->
-      <div class="pager" *ngIf="totalPages() > 1" aria-label="Paginación">
-        <button class="ghost" (click)="prevPage()" [disabled]="page()===1" type="button"><span class="material-icons">chevron_left</span></button>
-        <span>Página <strong>{{ page() }}</strong> de <strong>{{ totalPages() }}</strong></span>
-        <button class="ghost" (click)="nextPage()" [disabled]="page()===totalPages()" type="button"><span class="material-icons">chevron_right</span></button>
-      </div>
+    <!-- NUEVO: Paginador minimalista -->
+    <div class="pager" *ngIf="!loading() && total() > 0">
+      <div class="spacer"></div>
+      <button class="ghost" type="button" [disabled]="!canPrev()" (click)="prev()">
+        <span class="material-icons">chevron_left</span> Anterior
+      </button>
+      <button class="ghost" type="button" [disabled]="!canNext()" (click)="next()">
+        Siguiente <span class="material-icons">chevron_right</span>
+      </button>
     </div>
 
     <ng-template #loadingTpl><div class="empty">Cargando…</div></ng-template>

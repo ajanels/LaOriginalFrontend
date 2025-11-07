@@ -21,6 +21,10 @@ export class InventarioComponent implements OnInit {
   q = '';
   rows: StockRow[] = [];
 
+  // ====== Paginación (8 por página) ======
+  page = 0;               // índice 0-based
+  pageSize = 8;
+
   get viewRows(): StockRow[] {
     const t = (this.q || '').toLowerCase();
     if (!t) return this.rows;
@@ -29,6 +33,26 @@ export class InventarioComponent implements OnInit {
       ((r.productoCodigo || '').toLowerCase().includes(t))
     );
   }
+
+  get total(): number { return this.viewRows.length; }
+  get totalPages(): number { return Math.max(1, Math.ceil(this.total / this.pageSize)); }
+
+  private ensureValidPage(): void {
+    const last = Math.max(0, this.totalPages - 1);
+    if (this.page > last) this.page = 0;
+    if (this.page < 0) this.page = 0;
+  }
+
+  get pagedRows(): StockRow[] {
+    this.ensureValidPage();
+    const start = this.page * this.pageSize;
+    return this.viewRows.slice(start, start + this.pageSize);
+  }
+
+  canPrev(): boolean { return this.page > 0; }
+  canNext(): boolean { return this.page < this.totalPages - 1; }
+  prev(): void { if (this.canPrev()) this.page--; }
+  next(): void { if (this.canNext()) this.page++; }
 
   // ====== Modales ======
   showKardex = false;
@@ -88,11 +112,11 @@ export class InventarioComponent implements OnInit {
   reload() {
     this.loading = true;
     this.inv.getStock().subscribe({
-      next: d => { this.rows = d || []; this.loading = false; },
+      next: d => { this.rows = d || []; this.loading = false; this.page = 0; this.ensureValidPage(); },
       error: e => { this.rows = []; this.loading = false; this.swalErrorFrom(e, 'No se pudo cargar inventario'); }
     });
   }
-  onSearch(v: string) { this.q = v || ''; }
+  onSearch(v: string) { this.q = v || ''; this.page = 0; }
 
   // ================== Kardex ==================
   openKardex(r: StockRow) {
@@ -104,7 +128,6 @@ export class InventarioComponent implements OnInit {
   closeKardex() {
     this.showKardex = false;
     this.kardex = [];
-    // this.sel = null; // deja seleccionado si lo prefieres
   }
 
   loadKardex() {
@@ -187,7 +210,6 @@ export class InventarioComponent implements OnInit {
     w.document.open(); w.document.write(html); w.document.close();
   }
 
-  // Evita depender de un id que quizá no venga en el kardex
   trackByKardex(index: number, _item: KardexItem) { return index; }
 
   // ================== Ajuste ==================
@@ -216,7 +238,6 @@ export class InventarioComponent implements OnInit {
       cantidad: this.ajCantidad,
       tipo: this.ajTipo,
       motivo: this.ajMotivo ?? undefined,
-      // usa undefined (no null) cuando no aplica, para APIs estrictas
       costoUnitario: this.ajTipo === 'entrada' ? this.ajCosto! : undefined
     }).subscribe({
       next: () => {

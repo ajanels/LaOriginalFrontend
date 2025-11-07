@@ -4,9 +4,10 @@
     <h1 id="title-unidades">Unidades de medida</h1>
   </div>
 
-  <!-- Filtros + crear -->
+  <!-- Head: búsqueda + segmentado + crear -->
   <div class="head">
     <div class="actions">
+      <!-- Buscador -->
       <div class="search" aria-label="Buscar unidades">
         <span class="material-icons" aria-hidden="true">search</span>
         <input
@@ -19,20 +20,36 @@
         />
       </div>
 
-      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
-        <option value="">Todos</option>
-        <option value="true">Activos</option>
-        <option value="false">Inactivos</option>
-      </select>
-
-      <select class="filter" [(ngModel)]="itemsPorPagina" (change)="cambiarPaginacion()" aria-label="Ítems por página">
-        <option [ngValue]="5">5 / pág</option>
-        <option [ngValue]="10">10 / pág</option>
-        <option [ngValue]="25">25 / pág</option>
-        <option [ngValue]="50">50 / pág</option>
-      </select>
+      <!-- Segmentado por estado -->
+      <div class="segmented" role="group" aria-label="Filtrar por estado">
+        <button
+          type="button"
+          class="seg"
+          [class.active]="view==='activos'"
+          [attr.aria-pressed]="view==='activos'"
+          (click)="setView('activos')">
+          Activas <span class="seg-badge">{{ activosCount }}</span>
+        </button>
+        <button
+          type="button"
+          class="seg"
+          [class.active]="view==='inactivos'"
+          [attr.aria-pressed]="view==='inactivos'"
+          (click)="setView('inactivos')">
+          Inactivas <span class="seg-badge">{{ inactivosCount }}</span>
+        </button>
+        <button
+          type="button"
+          class="seg"
+          [class.active]="view==='todos'"
+          [attr.aria-pressed]="view==='todos'"
+          (click)="setView('todos')">
+          Todas <span class="seg-badge">{{ unidades.length }}</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Botón crear a la derecha -->
     <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear unidad">
       <span class="material-icons" aria-hidden="true">add</span>
       Nueva unidad
@@ -92,10 +109,20 @@
       </table>
     </div>
 
-    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
-      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
-      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
-      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    <!-- Paginación -->
+    <div class="pager" role="navigation" aria-label="Paginación" *ngIf="!cargando && unidadesFiltradas.length > 0">
+      <span class="pager-info">Página {{ paginaActual + 1 }} de {{ totalPaginas }}</span>
+      <div class="spacer"></div>
+
+      <button class="pager-btn" type="button" (click)="paginaAnterior()" [disabled]="paginaActual === 0">
+        <span class="material-icons">chevron_left</span>
+        <span>Anterior</span>
+      </button>
+
+      <button class="pager-btn" type="button" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1">
+        <span>Siguiente</span>
+        <span class="material-icons">chevron_right</span>
+      </button>
     </div>
   </div>
 
@@ -118,44 +145,30 @@
       <div class="modal-body">
         <form class="form" (ngSubmit)="guardar()" #formUni="ngForm" novalidate>
           <div class="form-grid">
-            <!-- Fila 1: Nombre + Símbolo -->
             <div class="field">
               <label for="nombre">Nombre <span class="req">*</span></label>
-              <input
-                id="nombre"
-                type="text"
-                required
-                minlength="2"
-                maxlength="120"
-                [(ngModel)]="nuevo.nombre"
-                name="nombre"
-                [class.invalid]="submitted && !nuevo.nombre?.trim()" />
+              <input id="nombre" type="text" required minlength="2" maxlength="120"
+                     [(ngModel)]="nuevo.nombre" name="nombre"
+                     [class.invalid]="submitted && !nuevo.nombre?.trim()" />
               <small class="hint">Entre 2 y 120 caracteres.</small>
               <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
             </div>
 
             <div class="field">
               <label for="simbolo">Símbolo <span class="req">*</span></label>
-              <input
-                id="simbolo"
-                type="text"
-                maxlength="8"
-                placeholder="Ej: kg, m, cm, L, %"
-                [(ngModel)]="nuevo.simbolo"
-                name="simbolo"
-                (input)="onSimboloInput()"
-                [class.invalid]="submitted && !nuevo.simbolo?.trim()" />
+              <input id="simbolo" type="text" maxlength="8" placeholder="Ej: KG, M, CM, L, %"
+                     [(ngModel)]="nuevo.simbolo" name="simbolo"
+                     (input)="onSimboloInput()"
+                     [class.invalid]="submitted && !nuevo.simbolo?.trim()" />
               <small class="hint">Se guarda en MAYÚSCULAS. Permitidos: A–Z, 0–9, %, /, ., - (máx 8).</small>
               <div class="error" *ngIf="submitted && !nuevo.simbolo?.trim()">El símbolo es obligatorio.</div>
             </div>
 
-            <!-- Fila 2: Descripción -->
             <div class="field span-2">
               <label for="desc">Descripción</label>
               <textarea id="desc" rows="3" maxlength="200" [(ngModel)]="nuevo.descripcion" name="descripcion"></textarea>
             </div>
 
-            <!-- Fila 3: Activo -->
             <div class="field span-2">
               <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
             </div>

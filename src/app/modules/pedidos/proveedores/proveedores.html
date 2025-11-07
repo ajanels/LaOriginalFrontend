@@ -1,17 +1,36 @@
-<div class="page" [class.modal-open]="showCreate || showRx || showQuick || showView">
+<div class="page pp-page" [class.modal-open]="showCreate || showRx || showQuick || showView">
   <div class="head-title">
     <h1>Compras a proveedores</h1>
   </div>
 
   <div class="head">
-    <div class="actions">
-      <div class="search" aria-label="Buscar pedidos">
-        <span class="material-icons" aria-hidden="true">search</span>
-        <input [ngModel]="q()" (ngModelChange)="q.set($event)" placeholder="Buscar por número o proveedor…" autocomplete="off" title="Buscar" />
-      </div>
+    <!-- Buscador -->
+    <div class="search" aria-label="Buscar pedidos">
+      <span class="material-icons" aria-hidden="true">search</span>
+      <input
+        #listSearch
+        [ngModel]="q()"
+        (ngModelChange)="q.set($event)"
+        placeholder="Buscar por número o proveedor…"
+        autocomplete="off"
+        title="Buscar (Ctrl+K)" />
     </div>
 
-    <button class="primary" type="button" (click)="openCreate()">
+    <!-- Segmento de vista -->
+    <div class="segmented">
+      <button type="button" class="seg" [class.active]="view() === 'activos'" (click)="goActivos()">
+        Activos <span class="seg-badge">{{ activos().length }}</span>
+      </button>
+      <button type="button" class="seg" [class.active]="view() === 'cerrados'" (click)="goCerrados()">
+        Cerrados <span class="seg-badge">{{ cerrados().length }}</span>
+      </button>
+      <button type="button" class="seg danger" [class.active]="view() === 'cancelados'" (click)="goCancelados()">
+        Cancelados <span class="seg-badge">{{ cancelados().length }}</span>
+      </button>
+    </div>
+
+    <!-- Acción principal -->
+    <button class="primary" type="button" (click)="openCreate()" title="Nueva cotización (Ctrl+Shift+N)">
       <span class="material-icons" aria-hidden="true">add</span> Realizar cotización
     </button>
   </div>
@@ -32,7 +51,10 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let p of filtered(); trackBy: trackByPedidoId">
+          <!-- filas -->
+          <tr *ngFor="let p of paged(); trackBy: trackByPedidoId"
+              [class.row-cerrado]="isEstado(p,'cerrado')"
+              [class.row-cancelado]="isEstado(p,'cancelado')">
             <td>{{ asDate(p.fecha)?.toLocaleDateString() }}</td>
             <td class="strong">{{ p.numero || ('#'+p.id) }}</td>
             <td>{{ p.proveedorNombre }}</td>
@@ -65,18 +87,32 @@
               </div>
             </td>
           </tr>
-          <tr *ngIf="!filtered().length">
-            <td colspan="7" class="empty">
+
+          <!-- Vacío por vista -->
+          <tr *ngIf="!loading() && listForView().length === 0">
+            <td colspan="7" class="empty" aria-live="polite">
               <span class="material-icons">inbox</span>
-              No hay pedidos que coincidan
+              No hay pedidos que coincidan en esta vista
             </td>
           </tr>
         </tbody>
       </table>
     </div>
+
     <ng-template #loadingTpl>
       <div class="empty"><div class="spinner"></div><span>Cargando…</span></div>
     </ng-template>
+
+    <!-- Paginador -->
+    <div class="pager" *ngIf="!loading() && totalItems() > 0">
+      <div class="spacer"></div>
+      <button class="ghost" type="button" [disabled]="!canPrev()" (click)="prev()">
+        <span class="material-icons">chevron_left</span> Anterior
+      </button>
+      <button class="ghost" type="button" [disabled]="!canNext()" (click)="next()">
+        Siguiente <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
   </div>
 </div>
 
@@ -86,11 +122,11 @@
     <header class="modal-head">
       <div class="modal-title-wrap">
         <span class="modal-dot"></span>
-        <h2>Nuevo cotizacion</h2>
+        <h2>Nueva cotización</h2>
       </div>
       <div class="modal-actions">
         <button class="ghost small" type="button" (click)="openQuickAdd()" [disabled]="!proveedorId || quickSaving">
-          <span class="material-icons">add_box</span> Nuevo producto
+          <span class="material-icons" aria-hidden="true">add_box</span> Nuevo producto
         </button>
         <button class="icon close" type="button" (click)="closeCreate()" aria-label="Cerrar">
           <span class="material-icons">close</span>
@@ -117,7 +153,13 @@
           <h3>Catálogo del proveedor</h3>
           <div class="search" aria-label="Buscar en catálogo">
             <span class="material-icons" aria-hidden="true">search</span>
-            <input [(ngModel)]="term" name="term" (ngModelChange)="buscarCatalogo()" placeholder="Buscar producto…" autocomplete="off" title="Buscar en catálogo" [disabled]="!proveedorId || cargandoCatalogo" />
+            <input
+              #catSearch
+              [(ngModel)]="term" name="term" (ngModelChange)="buscarCatalogo()"
+              placeholder="Buscar producto…"
+              autocomplete="off"
+              title="Buscar en catálogo"
+              [disabled]="!proveedorId || cargandoCatalogo" />
           </div>
         </div>
 
@@ -139,12 +181,12 @@
               </thead>
               <tbody>
                 <tr *ngFor="let it of catalogo; trackBy: trackByCatalogoId">
-                  <!-- Producto con imagen -->
                   <td class="strong">
                     <div style="display:flex;align-items:center;gap:12px;min-width:240px;">
                       <img
                         [src]="it.fotoUrl || placeholderImg"
                         alt="img"
+                        loading="lazy"
                         style="width:42px;height:42px;border-radius:8px;object-fit:cover;border:1px solid #eee;"
                         (error)="onImgError($event)"
                       />
@@ -152,14 +194,11 @@
                     </div>
                   </td>
 
-                  <!-- Precio -->
                   <td class="mono">Q {{ (it.precioSugerido || 0) | number:'1.2-2' }}</td>
 
-                  <!-- Cantidad con stepper entero -->
                   <td>
                     <div class="qty-stepper">
                       <button type="button" class="step" title="Restar 1" (click)="stepDown(qtyInput)">−</button>
-
                       <input
                         type="text"
                         #qtyInput
@@ -170,15 +209,21 @@
                         pattern="[0-9]*"
                         (input)="enforceInt(qtyInput)"
                         (blur)="enforceInt(qtyInput)"
+                        (keydown.enter)="addLineaFrom(it, qtyInput)"
+                        (keydown.arrowup)="stepUp(qtyInput)"
+                        (keydown.arrowdown)="stepDown(qtyInput)"
                       />
-
                       <button type="button" class="step" title="Sumar 1" (click)="stepUp(qtyInput)">+</button>
                     </div>
                   </td>
 
-                  <!-- Agregar -->
                   <td>
-                    <button class="icon primary" type="button" title="Agregar al pedido" (click)="addLineaFrom(it, qtyInput)">
+                    <button
+                      class="icon primary"
+                      type="button"
+                      title="Agregar al pedido"
+                      (click)="addLineaFrom(it, qtyInput)"
+                      [disabled]="(qtyInput.value || '0') === '0'">
                       <span class="material-icons">add_shopping_cart</span>
                     </button>
                   </td>
@@ -239,10 +284,9 @@
           </div>
 
           <div class="totals" *ngIf="lineas.length">
-            <div>Subtotal:</div>
-            <div class="mono">Q {{ subtotal | number:'1.2-2' }}</div>
+            
             <div>Total:</div>
-            <div class="mono total-strong">Q {{ total | number:'1.2-2' }}</div>
+            <div class="mono total-strong"> Q {{ total | number:'1.2-2' }}</div>
           </div>
         </div>
 
@@ -417,7 +461,7 @@
   </div>
 </section>
 
-<!-- ============ MODAL: VER DETALLE DE PEDIDO ============ -->
+<!-- ============ MODAL: VER DETALLE ============ -->
 <section class="modal" *ngIf="showView" (click)="closeView()">
   <div class="modal-card large" (click)="$event.stopPropagation()">
     <header class="modal-head">

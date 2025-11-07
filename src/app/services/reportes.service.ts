@@ -59,12 +59,44 @@ export interface GananciaPorProducto {
   utilidad: number;
 }
 
+/** NUEVO: Ventas por forma de pago */
+export interface VentasPorFormaPago {
+  formaPagoId?: number | null;
+  formaPago: string;
+  ventas: number;
+  total: number;
+  ticketPromedio: number;
+}
+
+/** ====== COMPRAS ====== */
+export interface ComprasPorProveedor {
+  proveedorId: number;
+  proveedor: string;
+  documentos: number;
+  total: number;
+  ultimaCompra?: string | null;
+}
+
 /** ====== CAJA ====== */
 export interface CajaDiaria {
   fecha: string;     // yyyy-MM-dd
   ingresos: number;
   egresos: number;
   neto: number;      // Ingresos - Egresos
+}
+
+/** NUEVO: Sesiones de caja cerradas */
+export interface CajaSesionCerrada {
+  aperturaId: number;
+  codigo: string;
+  cajeroNombre?: string | null;
+  fechaAperturaUtc: string; // ISO
+  fechaCierreUtc: string;   // ISO
+  montoInicial: number;
+  ingresos: number;
+  egresos: number;
+  neto: number;             // inicial + ingresos - egresos
+  cierreDia: string;        // yyyy-MM-dd
 }
 
 /** ====== PEDIDOS ====== */
@@ -204,10 +236,28 @@ export class ReportesService {
     return this.http.get<GananciaPorProducto[]>(url, { params });
   }
 
+  /** NUEVO: Ventas por forma de pago */
+  ventasPorFormaPago(r?: RangoFechas): Observable<VentasPorFormaPago[]> {
+    const { url, params } = this.withRange('ventas/por-forma-pago', r);
+    return this.http.get<VentasPorFormaPago[]>(url, { params });
+  }
+
+  /* ===== Compras ===== */
+  comprasPorProveedor(r?: RangoFechas): Observable<ComprasPorProveedor[]> {
+    const { url, params } = this.withRange('compras/por-proveedor', r);
+    return this.http.get<ComprasPorProveedor[]>(url, { params });
+  }
+
   /* ===== Caja ===== */
   cajaIngresosEgresosDiarios(r?: RangoFechas): Observable<CajaDiaria[]> {
     const { url, params } = this.withRange('caja/ingresos-egresos-diarios', r);
     return this.http.get<CajaDiaria[]>(url, { params });
+  }
+
+  /** NUEVO: sesiones cerradas */
+  cajaSesionesCerradas(r?: RangoFechas): Observable<CajaSesionCerrada[]> {
+    const { url, params } = this.withRange('caja/sesiones-cerradas', r);
+    return this.http.get<CajaSesionCerrada[]>(url, { params });
   }
 
   /* ===== Pedidos ===== */
@@ -240,7 +290,7 @@ export class ReportesService {
     return this.http.get<PedidosTopProductoRow[]>(url, { params });
   }
 
-  /* ===== Usuarios (nuevo endpoint) ===== */
+  /* ===== Usuarios ===== */
   usuariosResumen(
     r?: RangoFechas,
     opts?: { rolId?: number; estado?: 'Activo' | 'Inactivo' | 'Suspendido' }

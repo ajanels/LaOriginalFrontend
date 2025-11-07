@@ -9,23 +9,20 @@
 
       <span class="chip code" *ngIf="e.codigo">Sesión: {{ e.codigo }}</span>
 
-      <!-- Cajero: usa el del backend si viene; si no, el del JWT -->
       <span class="chip" *ngIf="e.cajeroNombre || userName()">Cajero: {{ e.cajeroNombre || userName() }}</span>
 
-      <!-- Apertura: usa hora local si viene; si no, UTC -->
       <span class="chip" *ngIf="e.aperturaLocal || e.apertura">
-  Apertura:
-  <ng-container *ngIf="e.aperturaLocal; else aperturaUtc">
-    {{ e.aperturaLocal | date:'dd/MM/yyyy HH:mm' }}
-  </ng-container>
-  <ng-template #aperturaUtc>
-    {{ e.apertura | date:'dd/MM/yyyy HH:mm':'UTC' }}
-  </ng-template>
-</span>
+        Apertura:
+        <ng-container *ngIf="e.aperturaLocal; else aperturaUtc">
+          {{ e.aperturaLocal | date:'dd/MM/yyyy HH:mm' }}
+        </ng-container>
+        <ng-template #aperturaUtc>
+          {{ e.apertura | date:'dd/MM/yyyy HH:mm':'UTC' }}
+        </ng-template>
+      </span>
 
-
-      <button class="ghost" type="button" (click)="refrescar()">
-        <span class="material-icons">refresh</span> Refrescar
+      <button class="ghost" type="button" (click)="refrescar()" aria-label="Refrescar">
+        <span class="material-icons" aria-hidden="true">refresh</span> Refrescar
       </button>
     </div>
   </div>
@@ -46,23 +43,43 @@
   <ng-container *ngIf="estado()?.abierta">
     <!-- KPIs -->
     <div class="kpis" *ngIf="resumen() as r">
-      <div class="kpi"><div class="kpi-title">Efectivo inicial</div><div class="kpi-val">Q {{ r.montoInicial | number:'1.2-2' }}</div></div>
-      <div class="kpi"><div class="kpi-title">Ingresos</div><div class="kpi-val in">Q {{ r.ingresos | number:'1.2-2' }}</div></div>
-      <div class="kpi"><div class="kpi-title">Egresos</div><div class="kpi-val out">Q {{ r.egresos | number:'1.2-2' }}</div></div>
-      <div class="kpi"><div class="kpi-title">Saldo esperado</div><div class="kpi-val strong">Q {{ r.esperado | number:'1.2-2' }}</div></div>
+      <div class="kpi">
+        <div class="kpi-title">Efectivo inicial</div>
+        <div class="kpi-val">Q {{ r.montoInicial | number:'1.2-2' }}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-title">Ingresos</div>
+        <div class="kpi-val in">Q {{ r.ingresos | number:'1.2-2' }}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-title">Egresos</div>
+        <div class="kpi-val out">Q {{ r.egresos | number:'1.2-2' }}</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-title">Saldo esperado</div>
+        <div class="kpi-val strong">Q {{ r.esperado | number:'1.2-2' }}</div>
+      </div>
 
       <div class="kpi-actions">
-        <button type="button" class="primary" (click)="openGasto()"><span class="material-icons">request_quote</span> Registrar gasto</button>
-        <button type="button" class="danger" (click)="openCierre()"><span class="material-icons">lock</span> Cerrar caja</button>
+        <button type="button" class="primary" (click)="openGasto()">
+          <span class="material-icons">request_quote</span> Registrar gasto
+        </button>
+        <button type="button" class="danger" (click)="openCierre()">
+          <span class="material-icons">lock</span> Cerrar caja
+        </button>
       </div>
     </div>
 
     <!-- Filtros + Movimientos -->
     <div class="card">
       <div class="filters">
-        <label class="search">
+        <label class="search" aria-label="Buscar movimientos">
           <span class="material-icons" aria-hidden="true">search</span>
-          <input [ngModel]="q()" (ngModelChange)="q.set($any($event) ?? '')" placeholder="Buscar por concepto, observaciones o documento…" title="Buscar movimientos" />
+          <input
+            [ngModel]="q()"
+            (ngModelChange)="q.set($any($event) ?? '')"
+            placeholder="Buscar por concepto, observaciones o documento…"
+            title="Buscar movimientos" />
         </label>
 
         <label>Tipo
@@ -80,12 +97,30 @@
           </select>
         </label>
 
-        <button class="ghost" type="button" (click)="clearFiltros()">
-          <span class="material-icons">cleaning_services</span> Limpiar
+        <!-- Nuevos filtros de fecha (soportados por el TS) -->
+        <label>Desde
+          <input
+            type="date"
+            class="filter"
+            [ngModel]="desde()"
+            (ngModelChange)="desde.set($any($event) || null)"
+            title="Filtrar desde fecha" />
+        </label>
+        <label>Hasta
+          <input
+            type="date"
+            class="filter"
+            [ngModel]="hasta()"
+            (ngModelChange)="hasta.set($any($event) || null)"
+            title="Filtrar hasta fecha" />
+        </label>
+
+        <button class="ghost" type="button" (click)="clearFiltros()" aria-label="Limpiar filtros">
+          <span class="material-icons" aria-hidden="true">cleaning_services</span> Limpiar
         </button>
       </div>
 
-      <div class="table-wrapper">
+      <div class="table-wrapper" [attr.aria-busy]="loading()">
         <table class="grid" *ngIf="movs().length; else vacioMovs" aria-label="Movimientos de caja">
           <thead>
             <tr>
@@ -117,7 +152,9 @@
                 </ng-container>
                 <ng-template #guion>—</ng-template>
               </td>
-              <td class="mono right" [class.neg]="m.tipo === 3 || m.tipo === 5">Q {{ m.monto | number:'1.2-2' }}</td>
+              <td class="mono right" [class.neg]="m.tipo === 3 || m.tipo === 5">
+                Q {{ m.monto | number:'1.2-2' }}
+              </td>
             </tr>
           </tbody>
         </table>
@@ -136,7 +173,7 @@
   <div class="card">
     <h3>Sesiones recientes</h3>
     <div class="table-wrapper">
-      <table class="grid" *ngIf="sesiones().length; else vacioSes">
+      <table class="grid" *ngIf="sesiones().length; else vacioSes" aria-label="Sesiones de caja recientes">
         <thead>
           <tr>
             <th>Código</th>
@@ -146,7 +183,8 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of sesiones(); trackBy: trackBySesion">
+          <!-- 🔸 lista paginada -->
+          <tr *ngFor="let s of sesionesPaged(); trackBy: trackBySesion">
             <td class="mono strong">{{ s.codigo }}</td>
             <td class="mono small">
               <ng-container *ngIf="s.aperturaLocal; else utcSes">
@@ -168,10 +206,35 @@
         </div>
       </ng-template>
     </div>
+
+    <!-- 🔸 Paginador -->
+    <div class="pager" *ngIf="sesiones().length">
+      <div class="muted small" style="margin-right:auto">
+        Mostrando {{ sesRangeStart() }}–{{ sesRangeEnd() }} de {{ sesiones().length }}
+      </div>
+
+      <label class="muted small" for="rows">Filas</label>
+      <select id="rows" class="filter"
+              [ngModel]="sesPageSize()" (ngModelChange)="setSesPageSize($any($event))"
+              aria-label="Filas por página" style="width:auto">
+        <option [ngValue]="2">2</option>
+        <option [ngValue]="3">3</option>
+        <option [ngValue]="4">4</option>
+      </select>
+
+      <button class="ghost" type="button" (click)="sesPrev()" [disabled]="!sesCanPrev()" aria-label="Página anterior">
+        Anterior
+      </button>
+      <div class="muted small">Página {{ sesPage()+1 }} / {{ sesionesTotalPages() }}</div>
+      <button class="ghost" type="button" (click)="sesNext()" [disabled]="!sesCanNext()" aria-label="Página siguiente">
+        Siguiente
+      </button>
+    </div>
   </div>
 </div>
 
-<!-- ========== MODAL: GASTO ========== -->
+<!-- ======== MODALES ======== -->
+<!-- GASTO -->
 <section class="modal" *ngIf="showGasto()" (click)="closeGasto()">
   <div class="modal-card small" (click)="$event.stopPropagation()">
     <header class="modal-head">
@@ -210,7 +273,7 @@
   </div>
 </section>
 
-<!-- ========== MODAL: CIERRE (dos columnas + badge + ajustar) ========== -->
+<!-- CIERRE -->
 <section class="modal" *ngIf="showCierre()" (click)="closeCierre()">
   <div class="modal-card large" (click)="$event.stopPropagation()">
     <header class="modal-head">
@@ -284,7 +347,7 @@
   </div>
 </section>
 
-<!-- ========== MODAL: APERTURA ========== -->
+<!-- APERTURA -->
 <section class="modal" *ngIf="showApertura()" (click)="closeApertura()">
   <div class="modal-card small" (click)="$event.stopPropagation()">
     <header class="modal-head">
@@ -304,10 +367,6 @@
         <label>Monto inicial *
           <input type="number" min="0" step="0.01" class="mono right"
                  [ngModel]="aMonto()" (ngModelChange)="aMonto.set(+($any($event) || 0))" />
-        </label>
-
-        <label>Cajero (automático)
-          <input [value]="userName()" disabled placeholder="Nombre del cajero"/>
         </label>
 
         <label class="span-2">Observaciones (opcional)

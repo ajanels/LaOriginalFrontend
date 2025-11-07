@@ -2,13 +2,20 @@
   <!-- Header fijo -->
   <div class="sticky-header">
     <div class="head-title"><h1>Ventas</h1></div>
+
     <div class="head">
       <div class="actions" style="flex:1">
         <div class="search">
           <span class="material-icons">search</span>
-          <input [(ngModel)]="filtro" (ngModelChange)="filtrar()" placeholder="Buscar producto o código…"/>
+          <input
+            [(ngModel)]="filtro"
+            (ngModelChange)="filtrar()"
+            placeholder="Buscar producto o código…"
+            aria-label="Buscar productos"
+          />
         </div>
-        <button class="icon" title="Limpiar" (click)="clearSearch()">
+
+        <button class="icon" title="Limpiar" (click)="clearSearch()" aria-label="Limpiar búsqueda">
           <span class="material-icons">close</span>
         </button>
       </div>
@@ -21,23 +28,36 @@
     <section class="productos">
       <div class="cards">
         <div class="card" *ngFor="let p of productos; trackBy: trackByProducto">
-          <img [src]="p.fotoUrl || 'assets/noimg.svg'" [alt]="p.producto"/>
+          <div class="img-box">
+            <img
+              [src]="p.fotoUrl || 'assets/noimg.svg'"
+              [alt]="p.producto"
+              loading="lazy"
+            />
+          </div>
+
           <div class="info">
             <h4>{{ p.producto }}</h4>
 
             <!-- DISPONIBLE real y (opcional) RESERVADO -->
             <div class="meta">
               Disponible: {{ dispoDe(p) }}
-              <span *ngIf="p.reservado != null && p.reservado !== undefined"> · Reservado: {{ p.reservado }}</span>
+              <span *ngIf="p.reservado != null && p.reservado !== undefined">
+                · Reservado: {{ p.reservado }}
+              </span>
             </div>
 
             <div class="meta" *ngIf="p.productoCodigo">Código: {{ p.productoCodigo }}</div>
-            <div class="precio" *ngIf="p.precioVenta != null">Q {{ p.precioVenta | number:'1.2-2' }}</div>
+            <div class="precio" *ngIf="p.precioVenta != null">
+              Q {{ p.precioVenta | number:'1.2-2' }}
+            </div>
           </div>
 
-          <button class="btn-pink"
-                  (click)="agregarProducto(p)"
-                  [disabled]="disponibleRestante(p.presentacionId, p) <= 0">
+          <button
+            class="btn-pink"
+            (click)="agregarProducto(p)"
+            [disabled]="disponibleRestante(p.presentacionId, p) <= 0"
+          >
             {{ disponibleRestante(p.presentacionId, p) <= 0 ? 'sin disponible.' : 'agregar' }}
           </button>
         </div>
@@ -65,20 +85,35 @@
         <div class="row" *ngFor="let s of seleccionados; let i = index; trackBy: trackBySel">
           <div class="col desc">
             {{ s.producto }}
-            <div class="mini meta">Disp. restante: {{ disponibleRestante(s.presentacionId, undefined, i) }}</div>
+            <div class="mini meta">
+              Disp. restante: {{ disponibleRestante(s.presentacionId, undefined, i) }}
+            </div>
           </div>
 
           <div class="col qty">
-            <button class="chip" (click)="dec(s)">-</button>
-            <input type="number" min="1" [value]="s.cantidadVenta" (change)="onQtyInput(s, $event, i)"/>
-            <button class="chip" (click)="inc(s)" [disabled]="s.cantidadVenta >= disponibleRestante(s.presentacionId, undefined, i)">+</button>
+            <button class="chip" (click)="dec(s)" aria-label="Disminuir cantidad">-</button>
+            <input
+              type="number"
+              min="1"
+              [value]="s.cantidadVenta"
+              (change)="onQtyInput(s, $event, i)"
+              aria-label="Cantidad"
+            />
+            <button
+              class="chip"
+              (click)="inc(s)"
+              [disabled]="s.cantidadVenta >= disponibleRestante(s.presentacionId, undefined, i)"
+              aria-label="Aumentar cantidad"
+            >
+              +
+            </button>
           </div>
 
           <div class="col unit">Q {{ s.precioVenta || 0 | number:'1.2-2' }}</div>
           <div class="col sub">Q {{ (s.precioVenta || 0) * s.cantidadVenta | number:'1.2-2' }}</div>
 
           <div class="col act">
-            <button class="chip danger" (click)="quitarProducto(s.presentacionId)">x</button>
+            <button class="chip danger" (click)="quitarProducto(s.presentacionId)" aria-label="Quitar">x</button>
           </div>
         </div>
 
@@ -107,7 +142,7 @@
     <div class="modal">
       <div class="modal-header">
         <h3>Cobro</h3>
-        <button class="icon" (click)="cerrarCobro()">✕</button>
+        <button class="icon" (click)="cerrarCobro()" aria-label="Cerrar">✕</button>
       </div>
 
       <div class="modal-body">
@@ -119,7 +154,8 @@
               [(ngModel)]="clienteNombre"
               (input)="onClienteInput()"
               (keydown.enter)="onClienteEnter($event)"
-              placeholder="Nombre del cliente…"/>
+              placeholder="Nombre del cliente…"
+            />
             <ul class="ac-list" *ngIf="clienteSugerencias.length">
               <li *ngFor="let c of clienteSugerencias" (click)="seleccionarCliente(c)">
                 {{ c.nombre }}
@@ -139,7 +175,7 @@
         <!-- Referencia (depósito o FP con requiereReferencia) -->
         <div class="form-row" *ngIf="fpRequiereRef">
           <label>Referencia</label>
-          <input [(ngModel)]="referencia" placeholder="No. de depósito/transferencia"/>
+          <input [(ngModel)]="referencia" placeholder="No. de depósito/transferencia" />
         </div>
 
         <!-- Total -->

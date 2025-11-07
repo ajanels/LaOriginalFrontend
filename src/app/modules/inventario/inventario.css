@@ -9,6 +9,8 @@
   background:rgba(255,255,255,.85); z-index:-1;
 }
 :host-context(.sidebar-collapsed) .page::before{ left:var(--side-w-collapsed,92px); }
+/* Bloquea el scroll del fondo cuando hay modal */
+.page.modal-open{ overflow:hidden; }
 
 /* ===== Título ===== */
 .head-title h1{
@@ -57,6 +59,13 @@ button.icon{
 }
 button.icon:hover{ background:#ede8ef; transform:translateY(-1px); }
 button.icon .material-icons{ font-size:17px; line-height:1; display:inline-block; }
+/* Variantes icon-button */
+button.icon.primary{ background:#e9ddf5; color:#6b2f99; }
+button.icon.primary:hover{ background:#e2d2f2; }
+button.icon.confirm{ background:#e8f5e9; color:#2e7d32; }
+button.icon.confirm:hover{ background:#d0ebd2; }
+button.icon.danger{ background:#fdecea; color:#c62828; }
+button.icon.danger:hover{ background:#f9d6d5; }
 
 /* ===== Tabla / Card ===== */
 .card{
@@ -87,6 +96,11 @@ table.grid{
 
 .mono{ font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; color:#444; }
 .strong{ font-weight:700; color:#222; }
+
+/* Nombre/código de producto */
+.prod-name{ font-weight:700; color:#222; line-height:1.2; }
+.prod-code{ font-size:11.5px; color:#666; }
+.muted{ color:#9a9a9a; }
 
 /* ===== Imagen ===== */
 .img-cell{ width:40px; text-align:center; }
@@ -225,10 +239,6 @@ button.export .material-icons{ font-size:17px; }
   border:1px solid #bbb; border-radius:6px; font-size:12.5px;
 }
 .edit-actions{ display:flex; gap:8px; }
-button.icon.confirm{ background:#e8f5e9; color:#2e7d32; }
-button.icon.confirm:hover{ background:#d0ebd2; }
-button.icon.danger{ background:#fdecea; color:#c62828; }
-button.icon.danger:hover{ background:#f9d6d5; }
 
 /* ===== Acciones tabla ===== */
 th.actions-col{ text-align:center; width:180px; }
@@ -237,6 +247,20 @@ td.actions-cell{
   gap:14px; min-width:200px;
 }
 td.actions-cell button{ flex-shrink:0; }
+
+/* ===== Paginador minimalista ===== */
+.pager{
+  display:flex; align-items:center; gap:8px;
+  padding:8px 0; margin-top:6px;
+}
+.pager .spacer{ flex:1; }
+.pager .material-icons{ font-size:16px; }
+.pager span{ font-size:12px; color:#555; }
+
+.swal-toast{
+  box-shadow:0 6px 20px rgba(0,0,0,.15);
+  border-radius:10px;
+}
 
 /* ===== Animación ===== */
 @keyframes fadeSlide{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }

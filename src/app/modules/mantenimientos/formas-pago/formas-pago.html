@@ -1,12 +1,13 @@
-<div class="page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-fp">
+<div class="pp-page page" [class.modal-open]="mostrarModal" role="main" aria-labelledby="title-fp">
   <!-- Título -->
   <div class="head-title">
     <h1 id="title-fp">Formas de pago</h1>
   </div>
 
-  <!-- Filtros + crear -->
+  <!-- Head: búsqueda + segmentado + botón -->
   <div class="head">
     <div class="actions">
+      <!-- Buscador -->
       <div class="search" aria-label="Buscar formas de pago">
         <span class="material-icons" aria-hidden="true">search</span>
         <input
@@ -15,31 +16,31 @@
           placeholder="Busca por nombre…"
           [(ngModel)]="searchTerm"
           (input)="onSearchInput()"
-          autocomplete="off"
-        />
+          autocomplete="off"/>
       </div>
 
-      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
-        <option value="">Todos</option>
-        <option value="true">Activos</option>
-        <option value="false">Inactivos</option>
-      </select>
-
-      <select class="filter" [(ngModel)]="itemsPorPagina" (change)="cambiarPaginacion()" aria-label="Ítems por página">
-        <option [ngValue]="5">5 / pág</option>
-        <option [ngValue]="10">10 / pág</option>
-        <option [ngValue]="25">25 / pág</option>
-        <option [ngValue]="50">50 / pág</option>
-      </select>
+      <!-- Segmentado por estado -->
+      <div class="segmented" role="group" aria-label="Filtrar por estado">
+        <button type="button" class="seg" [class.active]="view==='activos'" (click)="setView('activos')">
+          Activas <span class="seg-badge">{{ activosCount }}</span>
+        </button>
+        <button type="button" class="seg" [class.active]="view==='inactivos'" (click)="setView('inactivos')">
+          Inactivas <span class="seg-badge">{{ inactivosCount }}</span>
+        </button>
+        <button type="button" class="seg" [class.active]="view==='todos'" (click)="setView('todos')">
+          Todas <span class="seg-badge">{{ formas.length }}</span>
+        </button>
+      </div>
     </div>
 
+    <!-- Botón principal a la derecha -->
     <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear forma de pago">
       <span class="material-icons" aria-hidden="true">add</span>
       Nueva forma de pago
     </button>
   </div>
 
-  <!-- Tabla -->
+  <!-- Card / Tabla -->
   <div class="card">
     <div *ngIf="cargando" class="loading" role="status" aria-live="polite">Cargando formas de pago…</div>
 
@@ -47,43 +48,47 @@
       <table class="grid" role="table" aria-label="Listado de formas de pago">
         <thead>
           <tr>
-            <th>Nombre</th>
-            <th>Propiedades</th>
-            <th>Estado</th>
-            <th class="acts-col">Acciones</th>
+            <th scope="col">Nombre</th>
+            <th scope="col">Propiedades</th>
+            <th scope="col">Estado</th>
+            <th scope="col" class="acts-col">Acciones</th>
           </tr>
         </thead>
+
         <tbody>
           <tr *ngFor="let f of formasFiltradas.slice(inicio, fin)">
             <td>
               <strong>{{ f.nombre }}</strong>
               <div class="desc" *ngIf="f.descripcion">{{ f.descripcion }}</div>
             </td>
+
             <td>
-              <ng-container *ngIf="f.requiereReferencia || f.esCredito; else sinProps">
+              <ng-container *ngIf="f.requiereReferencia || f.esCredito || f.afectaCaja || f.afectaBanco; else sinProps">
                 <span *ngIf="f.requiereReferencia" class="badge info" title="Requiere referencia">Ref</span>
                 <span *ngIf="f.esCredito" class="badge warn" title="Es crédito">Crédito</span>
+                <span *ngIf="f.afectaCaja" class="badge info" title="Afecta caja">Caja</span>
+                <span *ngIf="f.afectaBanco" class="badge info" title="Afecta banco">Banco</span>
               </ng-container>
               <ng-template #sinProps>—</ng-template>
             </td>
+
             <td>
               <span class="state-pill" [ngClass]="f.activo ? 'activo' : 'inactivo'">
                 {{ f.activo ? 'Activo' : 'Inactivo' }}
               </span>
             </td>
+
             <td>
               <div class="acts">
                 <button class="icon edit" type="button" (click)="editarForma(f)" title="Editar {{f.nombre}}">
                   <span class="material-icons" aria-hidden="true">edit</span>
                 </button>
-                <button
-                  class="icon toggle"
-                  [ngClass]="f.activo ? 'active' : 'inactive'"
-                  type="button"
-                  (click)="confirmarToggle(f)"
-                  [disabled]="cargandoFila[f.id]"
-                  [attr.aria-busy]="cargandoFila[f.id] ? 'true' : null"
-                  title="{{ f.activo ? 'Desactivar' : 'Activar' }} {{f.nombre}}">
+
+                <button class="icon toggle" [ngClass]="f.activo ? 'active' : 'inactive'"
+                        type="button" (click)="confirmarToggle(f)"
+                        [disabled]="cargandoFila[f.id]"
+                        [attr.aria-busy]="cargandoFila[f.id] ? 'true' : null"
+                        title="{{ f.activo ? 'Desactivar' : 'Activar' }} {{f.nombre}}">
                   <span class="material-icons" aria-hidden="true">
                     {{ cargandoFila[f.id] ? 'hourglass_top' : (f.activo ? 'block' : 'check_circle') }}
                   </span>
@@ -99,108 +104,122 @@
       </table>
     </div>
 
-    <div class="pager" *ngIf="totalPaginas > 1" aria-label="Paginación">
-      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
-      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
-      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
+    <!-- Paginación -->
+    <div class="pager" role="navigation" aria-label="Paginación" *ngIf="!cargando && formasFiltradas.length > 0">
+      <span class="pager-info">Página {{ paginaActual + 1 }} de {{ totalPaginas }}</span>
+      <div class="spacer"></div>
+
+      <button class="pager-btn" type="button" (click)="paginaAnterior()" [disabled]="paginaActual === 0">
+        <span class="material-icons">chevron_left</span>
+        <span>Anterior</span>
+      </button>
+
+      <button class="pager-btn" type="button" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1">
+        <span>Siguiente</span>
+        <span class="material-icons">chevron_right</span>
+      </button>
     </div>
   </div>
 
-  <!-- Backdrop -->
+  <!-- Backdrop + Modal -->
   <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
 
-  <!-- Modal -->
-  <!-- …cabecera y tabla se quedan igual… -->
-
-<!-- Modal -->
-<section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-  <div class="modal-card" role="document">
-    <header class="modal-head">
-      <div class="modal-title-wrap">
-        <span class="modal-dot"></span>
-        <h2 id="modal-title">{{ editando ? 'Editar forma de pago' : 'Nueva forma de pago' }}</h2>
-      </div>
-      <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
-        <span class="material-icons" aria-hidden="true">close</span>
-      </button>
-    </header>
-
-    <div class="modal-body">
-      <form class="form" (ngSubmit)="guardar()" #formFP="ngForm" novalidate>
-        <div class="form-grid">
-          <!-- Nombre -->
-          <div class="field span-2">
-            <label for="nombre">Nombre <span class="req">*</span></label>
-            <input id="nombre" type="text" required minlength="2" maxlength="80"
-                   [(ngModel)]="nuevo.nombre" name="nombre"
-                   [class.invalid]="submitted && !nuevo.nombre?.trim()" />
-            <small class="hint">Entre 2 y 80 caracteres.</small>
-            <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
-          </div>
-
-          <!-- Switches -->
-          <div class="field">
-            <label for="reqref">Requiere referencia</label>
-            <label class="switch">
-              <input id="reqref" type="checkbox" [(ngModel)]="nuevo.requiereReferencia" name="requiereReferencia" />
-              <span>Activar</span>
-            </label>
-          </div>
-
-          <div class="field">
-            <label for="escred">Es crédito</label>
-            <label class="switch">
-              <input id="escred" type="checkbox" [(ngModel)]="nuevo.esCredito" name="esCredito" />
-              <span>Activar</span>
-            </label>
-          </div>
-
-          <div class="field">
-            <label for="afCaja">Afecta caja</label>
-            <label class="switch">
-              <input id="afCaja" type="checkbox" [(ngModel)]="nuevo.afectaCaja" name="afectaCaja" />
-              <span>Activar</span>
-            </label>
-          </div>
-
-          <div class="field">
-            <label for="afBanco">Afecta banco</label>
-            <label class="switch">
-              <input id="afBanco" type="checkbox" [(ngModel)]="nuevo.afectaBanco" name="afectaBanco" />
-              <span>Activar</span>
-            </label>
-          </div>
-
-          <!-- Descripción -->
-          <div class="field span-2">
-            <label for="desc">Descripción</label>
-            <textarea id="desc" rows="3" maxlength="200" [(ngModel)]="nuevo.descripcion" name="descripcion"></textarea>
-          </div>
-
-          <!-- Activo -->
-          <div class="field span-2">
-            <label><input type="checkbox" [(ngModel)]="nuevo.activo" name="activo" /> Activo</label>
-          </div>
+  <section class="modal" *ngIf="mostrarModal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card" role="document">
+      <header class="modal-head">
+        <div class="modal-title-wrap">
+          <span class="modal-dot"></span>
+          <h2 id="modal-title">{{ editando ? 'Editar forma de pago' : 'Nueva forma de pago' }}</h2>
         </div>
+        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+          <span class="material-icons" aria-hidden="true">close</span>
+        </button>
+      </header>
 
-        <footer class="modal-foot">
-          <div class="left">
-            <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
-            <button *ngIf="editando" type="button" class="danger" (click)="eliminarForma(editando!)">
-              <span class="material-icons" aria-hidden="true">delete</span>
-              Eliminar
-            </button>
+      <div class="modal-body">
+        <form class="form" (ngSubmit)="guardar()" #formFP="ngForm" novalidate>
+          <div class="form-grid fp-grid">
+            <!-- Nombre -->
+            <div class="field nombre">
+              <label for="nombre">Nombre <span class="req">*</span></label>
+              <input
+                id="nombre"
+                type="text"
+                required
+                minlength="2"
+                maxlength="80"
+                [(ngModel)]="nuevo.nombre"
+                name="nombre"
+                [class.invalid]="submitted && !nuevo.nombre?.trim()" />
+              <small class="hint">Entre 2 y 80 caracteres.</small>
+              <div class="error" *ngIf="submitted && !nuevo.nombre?.trim()">El nombre es obligatorio.</div>
+            </div>
+
+            <!-- Tarjeta de opciones (derecha) -->
+            <aside class="options-card" aria-label="Opciones de la forma de pago">
+              <div class="opt-title">Opciones</div>
+
+              <div class="switch-row">
+                <label for="reqref">Requiere referencia</label>
+                <label class="switch">
+                  <input id="reqref" type="checkbox" [(ngModel)]="nuevo.requiereReferencia" name="requiereReferencia" />
+                </label>
+              </div>
+
+              <div class="switch-row">
+                <label for="escred">Es crédito</label>
+                <label class="switch">
+                  <input id="escred" type="checkbox" [(ngModel)]="nuevo.esCredito" name="esCredito" />
+                </label>
+              </div>
+
+              <div class="switch-row">
+                <label for="afCaja">Afecta caja</label>
+                <label class="switch">
+                  <input id="afCaja" type="checkbox" [(ngModel)]="nuevo.afectaCaja" name="afectaCaja" />
+                </label>
+              </div>
+
+              <div class="switch-row">
+                <label for="afBanco">Afecta banco</label>
+                <label class="switch">
+                  <input id="afBanco" type="checkbox" [(ngModel)]="nuevo.afectaBanco" name="afectaBanco" />
+                </label>
+              </div>
+
+              <div class="divider"></div>
+
+              <div class="switch-row">
+                <label for="activo" class="strong">Activo</label>
+                <label class="switch">
+                  <input id="activo" type="checkbox" [(ngModel)]="nuevo.activo" name="activo" />
+                </label>
+              </div>
+            </aside>
+
+            <!-- Descripción -->
+            <div class="field desc">
+              <label for="desc">Descripción</label>
+              <textarea id="desc" rows="3" maxlength="200" [(ngModel)]="nuevo.descripcion" name="descripcion"></textarea>
+            </div>
           </div>
 
-          <div class="right">
+
+          <footer class="modal-foot">
+            <div class="left">
+              <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
+              <button *ngIf="editando" type="button" class="danger" (click)="eliminarForma(editando!)">
+                <span class="material-icons" aria-hidden="true">delete</span>
+                Eliminar
+              </button>
+            </div>
+
             <button type="submit" class="primary" [disabled]="cargando">
               {{ editando ? 'Guardar cambios' : 'Crear' }}
             </button>
-          </div>
-        </footer>
-      </form>
+          </footer>
+        </form>
+      </div>
     </div>
-  </div>
-</section>
-
+  </section>
 </div>

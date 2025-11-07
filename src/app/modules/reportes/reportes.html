@@ -1,100 +1,299 @@
 <div class="page rep-page">
+  <!-- ============ Título ============ -->
+  <div class="head-title"><h1>Reportes</h1></div>
 
-  <!-- Título -->
-  <div class="head-title">
-    <h1>Reportes</h1>
-  </div>
-
-  <!-- Filtros + Tabs + Acciones -->
-  <div class="head">
-    <div class="filters actions">
+  <!-- ============ Toolbar ordenada ============ -->
+  <section class="toolbar">
+    <!-- Filtros -->
+    <div class="filters">
       <label class="date">
         <span>Desde</span>
-        <input class="filter" type="date" [(ngModel)]="desde" (change)="refrescar()"/>
-      </label>
-      <label class="date">
-        <span>Hasta</span>
-        <input class="filter" type="date" [(ngModel)]="hasta" (change)="refrescar()"/>
+        <input class="filter" type="date" [(ngModel)]="desde" (change)="refrescar()" [class.empty]="!desde" placeholder="aaaa-mm-dd" />
       </label>
 
-      <div class="tabs">
-        <button [class.active]="tab==='dia'"       (click)="switch('dia')">Ventas por día</button>
-        <button [class.active]="tab==='usuario'"   (click)="switch('usuario')">Por usuario</button>
-        <button [class.active]="tab==='clientes'"  (click)="switch('clientes')">Clientes top</button>
-        <button [class.active]="tab==='producto'"  (click)="switch('producto')">Por producto</button>
-        <button [class.active]="tab==='categoria'" (click)="switch('categoria')">Por categoría</button>
-        <button [class.active]="tab==='usuarios'"  (click)="switch('usuarios')">Usuarios</button>
-        <button [class.active]="tab==='caja'"      (click)="switch('caja')">Caja</button>
-        <button [class.active]="tab==='utilidad'"  (click)="switch('utilidad')">Ganancia por producto</button>
+      <label class="date">
+        <span>Hasta</span>
+        <input class="filter" type="date" [(ngModel)]="hasta" (change)="refrescar()" [class.empty]="!hasta" placeholder="aaaa-mm-dd" />
+      </label>
+    </div>
+
+    <!-- Acciones -->
+    <div class="actions">
+      <div class="view-toggle">
+        <span>Ver:</span>
+        <button class="ghost" [class.active]="modo==='tabla'"    (click)="setModo('tabla')">Tabla</button>
+        <button class="ghost" [class.active]="modo==='graficas'" (click)="setModo('graficas')">Gráficas</button>
+      </div>
+      <button class="ghost"   (click)="exportCsv()">Exportar CSV</button>
+      <button class="primary" (click)="imprimir()">Imprimir</button>
+    </div>
+
+    <!-- Selector principal -->
+    <nav class="nav-main">
+      <div class="seg">
+        <button
+          [class.active]="tab==='dia' || tab==='usuario' || tab==='clientes' || tab==='producto' || tab==='categoria' || tab==='fp'"
+          (click)="setTab('dia')" title="Reportes de ventas (día, usuario, clientes, producto, categoría, forma de pago)">
+          Ventas
+        </button>
+
+        <button
+          [class.active]="tab==='pedidos'"
+          (click)="setTab('pedidos')" title="Reportes de cobros y estados de pedidos">
+          Pedidos
+        </button>
+
+        <button
+          [class.active]="tab==='caja'"
+          (click)="setTab('caja')" title="Ingresos/Egresos diarios y sesiones cerradas">
+          Caja
+        </button>
+
+        <button
+          [class.active]="tab==='compras'"
+          (click)="setTab('compras')" title="Compras por proveedor">
+          Compras
+        </button>
+
+        <button
+          [class.active]="tab==='usuarios'"
+          (click)="setTab('usuarios')" title="Resumen de usuarios y actividad">
+          Usuarios
+        </button>
+
+        <button
+          [class.active]="tab==='utilidad'"
+          (click)="setTab('utilidad')" title="Utilidad por producto">
+          Utilidad
+        </button>
+      </div>
+    </nav>
+
+    <!-- Submenú contextual (tiles con descripción) -->
+    <!-- VENTAS -->
+    <div class="nav-sub" *ngIf="tab==='dia' || tab==='usuario' || tab==='clientes' || tab==='producto' || tab==='categoria' || tab==='fp'">
+      <div class="label">Reportes de Ventas</div>
+      <div class="tiles">
+        <button class="tile" [class.active]="tab==='dia'" (click)="setTab('dia')" title="Totales de venta por día">
+          <span class="ic"><span class="material-icons">calendar_month</span></span>
+          <span class="ttl">Ventas por día</span>
+          <span class="cap">Totales diarios: ventas, items, descuento y total.</span>
+        </button>
+
+        <button class="tile" [class.active]="tab==='usuario'" (click)="setTab('usuario')" title="Ventas sumadas por usuario">
+          <span class="ic"><span class="material-icons">person</span></span>
+          <span class="ttl">Por usuario</span>
+          <span class="cap">Total y ticket promedio por vendedor.</span>
+        </button>
+
+        <button class="tile" [class.active]="tab==='clientes'" (click)="setTab('clientes')" title="Top de clientes por monto">
+          <span class="ic"><span class="material-icons">emoji_events</span></span>
+          <span class="ttl">Clientes top</span>
+          <span class="cap">Ranking de clientes: compras, total y última compra.</span>
+        </button>
+
+        <button class="tile" [class.active]="tab==='producto'" (click)="setTab('producto')" title="Ventas agrupadas por producto/presentación">
+          <span class="ic"><span class="material-icons">inventory_2</span></span>
+          <span class="ttl">Por producto</span>
+          <span class="cap">Cantidad vendida e importe por presentación.</span>
+        </button>
+
+        <button class="tile" [class.active]="tab==='categoria'" (click)="setTab('categoria')" title="Participación por categoría">
+          <span class="ic"><span class="material-icons">category</span></span>
+          <span class="ttl">Por categoría</span>
+          <span class="cap">Cantidad e importe por categoría.</span>
+        </button>
+
+        <button class="tile" [class.active]="tab==='fp'" (click)="setTab('fp')" title="Ventas por medio de pago">
+          <span class="ic"><span class="material-icons">credit_card</span></span>
+          <span class="ttl">Forma de pago</span>
+          <span class="cap">Totales y ticket promedio por forma de pago.</span>
+        </button>
       </div>
     </div>
 
-    <div class="actions">
-      <button class="ghost" (click)="exportCsv()">Exportar CSV</button>
-      <button class="primary" (click)="imprimir()">Imprimir</button>
+    <!-- PEDIDOS -->
+    <div class="nav-sub" *ngIf="tab==='pedidos'">
+      <div class="label">Reportes de Pedidos</div>
+      <div class="tiles">
+        <button class="tile" [class.active]="pedidosView==='fp'" (click)="setPedidosView('fp')" title="Cobros vs devoluciones (neto)">
+          <span class="ic"><span class="material-icons">receipt_long</span></span>
+          <span class="ttl">Cobros por forma de pago</span>
+          <span class="cap">Cobros, devoluciones y neto por forma de pago.</span>
+        </button>
+
+        <button class="tile" [class.active]="pedidosView==='detalle'" (click)="setPedidosView('detalle')" title="Movimientos de pagos de pedidos">
+          <span class="ic"><span class="material-icons">list_alt</span></span>
+          <span class="ttl">Detalle de cobros</span>
+          <span class="cap">Cada pago: fecha, importe, FP, cliente y estado.</span>
+        </button>
+
+        <button class="tile" [class.active]="pedidosView==='estados'" (click)="setPedidosView('estados')" title="Concentrado por estado del pedido">
+          <span class="ic"><span class="material-icons">check_circle</span></span>
+          <span class="ttl">Resumen por estado</span>
+          <span class="cap">Cantidad, total, pagado neto y saldo por estado.</span>
+        </button>
+
+        <button class="tile" [class.active]="pedidosView==='top'" (click)="setPedidosView('top')" title="Productos más cobrados en pedidos">
+          <span class="ic"><span class="material-icons">trending_up</span></span>
+          <span class="ttl">Top productos</span>
+          <span class="cap">Cantidad e importe por presentación (Top).</span>
+        </button>
+      </div>
     </div>
+
+    <!-- CAJA -->
+    <div class="nav-sub" *ngIf="tab==='caja'">
+      <div class="label">Reportes de Caja</div>
+      <div class="tiles">
+        <button class="tile" [class.active]="cajaView==='diario'" (click)="setCajaView('diario')" title="Ingresos/Egresos por día">
+          <span class="ic"><span class="material-icons">savings</span></span>
+          <span class="ttl">Ingresos/Egresos diarios</span>
+          <span class="cap">Total de ingresos, egresos y neto por día.</span>
+        </button>
+
+        <button class="tile" [class.active]="cajaView==='sesiones'" (click)="setCajaView('sesiones')" title="Sesiones cerradas">
+          <span class="ic"><span class="material-icons">lock_clock</span></span>
+          <span class="ttl">Sesiones cerradas</span>
+          <span class="cap">Apertura, cierre, montos y neto por sesión.</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- COMPRAS -->
+    <div class="nav-sub" *ngIf="tab==='compras'">
+      <div class="label">Reportes de Compras</div>
+      <div class="tiles">
+        <button class="tile active" title="Compras por proveedor">
+          <span class="ic"><span class="material-icons">local_shipping</span></span>
+          <span class="ttl">Compras por proveedor</span>
+          <span class="cap">Documentos, total y última compra por proveedor.</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- USUARIOS -->
+    <div class="nav-sub" *ngIf="tab==='usuarios'">
+      <div class="label">Reportes de Usuarios</div>
+      <div class="tiles">
+        <button class="tile active" title="Resumen general de usuarios">
+          <span class="ic"><span class="material-icons">group</span></span>
+          <span class="ttl">Resumen general</span>
+          <span class="cap">Totales, por rol, altas y cumpleaños por mes.</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- UTILIDAD -->
+    <div class="nav-sub" *ngIf="tab==='utilidad'">
+      <div class="label">Reportes de Utilidad</div>
+      <div class="tiles">
+        <button class="tile active" title="Utilidad por producto">
+          <span class="ic"><span class="material-icons">attach_money</span></span>
+          <span class="ttl">Utilidad (Productos)</span>
+          <span class="cap">Cantidad, venta y utilidad por presentación.</span>
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== CONTENIDO ==================== -->
+  <div class="kpis" *ngIf="tab==='dia' && modo==='tabla'">
+    <div class="kpi"><div class="kpi-label">Ingresos</div><div class="kpi-value">Q {{ totalIngresos | number:'1.2-2' }}</div></div>
+    <div class="kpi"><div class="kpi-label"># Documentos</div><div class="kpi-value">{{ totalDocs }}</div></div>
   </div>
 
-  <!-- KPIs ventas por día -->
-  <div class="kpis" *ngIf="tab==='dia'">
-    <div class="kpi">
-      <div class="kpi-label">Ingresos</div>
-      <div class="kpi-value">Q {{ totalIngresos | number:'1.2-2' }}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label"># Documentos</div>
-      <div class="kpi-value">{{ totalDocs }}</div>
-    </div>
+  <div class="kpis" *ngIf="tab==='usuario' && utilidadUsuarioDisponible && modo==='tabla'">
+    <div class="kpi"><div class="kpi-label">Ganancia (usuarios)</div><div class="kpi-value">Q {{ totalUtilidadUsuarios | number:'1.2-2' }}</div></div>
   </div>
 
-  <!-- KPIs usuarios -->
-  <div class="kpis" *ngIf="tab==='usuario' && utilidadUsuarioDisponible">
-    <div class="kpi">
-      <div class="kpi-label">Ganancia (usuarios)</div>
-      <div class="kpi-value">Q {{ totalUtilidadUsuarios | number:'1.2-2' }}</div>
-    </div>
+  <div class="kpis" *ngIf="tab==='utilidad' && modo==='tabla'">
+    <div class="kpi"><div class="kpi-label">Ganancia (productos)</div><div class="kpi-value">Q {{ totalUtilidadProductos | number:'1.2-2' }}</div></div>
   </div>
 
-  <div class="kpis" *ngIf="tab==='utilidad'">
-    <div class="kpi">
-      <div class="kpi-label">Ganancia (productos)</div>
-      <div class="kpi-value">Q {{ totalUtilidadProductos | number:'1.2-2' }}</div>
-    </div>
-  </div>
-
-  <!-- KPIs caja -->
-  <div class="kpis" *ngIf="tab==='caja'">
-    <div class="kpi">
-      <div class="kpi-label">Ingresos (rango)</div>
-      <div class="kpi-value">Q {{ cajaIngresosTotal | number:'1.2-2' }}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Egresos (rango)</div>
-      <div class="kpi-value">Q {{ cajaEgresosTotal | number:'1.2-2' }}</div>
-    </div>
-    <div class="kpi">
-      <div class="kpi-label">Neto (rango)</div>
-      <div class="kpi-value">Q {{ cajaNetoTotal | number:'1.2-2' }}</div>
-    </div>
-  </div>
-
-  <!-- Loading -->
   <div class="loading" *ngIf="cargando">Cargando…</div>
 
-  <!-- ===== Ventas por día ===== -->
-  <section *ngIf="tab==='dia' && !cargando" class="card">
+  <!-- ============ GRÁFICAS ============ -->
+  <section class="charts no-print" *ngIf="!cargando && modo==='graficas'">
+    <div *ngIf="tab==='dia'" class="chart-card">
+      <h3>Ventas por día</h3>
+      <div class="chart-box"><canvas baseChart [data]="lineDiaData" [options]="lineDiaOpts" [type]="'line'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='usuario'" class="chart-card">
+      <h3>Ventas por usuario</h3>
+      <div class="chart-box"><canvas baseChart [data]="barUserData" [options]="barUserOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='clientes'" class="chart-card">
+      <h3>Clientes top</h3>
+      <div class="chart-box"><canvas baseChart [data]="barClientesData" [options]="barClientesOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='producto'" class="chart-card">
+      <h3>Ventas por producto</h3>
+      <div class="chart-box"><canvas baseChart [data]="barProductoData" [options]="barProductoOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='categoria'" class="chart-card">
+      <h3>Participación por categoría</h3>
+      <div class="chart-box"><canvas baseChart [data]="barCategoriaData" [options]="barCategoriaOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='fp'" class="chart-card">
+      <h3>Ventas por forma de pago</h3>
+      <div class="chart-box"><canvas baseChart [data]="barFpData" [options]="barFpOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='compras'" class="chart-card">
+      <h3>Compras por proveedor</h3>
+      <div class="chart-box"><canvas baseChart [data]="barComprasData" [options]="barComprasOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='usuarios'" class="chart-card">
+      <h3>Usuarios — Altas por mes</h3>
+      <div class="chart-box"><canvas baseChart [data]="barUsuariosData" [options]="barUsuariosOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='caja' && cajaView==='diario'" class="chart-card">
+      <h3>Caja — Ingresos / Egresos / Neto</h3>
+      <div class="chart-box"><canvas baseChart [data]="barCajaDiaData" [options]="barCajaDiaOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='caja' && cajaView==='sesiones'" class="chart-card">
+      <h3>Caja — Sesiones cerradas por día</h3>
+      <div class="chart-box"><canvas baseChart [data]="barCajaSesData" [options]="barCajaSesOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='pedidos' && pedidosView==='fp'" class="chart-card">
+      <h3>Pedidos — Cobros por forma de pago (Neto)</h3>
+      <div class="chart-box"><canvas baseChart [data]="barPedFpData" [options]="barPedFpOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='pedidos' && pedidosView==='estados'" class="chart-card">
+      <h3>Pedidos — Totales por estado</h3>
+      <div class="chart-box"><canvas baseChart [data]="barPedEstadosData" [options]="barPedEstadosOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='pedidos' && pedidosView==='top'" class="chart-card">
+      <h3>Pedidos — Top productos</h3>
+      <div class="chart-box"><canvas baseChart [data]="barPedTopData" [options]="barPedTopOpts" [type]="'bar'"></canvas></div>
+    </div>
+
+    <div *ngIf="tab==='utilidad'" class="chart-card">
+      <h3>Ganancia por producto (Top)</h3>
+      <div class="chart-box"><canvas baseChart [data]="barUtilidadData" [options]="barUtilidadOpts" [type]="'bar'"></canvas></div>
+    </div>
+  </section>
+
+  <!-- ============ TABLAS (modo tabla) ============ -->
+
+  <!-- Ventas por día -->
+  <section *ngIf="tab==='dia' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-ventas-dia">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th class="c">Ventas</th>
-            <th class="c">Items</th>
-            <th class="r">Subtotal</th>
-            <th class="r">Descuento</th>
-            <th class="r">Total</th>
-          </tr>
-        </thead>
+        <colgroup><col style="width:140px"><col style="width:90px"><col style="width:90px"><col style="width:140px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Fecha</th><th class="c">Ventas</th><th class="c">Items</th><th class="r">Subtotal</th><th class="r">Descuento</th><th class="r">Total</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porDia">
             <td>{{ r.fecha }}</td>
@@ -110,52 +309,31 @@
     </div>
   </section>
 
-  <!-- ===== Por usuario ===== -->
-  <section *ngIf="tab==='usuario' && !cargando" class="card">
+  <!-- Por usuario -->
+  <section *ngIf="tab==='usuario' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-usuario">
-        <thead>
-          <tr>
-            <th>Usuario</th>
-            <th class="c">Ventas</th>
-            <th class="r">Total</th>
-            <th class="r">Ticket Prom.</th>
-            <th class="r">Utilidad*</th>
-          </tr>
-        </thead>
+        <colgroup><col><col style="width:100px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Usuario</th><th class="c">Ventas</th><th class="r">Total</th><th class="r">Ticket Prom.</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porUsuario">
             <td>{{ r.usuario }}</td>
             <td class="c mono">{{ r.ventas }}</td>
             <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
             <td class="r mono">Q {{ r.ticketPromedio | number:'1.2-2' }}</td>
-            <td class="r mono">
-              <ng-container *ngIf="utilidadUsuarioDisponible && r.utilidad!=null; else dash">
-                Q {{ r.utilidad | number:'1.2-2' }}
-              </ng-container>
-              <ng-template #dash>—</ng-template>
-            </td>
           </tr>
           <tr *ngIf="!porUsuario?.length"><td colspan="5" class="empty">Sin datos en el rango seleccionado</td></tr>
         </tbody>
       </table>
     </div>
-    <small class="note">* Se muestra si el backend calcula costo/utilidad.</small>
   </section>
 
-  <!-- ===== Clientes top ===== -->
-  <section *ngIf="tab==='clientes' && !cargando" class="card">
+  <!-- Clientes top -->
+  <section *ngIf="tab==='clientes' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-clientes">
-        <thead>
-          <tr>
-            <th class="c">#</th>
-            <th>Cliente</th>
-            <th class="c">Compras</th>
-            <th class="r">Total</th>
-            <th class="c">Última compra</th>
-          </tr>
-        </thead>
+        <colgroup><col style="width:60px"><col><col style="width:100px"><col style="width:140px"><col style="width:150px"></colgroup>
+        <thead><tr><th class="c">#</th><th>Cliente</th><th class="c">Compras</th><th class="r">Total</th><th class="c">Última compra</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of topClienteRows; let i = index">
             <td class="c mono">{{ i + 1 }}</td>
@@ -170,24 +348,15 @@
     </div>
   </section>
 
-  <!-- ===== Por producto ===== -->
-  <section *ngIf="tab==='producto' && !cargando" class="card">
+  <!-- Por producto -->
+  <section *ngIf="tab==='producto' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-producto">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Presentación</th>
-            <th>Categoría</th>
-            <th class="r">Cant.</th>
-            <th class="r">Total</th>
-          </tr>
-        </thead>
+        <colgroup><col><col><col><col style="width:120px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Producto</th><th>Presentación</th><th>Categoría</th><th class="r">Cant.</th><th class="r">Total</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porProducto">
-            <td>{{ r.producto }}</td>
-            <td>{{ r.presentacion }}</td>
-            <td>{{ r.categoria }}</td>
+            <td>{{ r.producto }}</td><td>{{ r.presentacion }}</td><td>{{ r.categoria }}</td>
             <td class="r mono">{{ r.cantidadVendida | number:'1.0-2' }}</td>
             <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
           </tr>
@@ -197,17 +366,12 @@
     </div>
   </section>
 
-  <!-- ===== Por categoría ===== -->
-  <section *ngIf="tab==='categoria' && !cargando" class="card">
+  <!-- Por categoría -->
+  <section *ngIf="tab==='categoria' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-categoria">
-        <thead>
-          <tr>
-            <th>Categoría</th>
-            <th class="r">Cant.</th>
-            <th class="r">Total</th>
-          </tr>
-        </thead>
+        <colgroup><col><col style="width:120px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Categoría</th><th class="r">Cant.</th><th class="r">Total</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porCategoria">
             <td>{{ r.categoria }}</td>
@@ -220,9 +384,48 @@
     </div>
   </section>
 
-  <!-- ===== Usuarios (resumen) ===== -->
-  <section *ngIf="tab==='usuarios' && !cargando" class="card">
-    <div class="kpis">
+  <!-- Ventas por forma de pago -->
+  <section *ngIf="tab==='fp' && !cargando && modo==='tabla'" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-fp">
+        <colgroup><col><col style="width:100px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Forma de pago</th><th class="c">Ventas</th><th class="r">Total</th><th class="r">Ticket Prom.</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of ventasFp">
+            <td>{{ r.formaPago }}</td>
+            <td class="c mono">{{ r.ventas }}</td>
+            <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.ticketPromedio | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!ventasFp?.length"><td colspan="4" class="empty">Sin datos</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Compras por proveedor -->
+  <section *ngIf="tab==='compras' && !cargando && modo==='tabla'" class="card">
+    <div class="table-wrapper">
+      <table class="grid grid-compras">
+        <colgroup><col><col style="width:120px"><col style="width:140px"><col style="width:150px"></colgroup>
+        <thead><tr><th>Proveedor</th><th class="c">Docs</th><th class="r">Total</th><th class="c">Última compra</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of comprasProv">
+            <td class="one-line">{{ r.proveedor }}</td>
+            <td class="c mono">{{ r.documentos }}</td>
+            <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
+            <td class="c mono">{{ r.ultimaCompra | date:'yyyy-MM-dd' }}</td>
+          </tr>
+          <tr *ngIf="!comprasProv?.length"><td colspan="4" class="empty">Sin datos</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Usuarios (resumen) -->
+  <section *ngIf="tab==='usuarios' && !cargando && modo==='tabla'" class="card">
+    <h3 class="section-title">Usuarios — Resumen general</h3>
+    <div class="kpis kpis-usuarios">
       <div class="kpi"><div class="kpi-label">Usuarios totales</div><div class="kpi-value">{{ uTotal }}</div></div>
       <div class="kpi"><div class="kpi-label">Activos</div><div class="kpi-value">{{ uActivos }}</div></div>
       <div class="kpi"><div class="kpi-label">Inactivos</div><div class="kpi-value">{{ uInactivos }}</div></div>
@@ -230,128 +433,205 @@
     </div>
 
     <div class="table-wrapper">
-      <table class="grid">
-        <thead>
-          <tr>
-            <th>Rol</th>
-            <th class="r">Total</th>
-            <th class="r">Activos</th>
-            <th class="r">Inactivos</th>
-            <th class="r">Suspendidos</th>
-          </tr>
-        </thead>
+      <table class="grid grid-usuarios zebra">
+        <caption>Distribución por rol (usuarios)</caption>
+        <colgroup><col><col style="width:120px"><col style="width:120px"><col style="width:120px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Rol</th><th class="r">Total</th><th class="r">Activos</th><th class="r">Inactivos</th><th class="r">Suspendidos</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of usuariosRes?.porRol">
-            <td>{{ r.rol }}</td>
+            <td class="one-line">{{ r.rol }}</td>
             <td class="r mono">{{ r.total }}</td>
             <td class="r mono">{{ r.activos }}</td>
             <td class="r mono">{{ r.inactivos }}</td>
             <td class="r mono">{{ r.suspendidos }}</td>
           </tr>
-          <tr *ngIf="!(usuariosRes?.porRol?.length)">
-            <td colspan="5" class="empty">Sin datos</td>
-          </tr>
+          <tr *ngIf="!(usuariosRes?.porRol?.length)"><td colspan="5" class="empty">Sin datos</td></tr>
         </tbody>
       </table>
     </div>
 
-    <div class="grid-2" style="margin-top:10px">
+    <div class="grid-2 section-gap">
       <div class="table-wrapper">
-        <table class="grid">
+        <table class="grid zebra">
+          <caption>Altas por mes (creación de cuentas)</caption>
+          <colgroup><col><col style="width:140px"></colgroup>
           <thead><tr><th>Periodo</th><th class="r">Cantidad</th></tr></thead>
           <tbody>
             <tr *ngFor="let a of usuariosRes?.altasPorMes">
-              <td>{{ a.periodo }}</td>
-              <td class="r mono">{{ a.cantidad }}</td>
+              <td>{{ a.periodo }}</td><td class="r mono">{{ a.cantidad }}</td>
             </tr>
-            <tr *ngIf="!(usuariosRes?.altasPorMes?.length)">
-              <td colspan="2" class="empty">Sin datos</td>
-            </tr>
+            <tr *ngIf="!(usuariosRes?.altasPorMes?.length)"><td colspan="2" class="empty">Sin datos</td></tr>
           </tbody>
         </table>
       </div>
 
       <div class="table-wrapper">
-        <table class="grid">
+        <table class="grid zebra">
+          <caption>Cumpleaños por mes (usuarios activos)</caption>
+          <colgroup><col><col style="width:140px"></colgroup>
           <thead><tr><th>Mes</th><th class="r">Cantidad</th></tr></thead>
           <tbody>
             <tr *ngFor="let c of usuariosRes?.cumplesPorMes">
-              <td>{{ monthName(c.mes) }}</td>
-              <td class="r mono">{{ c.cantidad }}</td>
+              <td>{{ monthName(c.mes) }}</td><td class="r mono">{{ c.cantidad }}</td>
             </tr>
-            <tr *ngIf="!(usuariosRes?.cumplesPorMes?.length)">
-              <td colspan="2" class="empty">Sin datos</td>
-            </tr>
+            <tr *ngIf="!(usuariosRes?.cumplesPorMes?.length)"><td colspan="2" class="empty">Sin datos</td></tr>
           </tbody>
         </table>
       </div>
     </div>
   </section>
 
-  <!-- ===== Caja: ingresos/egresos diarios ===== -->
-  <section *ngIf="tab==='caja' && !cargando" class="card">
+  <!-- Caja: Ingresos/Egresos diarios -->
+  <section *ngIf="tab==='caja' && cajaView==='diario' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
-      <table class="grid">
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th class="r">Ingresos</th>
-            <th class="r">Egresos</th>
-            <th class="r">Neto</th>
-          </tr>
-        </thead>
+      <table class="grid grid-caja-diaria">
+        <colgroup><col style="width:140px"><col style="width:160px"><col style="width:160px"><col style="width:160px"></colgroup>
+        <thead><tr><th>Fecha</th><th class="r">Ingresos</th><th class="r">Egresos</th><th class="r">Neto</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of cajaDiaria">
             <td>{{ r.fecha }}</td>
             <td class="r mono">Q {{ r.ingresos | number:'1.2-2' }}</td>
-            <td class="r mono">Q {{ r.egresos | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.egresos  | number:'1.2-2' }}</td>
             <td class="r mono strong">Q {{ r.neto | number:'1.2-2' }}</td>
           </tr>
-          <tr *ngIf="!cajaDiaria?.length">
-            <td colspan="4" class="empty">Sin datos en el rango seleccionado</td>
-          </tr>
+          <tr *ngIf="!cajaDiaria?.length"><td colspan="4" class="empty">Sin datos en el rango seleccionado</td></tr>
         </tbody>
         <tfoot *ngIf="cajaDiaria?.length">
           <tr>
-            <th>Total</th>
-            <th class="r mono">Q {{ cajaIngresosTotal | number:'1.2-2' }}</th>
-            <th class="r mono">Q {{ cajaEgresosTotal | number:'1.2-2' }}</th>
-            <th class="r mono strong">Q {{ cajaNetoTotal | number:'1.2-2' }}</th>
+            <th>Totales</th>
+            <td class="r mono"><div class="tot-cell"><span class="label">Ingresos</span><span class="val">Q {{ cajaIngresosTotal | number:'1.2-2' }}</span></div></td>
+            <td class="r mono"><div class="tot-cell"><span class="label">Egresos</span><span class="val">Q {{ cajaEgresosTotal | number:'1.2-2' }}</span></div></td>
+            <td class="r mono"><div class="tot-cell"><span class="label">Neto</span><span class="val">Q {{ cajaNetoTotal | number:'1.2-2' }}</span></div></td>
           </tr>
         </tfoot>
       </table>
     </div>
   </section>
 
-  <!-- ===== Ganancia por producto ===== -->
-  <section *ngIf="tab==='utilidad' && !cargando" class="card">
-    <div class="table-wrapper">
-      <table class="grid grid-utilidad">
-        <thead>
-          <tr>
-            <th>Producto</th>
-            <th>Presentación</th>
-            <th>Categoría</th>
-            <th class="r">Cant.</th>
-            <th class="r">Venta</th>
-            <th class="r">Costo</th>
-            <th class="r">Utilidad</th>
-          </tr>
-        </thead>
+  <!-- Caja: Sesiones cerradas -->
+  <section *ngIf="tab==='caja' && cajaView==='sesiones' && !cargando && modo==='tabla'" class="card">
+    <div class="table-wrapper" *ngFor="let g of cajaSesionesAgrupadas">
+      <h3 class="group-title">Cierre: {{ g.dia }}</h3>
+      <table class="grid grid-caja-sesiones">
+        <colgroup><col style="width:60px"><col style="width:120px"><col><col style="width:160px"><col style="width:160px"><col style="width:140px"><col style="width:140px"><col style="width:140px"><col style="width:160px"></colgroup>
+        <thead><tr><th class="c">#</th><th>Código</th><th>Cajero</th><th class="c">Apertura</th><th class="c">Cierre</th><th class="r">Inicial</th><th class="r">Ingresos</th><th class="r">Egresos</th><th class="r">Neto</th></tr></thead>
         <tbody>
-          <tr *ngFor="let r of porUtilidad">
-            <td>{{ r.producto }}</td>
-            <td>{{ r.presentacion }}</td>
-            <td>{{ r.categoria }}</td>
-            <td class="r mono">{{ r.cantidad | number:'1.0-2' }}</td>
-            <td class="r mono">Q {{ r.venta | number:'1.2-2' }}</td>
-            <td class="r mono">Q {{ r.costo | number:'1.2-2' }}</td>
-            <td class="r mono strong">Q {{ r.utilidad | number:'1.2-2' }}</td>
+          <tr *ngFor="let s of g.sesiones; let i = index">
+            <td class="c mono">{{ i + 1 }}</td>
+            <td class="mono">{{ s.codigo }}</td>
+            <td class="one-line">{{ s.cajeroNombre || '—' }}</td>
+            <td class="c mono">{{ s.fechaAperturaUtc | date:'yyyy-MM-dd HH:mm' }}</td>
+            <td class="c mono">{{ s.fechaCierreUtc   | date:'yyyy-MM-dd HH:mm' }}</td>
+            <td class="r mono">Q {{ s.montoInicial | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ s.ingresos     | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ s.egresos      | number:'1.2-2' }}</td>
+            <td class="r mono strong">Q {{ s.neto   | number:'1.2-2' }}</td>
           </tr>
-          <tr *ngIf="!porUtilidad?.length"><td colspan="7" class="empty">Sin datos en el rango seleccionado</td></tr>
+          <tr *ngIf="!g.sesiones?.length"><td colspan="9" class="empty">Sin sesiones en este día</td></tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="5" class="r">Subtotal día</th>
+            <th class="r mono">Q {{ g.totInicial | number:'1.2-2' }}</th>
+            <th class="r mono">Q {{ g.totIng     | number:'1.2-2' }}</th>
+            <th class="r mono">Q {{ g.totEgr     | number:'1.2-2' }}</th>
+            <th class="r mono strong">Q {{ g.totNeto  | number:'1.2-2' }}</th>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="empty" *ngIf="!cajaSesiones?.length">Sin sesiones cerradas en el rango seleccionado</div>
+  </section>
+
+  <!-- Pedidos -->
+  <section *ngIf="tab==='pedidos' && pedidosView==='fp' && !cargando && modo==='tabla'" class="card">
+    <div class="table-wrapper">
+      <table class="grid">
+        <colgroup><col><col style="width:140px"><col style="width:140px"><col style="width:140px"><col style="width:120px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Forma de pago</th><th class="r">Cobros</th><th class="r">Devoluciones</th><th class="r">Neto</th><th class="c"># Cobros</th><th class="c"># Devoluciones</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of pedFp?.filas">
+            <td>{{ r.formaPago }}</td>
+            <td class="r mono">Q {{ r.cobros | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.devoluciones | number:'1.2-2' }}</td>
+            <td class="r mono strong">Q {{ r.neto | number:'1.2-2' }}</td>
+            <td class="c mono">{{ r.cantCobros }}</td>
+            <td class="c mono">{{ r.cantDevoluciones }}</td>
+          </tr>
+          <tr *ngIf="!(pedFp?.filas?.length)"><td colspan="6" class="empty">Sin datos</td></tr>
+        </tbody>
+        <tfoot *ngIf="pedFp">
+          <tr>
+            <th>Totales</th>
+            <td class="r mono"><div class="tot-cell"><span class="label">Cobros</span><span class="val">Q {{ pedFp.totalCobros | number:'1.2-2' }}</span></div></td>
+            <td class="r mono"><div class="tot-cell"><span class="label">Devoluciones</span><span class="val">Q {{ pedFp.totalDevoluciones | number:'1.2-2' }}</span></div></td>
+            <td class="r mono"><div class="tot-cell"><span class="label">Neto</span><span class="val">Q {{ pedFp.totalNeto | number:'1.2-2' }}</span></div></td>
+            <td colspan="2"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </section>
+
+  <section *ngIf="tab==='pedidos' && pedidosView==='detalle' && !cargando && modo==='tabla'" class="card">
+    <div class="table-wrapper">
+      <table class="grid">
+        <colgroup><col style="width:160px"><col style="width:80px"><col style="width:90px"><col style="width:120px"><col style="width:110px"><col><col><col style="width:140px"></colgroup>
+        <thead><tr><th>Fecha</th><th class="c">Pago</th><th class="c">Pedido</th><th class="r">Monto</th><th class="c">Devolución</th><th>Forma de pago</th><th>Cliente</th><th class="c">Estado</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of pedDetalle">
+            <td class="mono">{{ r.fechaUtc | date:'yyyy-MM-dd HH:mm' }}</td>
+            <td class="c mono">{{ r.pagoId }}</td>
+            <td class="c mono">{{ r.pedidoId }}</td>
+            <td class="r mono">Q {{ r.monto | number:'1.2-2' }}</td>
+            <td class="c mono">{{ r.esDevolucion ? 'Sí' : 'No' }}</td>
+            <td class="one-line">{{ r.formaPago }}</td>
+            <td class="one-line">{{ r.cliente }}</td>
+            <td class="c"><span class="badge" [ngClass]="estadoClass(r.estadoPedido)">{{ estadoLabel(r.estadoPedido) }}</span></td>
+          </tr>
+          <tr *ngIf="!pedDetalle?.length"><td colspan="8" class="empty">Sin datos</td></tr>
         </tbody>
       </table>
     </div>
   </section>
 
+  <section *ngIf="tab==='pedidos' && pedidosView==='estados' && !cargando && modo==='tabla'" class="card">
+    <div class="table-wrapper">
+      <table class="grid">
+        <colgroup><col><col style="width:120px"><col style="width:140px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Estado</th><th class="r">Cantidad</th><th class="r">Total</th><th class="r">Pagado neto</th><th class="r">Saldo</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of pedEstados">
+            <td><span class="badge" [ngClass]="estadoClass(r.estado)">{{ estadoLabel(r.estado) }}</span></td>
+            <td class="r mono">{{ r.cantidad }}</td>
+            <td class="r mono">Q {{ r.total | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.pagadoNeto | number:'1.2-2' }}</td>
+            <td class="r mono">Q {{ r.saldo | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!pedEstados?.length"><td colspan="5" class="empty">Sin datos</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- Utilidad -->
+  <section *ngIf="tab==='utilidad' && !cargando && modo==='tabla'" class="card">
+    <div class="table-wrapper">
+      <table class="grid">
+        <colgroup><col><col><col><col style="width:120px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <thead><tr><th>Producto</th><th>Presentación</th><th>Categoría</th><th class="r">Cant.</th><th class="r">Venta</th><th class="r">Utilidad</th></tr></thead>
+        <tbody>
+          <tr *ngFor="let r of porUtilidad">
+            <td class="one-line">{{ r.producto }}</td>
+            <td class="one-line">{{ r.presentacion }}</td>
+            <td class="one-line">{{ r.categoria }}</td>
+            <td class="r mono">{{ r.cantidad | number:'1.0-2' }}</td>
+            <td class="r mono">Q {{ r.venta | number:'1.2-2' }}</td>
+            <td class="r mono strong">Q {{ r.utilidad | number:'1.2-2' }}</td>
+          </tr>
+          <tr *ngIf="!porUtilidad?.length"><td colspan="6" class="empty">Sin datos</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
 </div>

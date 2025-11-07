@@ -1,219 +1,287 @@
 :root{
-  --header-h: 97px;
+  --topbar-h: 97px;
   --side-w: 280px;
-  --side-w-collapsed: 92px; /* fallback para sidebar colapsado */
+  --side-w-collapsed: 92px;
+  --acts-w: 140px;
 }
 
-/* ===== Fondo general (ultra-compact + tipografía “perfecto”) ===== */
-.page{
-  display:flex; flex-direction:column; gap:9px; padding:13px;           /* compacto */
-  background:url("/assets/bg-yarns.jpg") center/cover no-repeat fixed;  /* fondo perfecto */
-  min-height:calc(100vh - var(--header-h,97px));
-  position:relative; isolation:isolate; box-sizing:border-box;
+/* ===== Página (compacto perfecto) ===== */
+.roles-page{
+  position:relative; isolation:isolate;
+  display:flex; flex-direction:column; gap:9px; padding:13px;
+  background:url("/assets/bg-yarns.jpg") center/cover no-repeat fixed;
+  min-height:calc(100vh - var(--topbar-h,97px));
 }
+.roles-page::before{
+  content:""; position:fixed; top:var(--topbar-h,97px); left:var(--side-w,280px); right:0; bottom:0;
+  background:rgba(173, 161, 161, 0); z-index:-1;
+}
+:host-context(.sidebar-collapsed) .roles-page::before{ left:var(--side-w-collapsed,92px); }
 
-:host-context(.sidebar-collapsed) .page::before{ left:var(--side-w-collapsed,92px); }
-
-/* ===== Utilidades ===== */
-.strong{ font-weight:700; }
-.mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; }
-.text-right{ text-align:right; }
-.nowrap{ white-space:nowrap; }
-.one-line{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.sub{ color:#707070; }
-
-/* ===== Título (tipografía del “perfecto”) ===== */
-.head-title{ margin-bottom:8px; text-align:left; position:relative; }
-.head-title h1{
-  font-family:"Playfair Display", Georgia, serif; font-weight:700;       /* tipografía perfecto */
-  font-size:clamp(24px,3.9vw,36px);                                      /* compacto */
+/* ===== Título ===== */
+.head-title{ margin-bottom:8px; text-align:left; }
+.roles-page .head-title h1{
+  font-family:"Playfair Display", Georgia, serif;
+  font-weight:700; font-size:clamp(24px,3.9vw,36px);
   line-height:1.05; margin:2px 0; color:#333; letter-spacing:.2px;
 }
 
-/* ===== Barra superior ===== */
-.head{
-  display:flex; align-items:center; justify-content:space-between;
-  gap:8px; flex-wrap:nowrap; width:100%; margin-bottom:6px;              /* compacto */
+/* ===== Head & acciones ===== */
+.roles-page .head{
+  display:flex; align-items:center; gap:8px; justify-content:flex-start;
+  flex-wrap:nowrap; width:100%; margin-bottom:6px;
 }
-.actions{
-  margin-left:auto; display:flex; align-items:center; gap:6px;
-  flex-wrap:nowrap; white-space:nowrap;
+.roles-page .actions{
+  margin-left:0; flex:1 1 auto;
+  display:flex; align-items:center; gap:6px; flex-wrap:nowrap; white-space:nowrap;
 }
-.hint{ color:#8a8a8a; font-size:12px; }
+.roles-page .head > .primary{ margin-left:auto; }
 
-/* ===== Buscador / filtros (compacto) ===== */
-.search{
+/* ===== Buscador ===== */
+.roles-page .search{
   display:flex; align-items:center; gap:6px;
-  background:#fff; border:1px solid #ddd; border-radius:8px;             /* compacto */
-  padding:5px 10px;                                                      /* compacto */
-  min-width:240px; flex:1 1 360px; max-width:640px; width:auto;
+  background:#fff; border:1px solid #ddd; border-radius:8px;
+  height:36px; padding:0 10px; min-width:250px;
   box-shadow:0 1px 4px rgba(0,0,0,.05); transition:.15s ease;
+  flex:1 1 360px; max-width:640px; width:auto;
+  margin-right:auto;
 }
-.search:focus-within{ border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.10); }
-.search input{ border:0; outline:0; background:transparent; width:100%; font-size:12.5px; min-width:120px; }
-.search .material-icons{ font-size:15px; color:#777; }
+.roles-page .search:focus-within{ border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.10); }
+.roles-page .search .material-icons{
+  display:grid; place-items:center; width:30px; height:30px; font-size:15px; line-height:1; color:#777;
+}
+.roles-page .search input{
+  border:0; outline:0; background:transparent; width:100%; height:100%;
+  font-size:12.5px; min-width:120px;
+}
 
-.filter{
-  height:30px; border-radius:8px; border:1px solid #e5e5e5;              /* compacto */
+/* ===== Filtros compactos ===== */
+.roles-page .filter{
+  height:30px; border-radius:8px; border:1px solid #e5e5e5;
   background:#fff; padding:0 9px; outline:none; font-size:12.5px;
 }
 
-/* ===== Botones (tamaños del “perfecto”) ===== */
-button.primary, button.ghost{
+/* ===== Botones ===== */
+.roles-page button.primary, .roles-page button.ghost{
   display:inline-flex; align-items:center; gap:7px;
-  padding:5px 10px; height:28px; border-radius:8px;                      /* compacto */
-  font-size:12px; font-weight:600; cursor:pointer; transition:.15s ease;
+  padding:5px 10px; height:36px;
+  border-radius:8px; font-size:12px; font-weight:600; cursor:pointer; transition:.15s ease;
 }
-button.primary{
-  border:0; background:#7a2ea8; color:#fff; box-shadow:0 3px 7px rgba(122,46,168,.14);
-}
-button.primary:hover{ filter:brightness(.97); }
-button.primary:disabled{ background:#cbb6e2; color:#fff; opacity:.8; cursor:not-allowed; }
-button.ghost{ background:#fff; border:1px solid #ddd; color:#333; }
-button.ghost:hover{ background:#f7f7f7; }
-button.ghost:disabled{ opacity:.6; cursor:not-allowed; }
+.roles-page button.primary{ border:0; background:#7a2ea8; color:#fff; box-shadow:0 3px 7px rgba(122,46,168,.14); }
+.roles-page button.primary:hover{ filter:brightness(.97); }
+.roles-page button.primary:disabled{ opacity:.6; cursor:not-allowed; }
+.roles-page button.ghost{ background:#fff; border:1px solid #ddd; color:#333; }
 
-button.danger{
-  display:inline-flex; align-items:center; gap:7px;
-  padding:6px 12px; height:30px; border-radius:8px;                      /* compacto */
-  border:1px solid #f6c7cd; background:#fde9eb; color:#b4232b;
-  font-weight:700; font-size:12.5px; cursor:pointer;
+.roles-page button.icon{
+  border:0; background:#f6f3f7; color:#6b2f99;
+  border-radius:7px; padding:3px; min-width:24px; min-height:24px;
+  display:inline-flex; align-items:center; justify-content:center; transition:.15s;
 }
-button.danger .material-icons{ font-size:16px; }
+.roles-page button.icon .material-icons{ font-size:17px; }
+.roles-page button.icon:hover{ background:#ede8ef; transform:translateY(-1px); }
+.roles-page button.icon.edit{ background:#f1ecf7; color:#6b2f99; }
+.roles-page button.icon.toggle.active{ background:#fde9eb; color:#d33; }
+.roles-page button.icon.toggle.inactive{ background:#eaf7ef; color:#2e7d32; }
 
-button.icon{
-  border:0; background:#f6f3f7; color:#6b2f99; border-radius:7px;        /* compacto */
-  padding:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:.15s ease;
-  min-width:24px; min-height:24px;                                       /* compacto */
+/* ===== Card / Tabla ===== */
+.roles-page .card{
+  background:#fff; border:1px solid #eee; border-radius:10px; padding:8px;
+  box-shadow:0 5px 12px rgba(0,0,0,.045); position:relative; overflow:hidden;
 }
-button.icon .material-icons{ font-size:17px; }
-button.icon:hover{ background:#ede8ef; transform:translateY(-1px); }
-button.icon.edit{ background:#f1ecf7; color:#6b2f99; }
-button.icon.toggle.active{ background:#fde9eb; color:#d33; }
-button.icon.toggle.inactive{ background:#eaf7ef; color:#2e7d32; }
-button.icon.close{ background:#f3f3f3; color:#555; }
-button.icon[disabled]{ background:#f0f0f3; color:#9aa0a6; opacity:.75; cursor:not-allowed; transform:none; }
-
-/* ===== Card & Tabla (franja morada compacta) ===== */
-.card{
-  background:#fff; border:1px solid #eee; border-radius:10px;            /* compacto */
-  padding:8px; box-shadow:0 5px 12px rgba(0,0,0,.045);
-  position:relative; overflow:hidden;
-}
-.card::before{
-  content:""; position:absolute; top:0; bottom:0; left:-1px; width:5px;  /* oculta junta */
-  background:#7419ad; opacity:.95; pointer-events:none;
+.roles-page .card::before{
+  content:""; position:absolute; top:0; bottom:0; left:-1px; width:5px;
+  background:#7a2ea8; opacity:.95; pointer-events:none;
 }
 
-.table-wrapper{ overflow:auto; }
-table.grid{
-  width:100%; border-collapse:separate; border-spacing:0; table-layout:auto; min-width:900px;
-  font-size:12.5px;                                                      /* compacto */
+.roles-page .table-wrapper{ overflow:auto; }
+.roles-page table.grid{
+  width:100%; border-collapse:separate; border-spacing:0; table-layout:fixed;
+  min-width:900px; font-size:12.5px;
 }
-.grid thead th{
-  text-align:left; font-weight:700; font-size:12px; color:#555;          /* compacto */
+.roles-page .grid thead th{
+  text-align:left; font-weight:700; font-size:12px; color:#555;
   padding:6px 8px; border-bottom:2px solid #eee; background:#fafafa;
   position:sticky; top:0; z-index:1; white-space:nowrap;
 }
-.grid tbody td{
-  padding:6px 8px; border-bottom:1px solid #f3f3f6; white-space:nowrap; vertical-align:middle;
+.roles-page .grid thead th.acts-col{ text-align:center; }
+.roles-page .grid tbody td{
+  padding:6px 8px; border-bottom:1px solid #f3f3f6;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; vertical-align:middle;
 }
-.grid tbody tr:hover{ background:#fbf7ff; }
+.roles-page .grid tbody tr:hover{ background:#fbf7ff; }
 
-/* Estado (compacto) */
+.roles-page .acts-col{ width:var(--acts-w); }
+.roles-page .grid tbody td:last-child{ width:var(--acts-w); text-align:center; }
+.roles-page .acts{ display:flex; align-items:center; justify-content:center; gap:6px; }
+
+/* State pills */
 .state-pill{
   padding:4px 8px; border-radius:999px; font-size:11.25px; font-weight:600; border:1px solid transparent;
 }
 .state-pill.activo{ background:#eaf7ef; color:#2e7d32; border-color:#cdecd6; }
 .state-pill.inactivo{ background:#f7f7f7; color:#666; border-color:#eee; }
 
-/* Acciones */
-.acts-col{ width:150px; }
-.acts{ display:flex; align-items:center; gap:6px; }
-
 /* Empty / Loading */
-.empty{ text-align:center; color:#8a8a8a; padding:14px; display:flex; flex-direction:column; gap:6px; align-items:center; } /* compacto */
+.empty{ text-align:center; color:#8a8a8a; padding:14px; display:flex; flex-direction:column; gap:6px; align-items:center; }
 .loading{ color:#8a8a8a; padding:8px; }
 
-/* Paginación (compacto) */
-.pager{ display:flex; align-items:center; gap:9px; padding:9px; justify-content:flex-end; }
+/* ===== Paginación (pills) ===== */
+.pager{
+  display:flex; align-items:center; gap:10px; padding:10px 12px;
+  justify-content:flex-end; border-top:1px solid #eee;
+  background:linear-gradient(180deg,#fff 0%, #faf7ff 100%);
+  border-radius:0 0 10px 10px;
+}
+.pager .pager-info{ font-size:12.5px; color:#666; }
+.pager .spacer{ flex:1; }
+.pager-btn{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:8px 14px; height:34px;
+  font-size:12.5px; font-weight:700; letter-spacing:.15px;
+  border-radius:10px; border:1px solid #e7e0f1;
+  background:#fbf9ff; color:#3b2a5a; cursor:pointer;
+  box-shadow:0 1px 2px rgba(16,24,40,.04), inset 0 2px 6px rgba(122,46,168,.08);
+  transition:background .15s, box-shadow .15s, transform .06s;
+}
+.pager-btn .material-icons{ font-size:18px; line-height:1; opacity:.9; }
+.pager-btn:hover:not(:disabled){
+  background:#f4ecff; border-color:#d8c7f3;
+  box-shadow:0 2px 6px rgba(16,24,40,.06), inset 0 2px 8px rgba(122,46,168,.12);
+}
+.pager-btn:active:not(:disabled){ transform:translateY(1px); box-shadow:0 1px 3px rgba(16,24,40,.08) inset; }
+.pager-btn:focus-visible{ outline:2px solid transparent; box-shadow:0 0 0 3px rgba(122,46,168,.20), 0 1px 2px rgba(16,24,40,.04); }
+.pager-btn:disabled{ background:#f6f6f7; color:#9aa0a6; border-color:#eee; box-shadow:none; cursor:not-allowed; opacity:.85; }
 
-/* ===== Modal & Backdrop (manteniendo posicionamiento, tamaños compactos) ===== */
-.page.modal-open{ overflow:hidden; }
-
+/* ===== Modal / Backdrop ===== */
+.roles-page.modal-open{ overflow:hidden; }
 .modal-backdrop{
-  position: fixed;
-  top: var(--header-h, 97px);
-  left: var(--side-w, 280px);
-  right: 0; bottom: 0;
-  background: rgba(40,40,40,.35); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); /* tono perfecto */
-  z-index: 9999; animation: fadeIn .16s ease-out both;
+  position:fixed; top:var(--topbar-h,97px); left:var(--side-w,280px); right:0; bottom:0;
+  background:rgba(0,0,0,.55); -webkit-backdrop-filter:blur(2px); backdrop-filter:blur(2px);
+  z-index:9999; animation:fadeIn .16s ease-out both;
 }
-
-/* Alineado al workspace */
 .modal{
-  position: fixed;
-  top: var(--header-h, 97px);
-  left: var(--side-w, 280px);
-  right: 0; bottom: 0;
-  display:flex; align-items:flex-start; justify-content:center;
-  overflow-y:auto; padding:28px 12px 12px;                                 /* compacto perfecto */
-  z-index: 10000;
+  position:fixed; top:var(--topbar-h,97px); left:var(--side-w,280px); right:0; bottom:0;
+  display:grid; place-items:center; z-index:10000; padding:12px; overflow:auto;
 }
+:host-context(.sidebar-collapsed) .modal,
+:host-context(.sidebar-collapsed) .modal-backdrop{ left:var(--side-w-collapsed,92px); }
 
-/* Tarjeta del modal */
 .modal-card{
-  background:#fff; border-radius:10px; box-shadow:0 10px 28px rgba(0,0,0,.2); /* compacto perfecto */
-  width:100%; max-width:980px; display:flex; flex-direction:column; overflow:hidden; animation:fadeSlide .2s ease;
-  max-height: calc(100vh - 56px);
-  border:1px solid #eee;
+  width:min(780px, 96%); background:#fff; border:1px solid #eee; border-radius:10px;
+  box-shadow:0 20px 60px rgba(0,0,0,.15); display:flex; flex-direction:column; overflow:hidden;
+  animation:popIn .18s ease-out both; font-size:12.5px; max-height:min(100dvh, calc(100% - 32px));
 }
-.modal-card, .modal-card *{ box-sizing:border-box; }
-
 .modal-head{
   display:flex; align-items:center; justify-content:space-between;
-  padding:8px 10px; border-bottom:1px solid #eee; background:#fcfbfe; position:sticky; top:0; z-index:2; /* perfecto */
+  padding:8px 10px; border-bottom:1px solid #eee; background:linear-gradient(180deg,#ffffff 0%, #faf8fc 100%);
 }
 .modal-title-wrap{ display:flex; align-items:center; gap:6px; }
-.modal-dot{ width:6px; height:6px; border-radius:50%; background:#7a2ea8; }
-.modal-head h2{ margin:0; font-size:15px; font-weight:700; color:#222; }
-.modal-body{ padding:10px; }
+.modal-dot{ width:6px; height:6px; border-radius:999px; background:#7a2ea8; }
+.modal-body{ padding:10px; overflow-y:auto; }
+.modal-foot{ margin-top:6px; padding:7px 10px; border-top:1px solid #eee; display:flex; align-items:center; justify-content:space-between; gap:6px; background:#fafafa; }
 
-.modal-foot{
-  display:flex; align-items:center; justify-content:space-between; gap:6px;
-  padding:7px 10px; border-top:1px solid #eee; background:#fcfbfe; position:sticky; bottom:0; z-index:2;
+/* ===== Form modal (espaciado cómodo) ===== */
+.form .form-grid{ display:grid; gap:10px; grid-template-columns:1fr 1fr; }
+.field{ display:flex; flex-direction:column; }
+.field > label{ color:#1b1a1a; font-weight:600; font-size:12.5px; margin-bottom:4px; }
+.hint{ margin-top:4px; color:#8a8a8a; font-size:12px; }
+
+/* Controles: padding interno para que el texto no pegue al borde */
+.form input[type="text"],
+.form input[type="email"],
+.form input[type="number"],
+.form select{
+  height:36px;
+  border-radius:8px;
+  border:1px solid #e5e5e5;
+  background:#fff;
+  padding:8px 12px;          /* ← el cambio importante */
+  outline:none;
+  width:100%;
+  font-size:12.5px;
+  box-sizing:border-box;
+  line-height:1.2;
 }
-.modal-foot .left, .modal-foot .right{ display:flex; align-items:center; gap:6px; }
 
-/* ===== Formulario (compacto) ===== */
-.form-grid{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px 12px; }
-.form-grid .span-2{ grid-column:1 / -1; }
-
-.field{ display:flex; flex-direction:column; gap:6px; }
-.req{ color:#d33; }
-input[type="text"], textarea{
-  height:30px; border-radius:8px; border:1px solid #ddd; background:#fff; padding:0 8px; outline:none; width:100%;
-  font-size:12.5px; transition:.12s ease;                                  /* compacto */
+.form textarea{
+  min-height:110px;
+  border-radius:8px;
+  border:1px solid #e5e5e5;
+  background:#fff;
+  padding:10px 12px;         /* ← el cambio importante */
+  outline:none;
+  width:100%;
+  font-size:12.5px;
+  box-sizing:border-box;
+  resize:vertical;
+  max-width:none;            /* ← elimina el tope que lo hacía angosto */
 }
-textarea{ height:auto; padding:8px; min-height:90px; resize:vertical; }
-input[type="text"]:focus, textarea:focus{
-  border-color:#7a2ea8; box-shadow:0 0 0 2px rgba(122,46,168,.1);          /* perfecto */
-}
-input.invalid{ border-color:#f6c7cd; background:#fff6f7; }
 
-/* ===== Animaciones ===== */
+/* Estados */
+.form input:focus,
+.form textarea:focus,
+.form select:focus{
+  border-color:#7a2ea8;
+  box-shadow:0 0 0 2px rgba(122,46,168,.10);
+}
+.form input.invalid{ border-color:#f6c7cd; background:#fff6f7; }
+
+/* (Opcional) placeholder más tenue */
+.form ::placeholder{ color:#9aa0a6; }
+
 @keyframes fadeIn{ from{opacity:0} to{opacity:1} }
 @keyframes popIn{ from{opacity:0; transform:translateY(6px) scale(.98)} to{opacity:1; transform:translateY(0) scale(1)} }
-@keyframes fadeSlide{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
 
 /* ===== Responsive ===== */
-@media (max-width:900px){
-  .head{ flex-wrap:nowrap; }
-  .search{ flex:1 1 260px; min-width:190px; max-width:none; }
-  .form-grid{ grid-template-columns:1fr; }
-  .grid thead{ display:none; }
-  .grid tbody tr{ display:grid; grid-template-columns:1fr 1fr; gap:6px; border-bottom:1px solid #eee; padding:8px 0; }
-  .grid tbody td{ border:0; padding:4px 7px; white-space:normal; }
-  .modal{ padding-top:44px; }
-  .modal-card{ max-width:95vw; }
+@media (max-width:1000px){
+  .roles-page .head{ flex-direction:column; align-items:stretch; gap:10px; }
+  .roles-page .actions{ flex-wrap:wrap; gap:8px; }
+  .roles-page .search{ min-width:unset; width:100%; }
+  .modal, .modal-backdrop{ top:0; left:0; }
+}
+@media (max-height:680px){
+  .modal{ align-items:flex-start; }
+  .modal-card{ margin-top:16px; }
+}
+
+/* ===== Botones del footer del modal ===== */
+.modal-foot{
+  display:flex; align-items:center; justify-content:space-between;
+  gap:10px; padding:7px 10px; border-top:1px solid #eee; background:#fafafa;
+}
+.modal-foot .left{ display:flex; align-items:center; gap:10px; }
+
+/* Tamaño y tipografía consistentes */
+.modal-foot button{
+  height:34px; padding:8px 14px; border-radius:8px;
+  font-size:12.5px; font-weight:700; line-height:1;
+}
+
+/* Primario (derecha) */
+.modal-foot .primary{
+  margin-left:auto;
+  border:0; background:#7a2ea8; color:#fff;
+  box-shadow:0 3px 7px rgba(122,46,168,.14);
+}
+.modal-foot .primary:hover{ filter:brightness(.97); }
+.modal-foot .primary:disabled{ opacity:.6; cursor:not-allowed; }
+
+/* Ghost (Cancelar) */
+.modal-foot .ghost{
+  background:#fff; border:1px solid #ddd; color:#333;
+}
+
+/* Danger (Eliminar) — más específico para ganar a .icon.danger */
+.modal-foot button.danger{
+  display:inline-flex; align-items:center; gap:8px;
+  border:1px solid #f6c7cd; background:#fde9eb; color:#b4232b;
+}
+.modal-foot button.danger:hover{ background:#fbd4d7; }
+.modal-foot button.danger .material-icons{ font-size:16px; line-height:1; }
+
+/* Responsive: apilar en pantallas angostas */
+@media (max-width:640px){
+  .modal-foot{ flex-direction:column; align-items:stretch; }
+  .modal-foot .left{ order:1; justify-content:space-between; width:100%; }
+  .modal-foot .primary{ order:2; width:100%; margin-left:0; }
 }

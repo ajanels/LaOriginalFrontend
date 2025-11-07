@@ -7,6 +7,16 @@
       <input type="text" placeholder="Buscar cliente u observación…" [ngModel]="q()" (ngModelChange)="q.set($event)" />
     </div>
 
+    <!-- NUEVO: Segmento de vista -->
+    <div class="segmented">
+      <button type="button" class="seg" [class.active]="view() === 'activos'" (click)="goActivos()">
+        Activos <span class="seg-badge">{{ activos().length }}</span>
+      </button>
+      <button type="button" class="seg" [class.active]="view() === 'entregados'" (click)="goEntregados()">
+        Entregados <span class="seg-badge">{{ entregados().length }}</span>
+      </button>
+    </div>
+
     <div class="actions">
       <button class="ghost" type="button" (click)="reload()">
         <span class="material-icons">refresh</span> Actualizar
@@ -33,7 +43,8 @@
         </thead>
 
         <tbody>
-          <tr *ngFor="let p of filtered(); trackBy: trackByPedidoId">
+          <!-- NUEVO: usar lista paginada -->
+          <tr *ngFor="let p of paged(); trackBy: trackByPedidoId">
             <td class="img-cell">
               <div style="width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:#eef;border:1px solid #d4d4ff;"
                    [style.background]="p.tipo === TipoPedidoCliente.Completo ? '#eef' : '#efe'"
@@ -104,7 +115,7 @@
                   <span class="material-icons">local_shipping</span>
                 </button>
 
-                <!-- Convertir a venta: solo para pedidos con ítems (Personalizado) y no finalizados -->
+                <!-- Convertir a venta (si se habilita) -->
                 <button class="icon" title="Convertir a venta"
                         *ngIf="showBtnConvertirVenta(p)"
                         (click)="convertirAVenta(p)">
@@ -125,7 +136,7 @@
                   <span class="material-icons">undo</span>
                 </button>
 
-                <!-- Cancelar / Reactivar / Eliminar -->
+                <!-- Cancelar -->
                 <button class="icon" title="Cancelar pedido"
                         *ngIf="(+p.estado) === EstadoPedidoCliente.Confirmado"
                         (click)="cancelarPedido(p)">
@@ -134,6 +145,7 @@
 
               </ng-container>
 
+              <!-- Reactivar / Eliminar -->
               <button class="icon" title="Reactivar pedido"
                       *ngIf="(+p.estado) === EstadoPedidoCliente.Cancelado"
                       (click)="reactivarPedido(p)">
@@ -148,12 +160,18 @@
             </td>
           </tr>
 
-          <tr *ngIf="!loading() && filtered().length === 0">
+          <!-- Vacío por vista -->
+          <tr *ngIf="!loading() && listForView().length === 0">
             <td colspan="7">
-              <div class="empty"><span class="material-icons">inbox</span><div>Sin pedidos</div><small>Cuando registres un pedido aparecerá aquí.</small></div>
+              <div class="empty">
+                <span class="material-icons">inbox</span>
+                <div>Sin pedidos</div>
+                <small>Cuando registres un pedido aparecerá aquí.</small>
+              </div>
             </td>
           </tr>
 
+          <!-- Cargando -->
           <tr *ngIf="loading()">
             <td colspan="7">
               <div class="empty"><span class="material-icons">hourglass_top</span>Cargando…</div>
@@ -161,6 +179,18 @@
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <!-- NUEVO: Paginador -->
+    <div class="pager" *ngIf="!loading() && total() > 0">
+     
+      <div class="spacer"></div>
+      <button class="ghost" type="button" [disabled]="!canPrev()" (click)="prev()">
+        <span class="material-icons">chevron_left</span> Anterior
+      </button>
+      <button class="ghost" type="button" [disabled]="!canNext()" (click)="next()">
+        Siguiente <span class="material-icons">chevron_right</span>
+      </button>
     </div>
   </div>
 </div>
@@ -438,7 +468,7 @@
 
 <!-- Modal: Ver detalle -->
 <div class="modal" *ngIf="showDetail()" (click)="closeDetail()">
-  <div class="modal-card large detail-modal" (click)="$event.stopPropagation()">
+<div class="modal-card large detail-modal compact" (click)="$event.stopPropagation()">
     <div class="modal-head">
       <div class="modal-title-wrap"><div class="modal-dot"></div><h2>Detalle del pedido</h2></div>
       <button class="icon" (click)="closeDetail()"><span class="material-icons">close</span></button>
@@ -550,7 +580,7 @@
                 <thead>
                   <tr>
                     <th style="width:56px">Img</th>
-                    <th>Producto / Presentación</th>
+                    <th>Producto</th>
                     <th class="text-right nowrap">Cantidad</th>
                     <th class="text-right nowrap">Precio unitario</th>
                     <th class="text-right nowrap">Descuento</th>

@@ -1,4 +1,4 @@
-import { Component, OnInit, signal, computed, inject } from '@angular/core';
+import { Component, OnInit, signal, computed, inject, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import Swal from 'sweetalert2';
@@ -24,7 +24,7 @@ export class UsuariosComponent implements OnInit {
 
   // filtros
   q = signal<string>('');
-  estado = signal<string>('');             // 'Activo' | 'Inactivo' | ''
+  estado = signal<string>('');             // 'Activo' | 'Inactivo' | 'Suspendido' | ''
   rolId = signal<number | null>(null);
 
   // filtros avanzados
@@ -40,23 +40,23 @@ export class UsuariosComponent implements OnInit {
   mode = signal<ModalMode>('create');
   current = signal<Usuario | null>(null);
 
-  // paginación fija a 5
-  page = signal<number>(1);
-  pageSize = signal<number>(5);
+  // ===== Paginación estilo "Pedidos": índice 0-based y tamaño fijo 8 =====
+  page = signal<number>(0);
+  pageSize = signal<number>(8);
 
   toggleFilters(){ this.showFilters.set(!this.showFilters()); }
   onNitFilter(v: string){ this.fNit.set((v || '').replace(/\D+/g, '').slice(0,9)); }
 
   filtered = computed(() => {
     const term = this.q().trim().toLowerCase();
-    const est  = this.estado().trim();                // comparar tal cual viene del select
+    const est  = this.estado().trim();
     const rid  = this.rolId();
 
     const f1 = this.fPrimer().trim().toLowerCase();
     const f2 = this.fSegundo().trim().toLowerCase();
     const fa = this.fApellidos().trim().toLowerCase();
     const fn = this.fNit().trim();
-    const ff = this.fFechaIng().trim();               // yyyy-MM-dd
+    const ff = this.fFechaIng().trim(); // yyyy-MM-dd
 
     return this.rows().filter(u => {
       const fullName = `${u.primerNombre} ${u.segundoNombre ?? ''} ${u.primerApellido} ${u.segundoApellido ?? ''}`.toLowerCase();
@@ -74,13 +74,12 @@ export class UsuariosComponent implements OnInit {
       const okApell   = !fa || (`${u.primerApellido ?? ''} ${u.segundoApellido ?? ''}`.toLowerCase().includes(fa));
       const okNit     = !fn || (u.nit ?? '').startsWith(fn);
 
-      // Normaliza fechaIngreso si viene como Date o como string ISO
+      // Normaliza fechaIngreso
       let ingresoStr = '';
       const anyU: any = u as any;
       if (anyU?.fechaIngreso) {
-        try {
-          ingresoStr = new Date(anyU.fechaIngreso).toISOString().slice(0, 10);
-        } catch { ingresoStr = ''; }
+        try { ingresoStr = new Date(anyU.fechaIngreso).toISOString().slice(0, 10); }
+        catch { ingresoStr = ''; }
       }
       const okFecha   = !ff || ingresoStr === ff;
 
@@ -88,12 +87,29 @@ export class UsuariosComponent implements OnInit {
     });
   });
 
-  totalPages = computed(() => Math.max(1, Math.ceil(this.filtered().length / this.pageSize())));
+  // Totales y página actual (clamp automático)
+  total = computed(() => this.filtered().length);
+  totalPages = computed(() => Math.max(1, Math.ceil(this.total() / this.pageSize())));
+  canPrev = computed(() => this.page() > 0);
+  canNext = computed(() => this.page() < this.totalPages() - 1);
+
   paged = computed(() => {
-    const max = this.totalPages();
-    if (this.page() > max) this.page.set(1);
-    const start = (this.page() - 1) * this.pageSize();
-    return this.filtered().slice(start, start + this.pageSize());
+    const list = this.filtered();
+    const size = this.pageSize();
+    const lastIndex = Math.max(0, this.totalPages() - 1);
+    const page = Math.min(this.page(), lastIndex);
+    const start = page * size;
+    return list.slice(start, start + size);
+  });
+
+  // Resetea a la primera página si cambian filtros o datos
+  private resetOnFilters = effect(() => {
+    const _ = [
+      this.rows(),
+      this.q(), this.estado(), this.rolId(),
+      this.fPrimer(), this.fSegundo(), this.fApellidos(), this.fNit(), this.fFechaIng()
+    ];
+    this.page.set(0);
   });
 
   ngOnInit(): void {
@@ -116,8 +132,9 @@ export class UsuariosComponent implements OnInit {
     });
   }
 
-  nextPage(){ if (this.page() < this.totalPages()) this.page.update(p => p + 1); }
-  prevPage(){ if (this.page() > 1) this.page.update(p => p - 1); }
+  // Controles del pager (como en Pedidos)
+  prev(){ if (this.canPrev()) this.page.set(this.page() - 1); }
+  next(){ if (this.canNext()) this.page.set(this.page() + 1); }
 
   openCreate(){ this.mode.set('create'); this.current.set(null); this.show.set(true); }
   openEdit(u: Usuario){

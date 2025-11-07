@@ -38,14 +38,14 @@
 .side-head{
   position: sticky; top: 0; z-index: 2;
   display: flex; align-items: center; justify-content: flex-start;
-  padding: 10px 8px;
+  padding: 8px 8px; /* más compacto */
   background: #e9e2e1; border-bottom: 1px solid #d7d3d2;
 }
 
 .toggle{
-  width: 40px; height: 40px;
+  width: 36px; height: 36px;
   display: inline-flex; align-items: center; justify-content: center;
-  border-radius: 12px; border: 1px solid #e3dfde;
+  border-radius: 10px; border: 1px solid #e3dfde;
   background: #fff; cursor: pointer;
 }
 .toggle:hover{ background: #f6f6fb; }
@@ -53,33 +53,36 @@
 /* Lista de opciones */
 .menu{
   list-style: none; margin: 0;
-  padding: 8px 10px;
+  padding: 8px 10px;            /* ↓ menos padding */
   box-sizing: border-box;
-  display: flex; flex-direction: column; gap: 6px;
+  display: flex; flex-direction: column; gap: 0;
   overflow-y: auto;
   overflow-x: hidden;
 }
 .menu > li{ margin: 0; }
 
+/* Ítems: más compactos pero clickables */
 .menu-item{
-  display: flex; align-items: center; gap: 12px;
+  display: flex; align-items: ceter; gap: 10px; /* ↓ gap */
   width: 100%;
-  min-height: 44px;
-  padding: 10px 12px;
+  min-height: 38px;            /* ↓ antes 44px */
+  padding: 9px 10px;           /* ↓ antes 9px 12px */
   background: transparent;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;         /* ligero ajuste para el nuevo alto */
   color: #4a4a4a;
   text-decoration: none;
   cursor: pointer;
+  line-height: 1.05;
 }
 .menu-item:hover{ background: #f2efee; }
 .menu-item.active{ background: rgba(122,46,168,.12); color: var(--accent); }
 
+/* Iconos: un toque más pequeños para acompañar el nuevo alto */
 .icon.material-icons{
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 24px; min-width: 24px; height: 24px;
-  font-size: 24px; text-align: center;
+  display: inline-flex; 
+  width: 22px; min-width: 22px; height: 22px;  /* ↓ antes 24px */
+  font-size: 22px; text-align: center;
 }
 
 .muted{ opacity: .35; }
@@ -87,41 +90,57 @@
 .rotate{ transition: transform 160ms ease; }
 .rotate.open{ transform: rotate(180deg); }
 
-.submenu{ list-style: none; margin: 4px 0 0 36px; padding: 0; }
-.menu-item.sub{ padding-left: 0; }
+/* ===== Submenú compacto ===== */
+.submenu{
+  list-style: none;
+  margin: 2px 0 0 24px;   
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;               
+}
+.submenu li{ margin: 0; }
 
+.menu-item.sub{
+  min-height: 38px;       
+  padding: 6px 10px;      
+  gap: 8px;
+}
+
+/* puntito del submenú más pequeño */
+.menu-item.sub .icon.material-icons{
+  width: 16px; min-width: 16px; height: 16px;  /* ↓ */
+  font-size: 16px;
+}
+
+/* Colapsado: misma altura/padding, sólo centramos iconos */
 .shell.is-collapsed .label,
 .shell.is-collapsed .submenu,
 .shell.is-collapsed .rotate{ display: none; }
 
-.shell.is-collapsed .menu{ padding: 10px 8px; }
+.shell.is-collapsed .menu{}
 .shell.is-collapsed .menu-item{
   justify-content: center;
-  padding: 12px 0;
 }
 
 /* ======================
    WORKSPACE
 ====================== */
-/* Workspace principal */
 .workspace {
   position: relative;
-  overflow: hidden; /* evita que cree scroll propio */
+  overflow: hidden;
   background: url('/images/bg-home.png') center/cover no-repeat;
 }
 
-/* 🔥 importante: que el contenido se ajuste al espacio disponible */
 .workspace-inner {
   position: relative;
   height: 100%;
-  overflow-y: auto;     /* scroll solo vertical */
-  overflow-x: hidden;   /* no permitir scroll horizontal */
-
-  width: 100%;          /* 🔥 ocupa todo el ancho disponible */
-  max-width: 100%;      /* 🔥 evita que el max-width "empuje" */
+  overflow-y: auto;
+  overflow-x: hidden;
+  width: 100%;
+  max-width: 100%;
   box-sizing: border-box;
-
-  margin: 0;            /* elimina márgenes laterales que empujan */
+  margin: 0;
   padding-block: 24px;
   padding-inline: var(--page-pad);
 }
@@ -137,12 +156,6 @@
   .shell{ --side-w: 260px; }
 }
 
-/* Ocultar scrollbars cross-browser */
-.workspace-inner {
-  scrollbar-width: none;   /* Firefox */
-  -ms-overflow-style: none; /* IE y Edge antiguos */
-}
-
-.workspace-inner::-webkit-scrollbar {
-  display: none; /* Chrome, Safari, Edge moderno */
-}
+/* Ocultar scrollbars */
+.workspace-inner { scrollbar-width: none; -ms-overflow-style: none; }
+.workspace-inner::-webkit-scrollbar { display: none; }

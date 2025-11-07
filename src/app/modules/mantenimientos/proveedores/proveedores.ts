@@ -18,10 +18,11 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
   proveedores: ProveedorItem[] = [];
   filtrados: ProveedorItem[] = [];
 
-  // Formulario (simple y compatible con cualquier backend)
-  nuevo: Partial<ProveedorItem> = {
-    nombre: '', activo: true
-  };
+  // Contadores para badges
+  cont = { activos: 0, inactivos: 0, todos: 0 };
+
+  // Form
+  nuevo: Partial<ProveedorItem> = { nombre: '', activo: true };
   editando: ProveedorItem | null = null;
   submitted = false;
 
@@ -32,11 +33,11 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
 
   // Filtros / paginación
   searchTerm = '';
-  filtroEstado = '';
-  itemsPorPagina = 10;
+  filtroEstado: '' | 'true' | 'false' = '';
+  itemsPorPagina = 9;          
   paginaActual = 0;
   inicio = 0;
-  fin = 10;
+  fin = 9;
   totalPaginas = 1;
   private searchTimer: any;
 
@@ -44,16 +45,23 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
     toast: true, position: 'top-end', showConfirmButton: false, timer: 2300, timerProgressBar: true
   });
 
+  // ===== Ciclo de vida =====
   ngOnInit(): void { this.cargar(); }
   ngOnDestroy(): void { if (this.searchTimer) clearTimeout(this.searchTimer); }
 
+  // Cerrar modal con ESC
   @HostListener('document:keydown.escape') onEsc() { if (this.mostrarModal) this.cerrarModal(); }
 
   // ===== Cargar =====
   cargar(): void {
     this.cargando = true;
     this.svc.list(false).subscribe({
-      next: (rows: ProveedorItem[]) => { this.proveedores = rows ?? []; this.aplicarFiltros(); this.cargando = false; },
+      next: (rows: ProveedorItem[]) => {
+        this.proveedores = rows ?? [];
+        this.actualizarContadores();
+        this.aplicarFiltros();
+        this.cargando = false;
+      },
       error: () => { this.swalError('No se pudieron cargar los proveedores.'); this.cargando = false; }
     });
   }
@@ -87,11 +95,7 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const dto = {
-      nombre: this.nuevo.nombre!.trim(),
-      activo: !!this.nuevo.activo
-    };
-
+    const dto = { nombre: this.nuevo.nombre!.trim(), activo: !!this.nuevo.activo };
     this.cargando = true;
 
     if (this.editando) {
@@ -99,6 +103,7 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
         next: () => {
           const i = this.proveedores.findIndex(x => x.id === this.editando!.id);
           if (i > -1) this.proveedores[i] = { ...this.proveedores[i], ...dto } as ProveedorItem;
+          this.actualizarContadores();
           this.aplicarFiltros();
           this.Toast.fire({ icon: 'success', title: 'Proveedor actualizado' });
           this.cargando = false;
@@ -118,6 +123,7 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
     this.svc.create(dto).subscribe({
       next: (p: ProveedorItem) => {
         this.proveedores.unshift(p);
+        this.actualizarContadores();
         this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: 'Proveedor creado' });
         this.cargando = false;
@@ -146,6 +152,7 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
     this.svc.delete(p.id).subscribe({
       next: () => {
         this.proveedores = this.proveedores.filter(x => x.id !== p.id);
+        this.actualizarContadores();
         this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: 'Eliminado' });
         this.cargando = false;
@@ -176,6 +183,8 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
     this.svc.toggleActivo(p.id, p.activo).subscribe({
       next: (resp) => {
         p.activo = resp.activo;
+        this.actualizarContadores();
+        this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: `Proveedor ${resp.activo ? 'activado' : 'desactivado'}` });
         this.cargandoFila[p.id] = false;
       },
@@ -188,6 +197,11 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
   }
 
   // ===== Filtros / Paginación =====
+  setFiltro(val: '' | 'true' | 'false'): void {
+    this.filtroEstado = val;
+    this.aplicarFiltros();
+  }
+
   onSearchInput(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.aplicarFiltros(), 250);
@@ -196,25 +210,36 @@ export class MantProveedoresComponent implements OnInit, OnDestroy {
   aplicarFiltros(): void {
     let list = [...this.proveedores];
     const term = (this.searchTerm || '').trim().toLowerCase();
+
     if (term) list = list.filter(p => (p.nombre || '').toLowerCase().includes(term));
+
     if (this.filtroEstado) {
       const activo = this.filtroEstado === 'true';
       list = list.filter(p => p.activo === activo);
     }
+
     this.filtrados = list;
     this.paginaActual = 0;
     this.actualizarPaginacion();
   }
 
-  cambiarPaginacion(): void { this.paginaActual = 0; this.actualizarPaginacion(); }
   actualizarPaginacion(): void {
     this.inicio = this.paginaActual * this.itemsPorPagina;
     this.fin = this.inicio + this.itemsPorPagina;
     this.totalPaginas = Math.max(1, Math.ceil(this.filtrados.length / this.itemsPorPagina));
   }
-  paginaAnterior(): void { if (this.paginaActual > 0) { this.paginaActual--; this.actualizarPaginacion(); } }
-  paginaSiguiente(): void { if (this.paginaActual < this.totalPaginas - 1) { this.paginaActual++; this.actualizarPaginacion(); } }
+  paginaAnterior(): void {
+    if (this.paginaActual > 0) { this.paginaActual--; this.actualizarPaginacion(); }
+  }
+  paginaSiguiente(): void {
+    if (this.paginaActual < this.totalPaginas - 1) { this.paginaActual++; this.actualizarPaginacion(); }
+  }
 
-  // Utils
+  // ===== Util =====
+  private actualizarContadores(): void {
+    const activos = this.proveedores.filter(p => p.activo).length;
+    const todos = this.proveedores.length;
+    this.cont = { activos, inactivos: todos - activos, todos };
+  }
   private swalError(text: string): void { Swal.fire({ icon: 'error', title: 'Ups…', text }); }
 }

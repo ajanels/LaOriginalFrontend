@@ -20,12 +20,25 @@ export class LoginComponent {
   errorMessage = '';
   loading = false;
 
+  showPassword = false;
+
   constructor(private auth: AuthService, private router: Router) {}
+
+  togglePassword(): void {
+    this.showPassword = !this.showPassword;
+  }
 
   onLogin(): void {
     this.errorMessage = '';
+
     if (!this.username || !this.password) {
       this.errorMessage = 'Ingresa usuario y contraseña.';
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos requeridos',
+        text: 'Ingresa usuario y contraseña.',
+        confirmButtonText: 'Entendido',
+      });
       return;
     }
 
@@ -40,22 +53,36 @@ export class LoginComponent {
       next: (_res: LoginResponse) => {
         this.loading = false;
         Swal.close();
+
         if (this.auth.isPasswordChangeRequired()) {
           this.router.navigate(['/cambiar-password']);
         } else {
           this.router.navigate(['/home']);
         }
       },
-      error: (err: any) => { // tipado para noImplicitAny
+      error: (err: any) => {
         this.loading = false;
         Swal.close();
-        const msg =
-          err?.error?.detail ||
-          err?.error?.title ||
-          err?.error?.message ||
-          err?.error ||
-          'Credenciales incorrectas, inténtelo de nuevo.';
-        this.errorMessage = typeof msg === 'string' ? msg : 'Error de autenticación';
+
+        const baseMsg =
+          err?.status === 0
+            ? 'No se pudo conectar con el servidor. Revisa tu conexión.'
+            : (err?.error?.detail ||
+               err?.error?.title ||
+               err?.error?.message ||
+               err?.error ||
+               'Credenciales incorrectas, inténtalo de nuevo.');
+
+        this.errorMessage = typeof baseMsg === 'string'
+          ? baseMsg
+          : 'Error de autenticación';
+
+        Swal.fire({
+          icon: 'error',
+          title: 'Error de autenticación',
+          text: this.errorMessage,
+          confirmButtonText: 'Entendido',
+        });
       },
     });
   }

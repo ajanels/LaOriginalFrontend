@@ -1,4 +1,4 @@
-/* ======================= REPORTES (.rep-page) — estilo compacto “perfecto” ======================= */
+/* ======================= REPORTES (.rep-page) ======================= */
 .page.rep-page{
   --card-bg: rgba(255,255,255,0.9);
   --shadow: 0 8px 28px rgba(0,0,0,.06);
@@ -8,10 +8,10 @@
   --primary-ghost: #efe9ff;
   color: var(--text);
 
-  /* Fondo + overlay como el perfecto */
   display:flex; flex-direction:column; gap:9px; padding:13px;
   background:url("/assets/bg-yarns.jpg") center/cover no-repeat fixed;
   min-height:calc(100vh - var(--topbar-h,97px));
+  overflow-x: hidden;
 }
 .page.rep-page::before{
   content:""; position:fixed; top:var(--topbar-h,97px); left:var(--side-w,280px); right:0; bottom:0;
@@ -19,13 +19,11 @@
 }
 :host-context(.sidebar-collapsed) .page.rep-page::before{ left:var(--side-w-collapsed,92px); }
 
-/* ===== Utilidades (scopeadas) ===== */
+/* Utils */
 .page.rep-page .strong{ font-weight:700; }
-.page.rep-page .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; }
-.page.rep-page .text-right{ text-align:right; }
+.page.rep-page .mono{ font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace; font-variant-numeric: tabular-nums; }
 .page.rep-page .nowrap{ white-space:nowrap; }
 .page.rep-page .one-line{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.page.rep-page .sub{ color:#707070; }
 
 /* ===== Título ===== */
 .page.rep-page .head-title{ margin-bottom:8px; }
@@ -35,40 +33,41 @@
   font-weight:800;
   font-size:clamp(24px,3.9vw,36px);
   line-height:1.05; letter-spacing:.2px;
-  background: linear-gradient(90deg, #363636, #111); /* mantiene look */
+  background: linear-gradient(90deg, #363636, #111);
   -webkit-background-clip:text; background-clip:text; color:transparent;
 }
 
-/* ===== Header: filtros + tabs + acciones (compacto) ===== */
-.page.rep-page .head{
-  display:flex; align-items:center; justify-content:space-between;
-  gap:8px; flex-wrap:nowrap; width:100%; margin-bottom:6px;
-}
-.page.rep-page .actions{
-  margin-left:auto; display:flex; align-items:center; gap:6px;
-  flex-wrap:nowrap; white-space:nowrap;
+/* ================== Toolbar (todo ordenado) ================== */
+.toolbar{
+  background:var(--card-bg); border:1px solid #eee; border-radius:12px;
+  box-shadow:0 5px 12px rgba(0,0,0,.045);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+  padding:10px 12px; display:grid; gap:10px;
+  grid-template-areas:
+    "filters actions"
+    "main    main"
+    "sub     sub";
+  grid-template-columns: 1fr auto;
 }
 
-/* Filtros compactos */
-.page.rep-page .filters{ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
-.page.rep-page .filters .date{ display:grid; gap:3px; font-size:11.5px; color:var(--muted); }
-.page.rep-page .filters .filter{
+/* Filtros */
+.toolbar .filters{ grid-area:filters; display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.toolbar .filters .date{ display:grid; gap:3px; font-size:11.5px; color:var(--muted); }
+.toolbar .filters .filter{
   height:30px; border-radius:8px; border:1px solid #e5e5eb;
   background:#fff; padding:0 9px; outline:none; font-size:12.5px;
   box-shadow:0 1px 4px rgba(0,0,0,.05);
 }
+.toolbar .filters .filter.empty{ color:#999; }
 
-/* Tabs compactas (pill) */
-.page.rep-page .tabs{ display:flex; gap:6px; flex-wrap:wrap; }
-.page.rep-page .tabs button{
-  height:28px; padding:0 10px; border-radius:999px; border:1px solid transparent;
-  background:var(--primary-ghost); color:var(--primary); font-weight:700; font-size:12px; letter-spacing:.2px;
-  transition:transform .05s ease-in-out, background .15s;
+/* Acciones */
+.toolbar .actions{ grid-area:actions; display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.toolbar .view-toggle{ display:flex; align-items:center; gap:8px; }
+.toolbar .view-toggle > span{
+  font-weight:800; letter-spacing:.2px; font-size:12px; color:#4a3a7a;
+  padding:2px 6px; border:1px dashed #c9b4ff; border-radius:999px; background:#f8f5ff;
 }
-.page.rep-page .tabs button:hover{ transform:translateY(-1px); }
-.page.rep-page .tabs button.active{ background:var(--primary); color:#fff; }
 
-/* ===== Botones ===== */
 .page.rep-page button.primary,
 .page.rep-page button.ghost{
   display:inline-flex; align-items:center; gap:7px; padding:5px 10px; height:28px;
@@ -82,107 +81,172 @@
   background:#fff; border:1px solid #ddd; color:var(--text); font-weight:600;
 }
 .page.rep-page button.ghost:hover{ background:#f7f7f7; }
+.page.rep-page .actions .ghost.active{ border-color:#c9b4ff; background:#f3ecff; color:#5a3fb3; }
 
-/* ===== KPIs (compacto) ===== */
-.page.rep-page .kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(200px,1fr)); gap:10px; margin:10px 0; }
+/* ===== Selector principal (segmentado) ===== */
+.nav-main{ grid-area:main; display:flex; justify-content:center; }
+.nav-main .seg{
+  display:inline-flex; flex-wrap:wrap; gap:6px; background:#f8f5ff; padding:6px; border-radius:999px;
+  border:1px solid #e9defe;
+}
+.nav-main .seg button{
+  height:30px; padding:0 12px; border-radius:999px; border:1px solid transparent;
+  background:#fff; color:#4b348f; font-weight:800; font-size:12px; letter-spacing:.2px;
+  box-shadow:0 1px 4px rgba(0,0,0,.04);
+}
+.nav-main .seg button.active{ background:var(--primary); color:#fff; }
+
+/* ===== Submenú contextual (tiles con descripción) ===== */
+.nav-sub{ grid-area:sub; display:grid; gap:8px; }
+.nav-sub .label{
+  font-size:12px; font-weight:800; color:#3f2b6b; letter-spacing:.2px; margin-left:2px;
+}
+.nav-sub .tiles{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+  gap:8px; align-items:stretch;
+}
+.nav-sub .tile{
+  display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto;
+  column-gap:10px; row-gap:2px; align-items:center;
+  background:#fff; border:1px solid #ece7fb; border-radius:12px; padding:10px 12px;
+  text-align:left; cursor:pointer; transition:.15s ease; min-height:56px;
+}
+.nav-sub .tile:hover{ background:#f7f2ff; border-color:#d9c9ff; }
+.nav-sub .tile.active{ background:#6b46c1; border-color:#6b46c1; color:#fff; }
+.nav-sub .tile .ic{ grid-row:span 2; }
+.nav-sub .tile .ic .material-icons{ font-size:18px; line-height:1; }
+.nav-sub .tile .ttl{ font-weight:800; font-size:12.8px; }
+.nav-sub .tile .cap{ font-size:11.5px; color:#6b5aa9; }
+.nav-sub .tile.active .cap{ color:#efe9ff; }
+
+/* ================== Contenido (cards/tablas) ================== */
+.page.rep-page .kpis{ display:grid; grid-template-columns:repeat(auto-fit, minmax(220px,1fr)); gap:10px; margin:10px 0; }
 .page.rep-page .kpi{
-  background:var(--card-bg); border-radius:10px; padding:10px 12px;
+  background:var(--card-bg); border-radius:12px; padding:12px 14px;
   box-shadow:0 5px 12px rgba(0,0,0,.045);
-
-  /* Soporte Safari/iOS + estándar */
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 .page.rep-page .kpi-label{ color:var(--muted); font-size:11.5px; }
 .page.rep-page .kpi-value{ font-size:20px; font-weight:800; margin-top:2px; color:#333; }
 
-/* ===== Card / Tabla (con franja lateral violeta) ===== */
 .page.rep-page .card{
   background:var(--card-bg); border:1px solid #eee; border-radius:10px; padding:8px;
   box-shadow:0 5px 12px rgba(0,0,0,.045); position:relative; overflow:hidden;
-
-  /* Soporte Safari/iOS + estándar */
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
 }
 .page.rep-page .card::before{
   content:""; position:absolute; top:0; bottom:0; left:-1px; width:5px;
   background:#7419ad; opacity:.95; pointer-events:none;
 }
-.page.rep-page .table-wrapper{ overflow:auto; border-radius:10px; }
 
-/* ===== Grid ===== */
+/* Table wrapper */
+.page.rep-page .table-wrapper{ overflow:auto; border-radius:10px; }
+@supports (scrollbar-gutter: stable) { .page.rep-page .table-wrapper { scrollbar-gutter: stable; } }
+
+/* ==== Grid base ==== */
 .page.rep-page table.grid{
-  width:100%; border-collapse:separate; border-spacing:0; table-layout:auto; font-size:12.5px;
+  width:100%;
+  border-collapse:separate; border-spacing:0;
+  table-layout: fixed;
+  font-size:12.5px;
+}
+.page.rep-page .grid caption{
+  caption-side: top; text-align:left; padding: 6px 8px 0;
+  color:#5b5b5b; font-weight:800; font-size:12px; text-transform:uppercase; letter-spacing:.3px;
 }
 .page.rep-page .grid thead th{
   position:sticky; top:0; z-index:2;
-  text-align:left; color:#555; font-weight:700; font-size:12px;
-  padding:6px 8px; border-bottom:2px solid #eee; background:#fafafa; white-space:nowrap;
+  text-align:left; color:#4a4a4a; font-weight:800; font-size:12px;
+  padding:9px 12px; border-bottom:2px solid #eee; background:linear-gradient(#fafafa, #f7f7f7);
+  white-space:nowrap; box-shadow: inset 0 -2px 0 #eee;
 }
 .page.rep-page .grid tbody td{
-  padding:6px 8px; border-bottom:1px solid #f3f3f6; white-space:nowrap; vertical-align:middle;
+  padding:8px 12px; border-bottom:1px solid #f1eef8; vertical-align:middle; text-align:left;
 }
 .page.rep-page .grid tbody tr:hover{ background:#fbf7ff; }
+.page.rep-page .grid th.c, .page.rep-page .grid td.c { text-align:center; }
+.page.rep-page .grid th.r, .page.rep-page .grid td.r { text-align:right; }
+.page.rep-page .empty{ text-align:center; padding:14px; color:var(--muted); }
 
-/* helpers dentro de grid */
-.page.rep-page .grid .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace; color:#555; }
-.page.rep-page .grid .c{ text-align:center; }
-.page.rep-page .grid .r{ text-align:right; }
-.page.rep-page .grid .strong{ font-weight:800; }
+/* Zebra */
+.page.rep-page .grid.zebra tbody tr:nth-child(even){ background:#faf7ff; }
 
-/* Empty / loading / note */
-.page.rep-page .empty{ text-align:center; padding:14px; color:var(--muted); display:flex; flex-direction:column; gap:6px; align-items:center; }
-.page.rep-page .loading{ margin:8px 0 2px; color:var(--muted); font-size:12.5px; }
-.page.rep-page .note{ color:var(--muted); margin-top:6px; display:inline-block; font-size:12.5px; }
+/* Títulos/agrupaciones */
+.page.rep-page .group-title{ margin:8px 6px; font-weight:800; color:#3f2b6b; font-size:13px; }
+.page.rep-page .section-title{ margin: 6px 6px 8px; font-weight: 800; color: #3f2b6b; font-size: 13.5px; }
+.page.rep-page .section-gap{ margin-top:10px; }
 
-/* ===== Botón icono (utilidad) ===== */
-.page.rep-page button.icon{
-  border:0; background:#f6f3f7; color:#6b2f99; border-radius:7px;
-  padding:3px; cursor:pointer; display:inline-flex; align-items:center; justify-content:center; transition:.15s ease;
-  min-width:24px; min-height:24px;
+/* ===== Chips/Badges (Estados pedido) ===== */
+.page.rep-page .badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:3px 9px; border-radius:999px; font-size:11px; font-weight:800;
+  line-height:1; letter-spacing:.2px; border:1px solid #e4e7ec;
+  background:#eef1f6; color:#344054; white-space:nowrap;
 }
-.page.rep-page button.icon:hover{ background:#ede8ef; transform:translateY(-1px); }
-.page.rep-page button.icon .material-icons{ font-size:17px; }
+.page.rep-page .badge.borrador   { background:#f5f6ff; border-color:#dfe0ff; color:#5550c9; }
+.page.rep-page .badge.confirmado { background:#e9f8ef; border-color:#bfe8ce; color:#2e7d32; }
+.page.rep-page .badge.enprep     { background:#fff7e6; border-color:#ffe0a6; color:#a15d00; }
+.page.rep-page .badge.listo      { background:#eaf5ff; border-color:#cfe8ff; color:#1e64b8; }
+.page.rep-page .badge.entregado  { background:#f0fdf4; border-color:#c8f5d3; color:#15803d; }
+.page.rep-page .badge.cancelado  { background:#fef2f2; border-color:#fecaca; color:#b91c1c; }
 
-/* ===== Grid helper 2 cols ===== */
-.page.rep-page .grid-2{ display:grid; grid-template-columns:1fr 1fr; gap:10px; }
-@media (max-width:900px){ .page.rep-page .grid-2{ grid-template-columns:1fr; } }
+/* ===== Totales en pie de tabla ===== */
+.page.rep-page .grid tfoot th,
+.page.rep-page .grid tfoot td{
+  background:#f7f2ff; border-top:2px solid #eadfff;
+  padding:10px 12px; font-weight:800;
+}
+.page.rep-page .grid tfoot .tot-cell{
+  display:flex; flex-direction:column; align-items:flex-end; gap:2px;
+}
+.page.rep-page .grid tfoot .tot-cell .label{
+  font-size:10.5px; font-weight:800; color:#6d5ea8; text-transform:uppercase; letter-spacing:.3px;
+}
+.page.rep-page .grid tfoot .tot-cell .val{
+  font-size:13px; font-weight:800; color:#2f2a4f;
+}
 
-/* ===== Responsive tabla móvil (como el perfecto) ===== */
+/* ===== GRÁFICOS ===== */
+.charts { display: grid; grid-template-columns: 1fr; gap: 12px; max-width: 100%; }
+@media (min-width: 1024px){ .charts { grid-template-columns: 1fr 1fr; } }
+.charts > .chart-card { min-width: 0; }
+
+.chart-card {
+  background: var(--card-bg, rgba(255,255,255,0.9));
+  border-radius: 10px;
+  box-shadow: var(--shadow, 0 8px 28px rgba(0,0,0,.06));
+  padding: 10px; overflow: hidden;
+}
+.chart-card h3 { margin: 0 0 8px; font-size: 13px; font-weight: 800; color: var(--text,#101828); }
+.page.rep-page .chart-box{
+  position: relative; box-sizing: border-box; width:100%;
+  height: clamp(360px, 58vh, 380px);
+  max-width: 100%;
+  padding:6px 4px 2px; contain: paint;
+}
+.page.rep-page .chart-box canvas{ display:block; width:100% !important; height:100% !important; max-width:100%; }
+
+/* ===== Responsive ===== */
 @media (max-width:900px){
-  .page.rep-page .head{ flex-wrap:nowrap; }
-  .page.rep-page .actions{ margin-left:auto; flex-wrap:nowrap; white-space:nowrap; }
-
-  .page.rep-page .grid thead{ display:none; }
-  .page.rep-page .grid tbody tr{
-    display:grid; grid-template-columns:1fr 1fr; gap:6px; border-bottom:1px solid #eee; padding:8px 0;
+  .toolbar{
+    grid-template-areas:
+      "filters"
+      "actions"
+      "main"
+      "sub";
+    grid-template-columns: 1fr;
   }
-  .page.rep-page .grid tbody td{ border:0; padding:4px 7px; white-space:normal; }
+  .nav-main{ justify-content:flex-start; }
+  .nav-main .seg{ width:100%; justify-content:flex-start; }
 }
 
 /* ===== Print ===== */
 @media print{
-  .page.rep-page .head, .page.rep-page .kpis .kpi{ box-shadow:none !important; }
-  .page.rep-page .tabs, .page.rep-page .actions{ display:none !important; }
+  .toolbar, .nav-main, .nav-sub, .page.rep-page .kpis .kpi{ display:none !important; }
+  .no-print { display: none !important; }
 }
 
-/* ===== Estados deshabilitados (consistencia) ===== */
+/* Disabled/estados */
 .page.rep-page button.icon:not([disabled]):hover { background:#ede8ef; transform:translateY(-1px); }
-.page.rep-page button.icon[disabled]{ background:#f0f0f3; color:#9aa0a6; border-color:#e6e6e6; opacity:.75; cursor:not-allowed; transform:none; }
 .page.rep-page button.primary[disabled]{ background:#cbb6e2; color:#fff; opacity:.85; cursor:not-allowed; }
 .page.rep-page button.ghost[disabled]{ background:#f6f6f6; color:#9aa0a6; border-color:#e6e6e6; cursor:not-allowed; }
-
-/* ===== Fallback si NO hay soporte de backdrop-filter (Safari viejo / otros) ===== */
-@supports not ((-webkit-backdrop-filter: blur(0)) or (backdrop-filter: blur(0))) {
-  .page.rep-page .kpi,
-  .page.rep-page .card {
-    background: rgba(255,255,255,.98); /* aumenta opacidad para simular sin blur */
-  }
-}
-
-/* (Opcional) utilidad reutilizable de blur 6px */
-.page.rep-page .bf-6{
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
-}

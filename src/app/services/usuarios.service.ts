@@ -26,6 +26,12 @@ export interface Usuario {
   fechaIngreso?: string;
 }
 
+export type UsuarioUpdatePayload = Partial<Usuario> & {
+  id: number;
+  /** opcional en edición: si se envía, el backend actualizará la contraseña */
+  password?: string;
+};
+
 @Injectable({ providedIn: 'root' })
 export class UsuariosService {
   private http = inject(HttpClient);
@@ -34,10 +40,15 @@ export class UsuariosService {
   list(): Observable<Usuario[]> { return this.http.get<Usuario[]>(this.API); }
   get(id: number): Observable<Usuario> { return this.http.get<Usuario>(`${this.API}/${id}`); }
   create(fd: FormData): Observable<Usuario> { return this.http.post<Usuario>(this.API, fd); }
-  update(id: number, data: Partial<Usuario> & { id: number }): Observable<void> { return this.http.put<void>(`${this.API}/${id}`, data); }
+
+  update(id: number, data: UsuarioUpdatePayload): Observable<void> {
+    return this.http.put<void>(`${this.API}/${id}`, data);
+  }
+
   uploadPhoto(id: number, file: File): Observable<{ fotoUrl: string }> {
     const fd = new FormData(); fd.append('foto', file);
     return this.http.post<{ fotoUrl: string }>(`${this.API}/${id}/photo`, fd);
   }
+
   remove(id: number): Observable<void> { return this.http.delete<void>(`${this.API}/${id}`); }
 }

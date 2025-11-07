@@ -24,23 +24,36 @@
         />
       </div>
 
-      <select class="filter" [(ngModel)]="filtroEstado" (change)="aplicarFiltros()" aria-label="Estado">
-        <option value="">Todos</option>
-        <option value="true">Activos</option>
-        <option value="false">Inactivos</option>
-      </select>
+      <!-- Segmentado de estados con badges -->
+      <div class="segmented" role="tablist" aria-label="Estado">
+        <button class="seg"
+                role="tab"
+                [class.active]="estadoTab==='activos'"
+                [attr.aria-selected]="estadoTab==='activos'"
+                type="button"
+                (click)="setTab('activos')">
+          Activos <span class="seg-badge">{{ countActivos }}</span>
+        </button>
 
-      <select class="filter"
-        [(ngModel)]="itemsPorPagina"
-        (change)="cambiarPaginacion()"
-        aria-label="Ítems por página">
-  <option [ngValue]="5">5 / pág</option>
-  <option [ngValue]="10">10 / pág</option>
-  <option [ngValue]="25">25 / pág</option>
-  <option [ngValue]="50">50 / pág</option>
-  <option [ngValue]="100">100 / pág</option>
-</select>
+        <button class="seg"
+                role="tab"
+                [class.active]="estadoTab==='inactivos'"
+                [attr.aria-selected]="estadoTab==='inactivos'"
+                type="button"
+                (click)="setTab('inactivos')">
+          Inactivos <span class="seg-badge">{{ countInactivos }}</span>
+        </button>
 
+        <button class="seg"
+                role="tab"
+                [class.active]="estadoTab==='todos'"
+                [attr.aria-selected]="estadoTab==='todos'"
+                type="button"
+                (click)="setTab('todos')">
+          Todos <span class="seg-badge">{{ countTodos }}</span>
+        </button>
+      </div>
+    </div>
 
     <button class="primary" type="button" (click)="abrirCrear()" [disabled]="cargando" title="Crear cliente">
       <span class="material-icons" aria-hidden="true">add</span>
@@ -101,12 +114,25 @@
       </table>
     </div>
 
-    <div class="pager" *ngIf="totalPaginas > 1">
-      <button class="ghost" (click)="paginaAnterior()" [disabled]="paginaActual === 0" type="button">Anterior</button>
-      <span>Página <strong>{{ paginaActual + 1 }}</strong> de <strong>{{ totalPaginas}}</strong></span>
-      <button class="ghost" (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1" type="button">Siguiente</button>
-    </div>
-  </div>
+    <!-- Paginación (9 por página, fija) -->
+    <!-- Paginación (estilo Productos) -->
+<div class="pager" role="navigation" aria-label="Paginación">
+  <span class="pager-info">Página {{ paginaActual + 1 }} de {{ totalPaginas }}</span>
+  <div class="spacer"></div>
+
+  <button class="pager-btn" type="button"
+          (click)="paginaAnterior()" [disabled]="paginaActual === 0">
+    <span class="material-icons">chevron_left</span>
+    <span>Anterior</span>
+  </button>
+
+  <button class="pager-btn" type="button"
+          (click)="paginaSiguiente()" [disabled]="paginaActual >= totalPaginas - 1">
+    <span>Siguiente</span>
+    <span class="material-icons">chevron_right</span>
+  </button>
+</div>
+
 
   <!-- Backdrop -->
   <div class="modal-backdrop" *ngIf="mostrarModal" (click)="cerrarModal()" aria-hidden="true"></div>
@@ -119,7 +145,7 @@
           <span class="modal-dot"></span>
           <h2 id="modal-title">{{ editando ? 'Editar cliente' : 'Nuevo cliente' }}</h2>
         </div>
-        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar">
+        <button class="icon close" type="button" (click)="cerrarModal()" title="Cerrar" aria-label="Cerrar">
           <span class="material-icons" aria-hidden="true">close</span>
         </button>
       </header>
@@ -177,7 +203,8 @@
           <footer class="modal-foot">
             <div class="left">
               <button type="button" class="ghost" (click)="cerrarModal()">Cancelar</button>
-              <button *ngIf="editando" type="button" class="danger" (click)="eliminarCliente()">
+              <button *ngIf="editando" type="button" class="danger" (click)="eliminarCliente()"
+                      [attr.aria-label]="'Eliminar cliente ' + editando.nombre">
                 <span class="material-icons" aria-hidden="true">delete</span> Eliminar
               </button>
             </div>

@@ -88,37 +88,72 @@ export class Ventas {
     return !!this.fpActual?.requiereReferencia && !this.esEfectivo;
   }
 
+  private extractError(e: any): string {
+  try {
+    if (e?.status === 0) return 'No hay conexión con el servidor.';
+    if (typeof e?.error === 'string') return e.error;
+    const err = e?.error;
+    if (err?.detail || err?.title || err?.message) return (err.detail || err.title || err.message);
+    return `Error ${e?.status || ''} ${e?.statusText || ''}`.trim();
+  } catch { return 'Error desconocido.'; }
+}
+private swalErrorFrom(e: any, titulo = 'Error'): void {
+  Swal.fire({ icon: 'error', title: titulo, text: this.extractError(e), confirmButtonText: 'Entendido' });
+}
+private showInfo(msg: string) {
+  Swal.fire({ icon: 'info', title: 'Información', text: msg });
+}
+
+
   // ===== Cargar catálogo =====
   cargarProductos() {
-    this.ventasService.listarProductos(this.filtro?.trim() || undefined).subscribe({
-      next: (res) => {
-        const base = (res || []) as ProductoDtoExt[];
-        this.productos = base.map(p => ({ ...p, reservado: null, disponible: null }));
+  const term = (this.filtro || '').trim();
 
-        if (!base.length) return;
+  this.ventasService.listarProductos(term || undefined).subscribe({
+    next: (res) => {
+      const base = (res ?? []) as ProductoDtoExt[];
 
-        const ids = base.map(p => p.presentacionId);
-        this.ventasService.disponibilidad(ids).subscribe({
-          next: (rows: StockDisponibleDto[]) => {
-            const map = new Map(rows.map(r => [r.presentacionId, r]));
-            this.productos = this.productos.map(p => {
-              const d = map.get(p.presentacionId);
-              return d
-                ? {
-                    ...p,
-                    reservado: Number(d.reservado || 0),
-                    disponible: Number(d.disponible || 0),
-                    precioVenta: p.precioVenta ?? d.precioVenta ?? null
-                  }
-                : p;
-            });
-          },
-          error: () => { /* si falla, igual mostramos con stock físico */ }
-        });
-      },
-      error: () => this.toast('error', 'No se pudo cargar productos'),
-    });
-  }
+      // Lista vacía: sin error. Si hay filtro, mostrar info.
+      if (!base.length) {
+        this.productos = [];
+        if (term) this.showInfo('No hay productos que coincidan con la búsqueda.');
+        return;
+      }
+
+      // Cargar base y luego disponibilidad
+      this.productos = base.map(p => ({ ...p, reservado: null, disponible: null }));
+
+      const ids = base.map(p => p.presentacionId);
+      this.ventasService.disponibilidad(ids).subscribe({
+        next: (rows: StockDisponibleDto[]) => {
+          const map = new Map(rows.map(r => [r.presentacionId, r]));
+          this.productos = this.productos.map(p => {
+            const d = map.get(p.presentacionId);
+            return d
+              ? {
+                  ...p,
+                  reservado: Number(d.reservado || 0),
+                  disponible: Number(d.disponible || 0),
+                  precioVenta: p.precioVenta ?? d.precioVenta ?? null
+                }
+              : p;
+          });
+        },
+        error: (e) => this.swalErrorFrom(e, 'No se pudo obtener disponibilidad'),
+      });
+    },
+    error: (e) => {
+      // Tratar 204/404 como "sin datos"
+      if (e?.status === 204 || e?.status === 404) {
+        this.productos = [];
+        if (term) this.showInfo('No hay productos que coincidan con la búsqueda.');
+        return;
+      }
+      this.swalErrorFrom(e, 'No se pudo cargar productos');
+    },
+  });
+}
+
   filtrar() { this.cargarProductos(); }
   clearSearch() { this.filtro = ''; this.cargarProductos(); }
 

@@ -8,6 +8,7 @@ export interface ProductoListItem {
   nombre: string;
   codigo?: string | null;
   categoria?: string | null;
+  categoriaId?: number | null;     // opcional si el backend lo provee
   activo: boolean;
   presentaciones: number;
   fotoUrl?: string | null;
@@ -21,8 +22,6 @@ export interface ProductoDetail {
   categoriaId?: number | null;
   categoria?: string | null;
   fotoUrl?: string | null;
-
-  // para prellenar edición
   proveedorId?: number | null;
   precioCompraDefault?: number | null;
   precioVentaDefault?: number | null;
@@ -80,9 +79,14 @@ export class ProductosService {
     return this.http.put<void>(`${this.API}/${id}`, dto);
   }
 
-  /** Nuevo: actualizar precios por defecto de la presentación principal */
+  /** Actualizar precios por defecto de la presentación principal */
   updateDefaultPrices(id: number, dto: ProductoPreciosUpdatePayload): Observable<void> {
     return this.http.put<void>(`${this.API}/${id}/precios-default`, dto);
+  }
+
+  /** Toggle de estado activo/inactivo */
+  toggleActivo(id: number, activo: boolean): Observable<{ id: number; activo: boolean }> {
+    return this.http.patch<{ id: number; activo: boolean }>(`${this.API}/${id}/estado`, { activo });
   }
 
   delete(id: number): Observable<void> {

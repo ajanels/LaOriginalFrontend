@@ -54,6 +54,44 @@ export class CajaComponent {
   movs     = signal<CajaMovimientoUI[]>([]);
   sesiones = signal<CajaSesionListItemUI[]>([]);
 
+  // ---- Paginación de sesiones ----
+  sesPage     = signal<number>(0);
+  sesPageSize = signal<number>(4);
+
+  sesionesTotal = computed(() => this.sesiones().length);
+  sesionesTotalPages = computed(() =>
+    Math.max(1, Math.ceil(this.sesionesTotal() / this.sesPageSize()))
+  );
+
+  sesionesPaged = computed(() => {
+    const list = this.sesiones();
+    const size = this.sesPageSize();
+    const lastIndex = Math.max(0, this.sesionesTotalPages() - 1);
+    const page = Math.min(this.sesPage(), lastIndex);
+    const start = page * size;
+    return list.slice(start, start + size);
+  });
+
+  sesRangeStart = computed(() =>
+    this.sesionesTotal() ? this.sesPage() * this.sesPageSize() + 1 : 0
+  );
+  sesRangeEnd = computed(() =>
+    Math.min(this.sesionesTotal(), (this.sesPage() + 1) * this.sesPageSize())
+  );
+  sesCanPrev = computed(() => this.sesPage() > 0);
+  sesCanNext = computed(() => this.sesPage() < this.sesionesTotalPages() - 1);
+
+  setSesPageSize(n: number) {
+    const allowed = [2, 3, 4];
+    const size = allowed.includes(Number(n)) ? Number(n) : 4;
+    this.sesPageSize.set(size);
+    this.sesPage.set(0);
+  }
+
+  sesPrev() { if (this.sesCanPrev()) this.sesPage.set(this.sesPage() - 1); }
+  sesNext() { if (this.sesCanNext()) this.sesPage.set(this.sesPage() + 1); }
+
+  // ===== Filtros / búsqueda de movimientos =====
   q      = signal<string>('');
   tipo   = signal<number | null>(null);
   desde  = signal<string | null>(null);
@@ -82,7 +120,6 @@ export class CajaComponent {
     +this.denoms().reduce((acc, d) => acc + d.valor * d.qty, 0).toFixed(2)
   );
 
-  // División en dos columnas (cierre)
   mid = computed(() => Math.ceil(this.denoms().length / 2));
   denomsCols = computed(() => {
     const a = this.denoms();
@@ -90,7 +127,6 @@ export class CajaComponent {
     return [a.slice(0, m), a.slice(m)];
   });
 
-  // Validación cierre (tolerancia de centavos)
   canCerrar = computed(() => {
     const r = this.resumen();
     if (!r) return false;
@@ -105,7 +141,6 @@ export class CajaComponent {
     return +(this.conteo() - r.esperado).toFixed(2);
   });
 
-  // Ajuste automático (última denominación editada)
   lastEditedIdx = signal<number | null>(null);
   canAdjust = computed(() => {
     const idx = this.lastEditedIdx();
@@ -123,7 +158,7 @@ export class CajaComponent {
   showApertura = signal(false);
   aMonto      = signal<number>(0);
   aObs        = signal<string | null>(null);
-  aCajero     = signal<string>(''); // no se envía salvo que decidas forzarlo
+  aCajero     = signal<string>('');
 
   // Etiquetas/clases por tipo
   tipoLabel(n: number): string {
@@ -154,9 +189,20 @@ export class CajaComponent {
 
   constructor() {
     this.refreshAll();
+
+    // recargar movimientos al cambiar filtros/estado
     effect(() => {
       const _ = [this.q(), this.tipo(), this.desde(), this.hasta(), this.estado()];
       if (this.estado()?.aperturaId != null) this.loadMovs();
+    });
+
+    // clampa la página cuando cambian sesiones o pageSize
+    effect(() => {
+      const totalPages = this.sesionesTotalPages();
+      const page = this.sesPage();
+      if (page > totalPages - 1) {
+        this.sesPage.set(Math.max(0, totalPages - 1));
+      }
     });
   }
 
@@ -176,9 +222,11 @@ export class CajaComponent {
 
       await this.loadMovs();
       await this.loadSesiones();
-    } catch {
+      this.sesPage.set(0);
+    } catch (e: any) {
       this.resumen.set(null);
       this.movs.set([]);
+      this.swalErrorFrom(e, 'No se pudo cargar la caja');
     } finally {
       this.loading.set(false);
     }
@@ -197,8 +245,9 @@ export class CajaComponent {
         hasta: this.hasta() || undefined,
       }));
       this.movs.set((rows as CajaMovimientoUI[]) || []);
-    } catch {
+    } catch (e: any) {
       this.movs.set([]);
+      this.Toast.fire({ icon: 'error', title: 'No se pudieron cargar los movimientos' });
     }
   }
 
@@ -206,8 +255,9 @@ export class CajaComponent {
     try {
       const s = await firstValueFrom(this.cajaApi.sesiones());
       this.sesiones.set((s as CajaSesionListItemUI[]) || []);
-    } catch {
+    } catch (e: any) {
       this.sesiones.set([]);
+      this.Toast.fire({ icon: 'error', title: 'No se pudieron cargar las sesiones' });
     }
   }
 
@@ -258,7 +308,6 @@ export class CajaComponent {
       }));
       this.showCierre.set(false);
 
-      // Mensaje bonito con resumen de cierre
       const esperado = +(res?.esperado ?? 0);
       const conteo   = +(res?.conteo ?? +total.toFixed(2));
       const dif      = +(res?.diferencia ?? +(conteo - esperado).toFixed(2));
@@ -327,7 +376,6 @@ export class CajaComponent {
       const res: any = await firstValueFrom(this.cajaApi.abrir({
         montoInicial: +monto.toFixed(2),
         observaciones: (this.aObs() || undefined),
-        // cajeroNombre: this.aCajero() || undefined
       }));
       this.showApertura.set(false);
       const codigo = res?.codigo ?? res?.Codigo ?? null;
@@ -347,7 +395,6 @@ export class CajaComponent {
     this.hasta.set(null);
   }
 
-  /* ========== Util: obtener nombre del JWT en localStorage ========== */
   private getUserNameFromJwt(): string | null {
     try {
       const token =
@@ -374,7 +421,7 @@ export class CajaComponent {
     }
   }
 
-  /* ========== SweetAlert helpers ========== */
+  /* ========== SweetAlert / Error helpers ========== */
   private Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
@@ -387,51 +434,76 @@ export class CajaComponent {
     }
   });
 
-  private fmtQ(v: number | string): string {
-    const n = typeof v === 'number' ? v : parseFloat(String(v).replace(',', '.'));
-    if (!isFinite(n)) return 'Q —';
-    return `Q ${n.toFixed(2)}`;
-  }
-
-  /** Traduce respuestas del backend (incluye ModelState y FondosInsuficientes). */
-  private extractError(e: any): string {
+  private fmtQ(n: any): string {
+    const num = Number(n ?? 0);
     try {
-      if (e?.status === 0) return 'No hay conexión con el servidor.';
-
-      const err = e?.error;
-
-      // String plano
-      if (typeof err === 'string') return err;
-
-      // Nuestra excepción de fondos insuficientes (CajaController devuelve { error, disponible, solicitado })
-      if (err?.error && typeof err.error === 'string' &&
-          err.error.toLowerCase().includes('fondos insuficientes')) {
-        const disp = +(+err.disponible || 0).toFixed(2);
-        const soli = +(+err.solicitado || 0).toFixed(2);
-        return `Fondos insuficientes. Disponible ${this.fmtQ(disp)}, solicitado ${this.fmtQ(soli)}.`;
-      }
-
-      // ModelState: { errors: { campo: [msg,msg] } }
-      if (err?.errors && typeof err.errors === 'object') {
-        const lines: string[] = [];
-        for (const k of Object.keys(err.errors)) {
-          const msgs = err.errors[k];
-          if (Array.isArray(msgs)) msgs.forEach((m: any) => lines.push(`${k}: ${m}`));
-        }
-        if (lines.length) return lines.join(' | ');
-      }
-
-      // Campos comunes
-      const msg = err?.message || err?.detail || err?.title;
-      if (msg) return msg;
-
-      return `Error ${e?.status || ''} ${e?.statusText || ''}`.trim();
+      return new Intl.NumberFormat('es-GT', {
+        style: 'currency',
+        currency: 'GTQ',
+        minimumFractionDigits: 2
+      }).format(num);
     } catch {
-      return 'Error desconocido.';
+      return `Q ${(+num).toFixed(2)}`;
     }
   }
 
+  /** Construye una vista rica para el error (cuando aplica) */
+  private buildErrorView(e: any): { text?: string; html?: string } {
+    if (e?.status === 0) return { text: 'No hay conexión con el servidor.' };
+
+    const err = e?.error;
+
+    // Caso típico: fondos insuficientes con disponible/solicitado
+    if (e?.status === 409 && err && typeof err === 'object'
+        && 'error' in err && 'disponible' in err && 'solicitado' in err) {
+      const disp = this.fmtQ(err.disponible);
+      const sol  = this.fmtQ(err.solicitado);
+      return {
+        html: `
+          <div style="text-align:left">
+            <p><strong>${(err.error || 'Fondos insuficientes')}</strong></p>
+            <ul style="margin:0;padding-left:18px">
+              <li><b>Disponible:</b> ${disp}</li>
+              <li><b>Intentaste registrar:</b> ${sol}</li>
+            </ul>
+            <p style="margin-top:10px;color:#666" class="small">
+              Ajusta el monto o registra una entrada antes del egreso.
+            </p>
+          </div>`
+      };
+    }
+
+    if (typeof err === 'string') return { text: err };
+    if (err?.detail || err?.title || err?.message) {
+      return { text: (err.detail || err.title || err.message) };
+    }
+
+    // Modelo de validación: err.errors = { campo: [msg1, msg2] }
+    if (err?.errors && typeof err.errors === 'object') {
+      const items: string[] = [];
+      Object.entries(err.errors).forEach(([k, v]: any) => {
+        if (Array.isArray(v)) v.forEach((m: any) => items.push(`${k}: ${String(m)}`));
+        else if (v != null) items.push(`${k}: ${String(v)}`);
+      });
+      if (items.length) {
+        return {
+          html: `<ul style="text-align:left; padding-left:18px; margin:0">
+                   ${items.map(m => `<li>${m}</li>`).join('')}
+                 </ul>`
+        };
+      }
+    }
+
+    return { text: `Error ${e?.status || ''} ${e?.statusText || ''}`.trim() || 'Error desconocido.' };
+  }
+
   private swalErrorFrom(e: any, titulo = 'Error'): void {
-    Swal.fire({ icon: 'error', title: titulo, text: this.extractError(e), confirmButtonText: 'Entendido' });
+    const view = this.buildErrorView(e);
+    Swal.fire({
+      icon: 'error',
+      title: titulo,
+      ...(view.html ? { html: view.html } : { text: view.text }),
+      confirmButtonText: 'Entendido'
+    });
   }
 }

@@ -9,14 +9,16 @@ import { FormasPagoService, FormaPagoItem, FormaPagoCreate } from '../../../serv
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './formas-pago.html',
-  styleUrl: './formas-pago.css'
+  styleUrls: ['./formas-pago.css']   // <-- fix: era styleUrl
 })
 export class FormasPago implements OnInit, OnDestroy {
   private svc = inject(FormasPagoService);
 
+  // Data
   formas: FormaPagoItem[] = [];
   formasFiltradas: FormaPagoItem[] = [];
 
+  // Form
   nuevo: Partial<FormaPagoItem> = {
     nombre: '', descripcion: '', activo: true,
     requiereReferencia: false, afectaCaja: false, afectaBanco: false, esCredito: false
@@ -24,12 +26,15 @@ export class FormasPago implements OnInit, OnDestroy {
   editando: FormaPagoItem | null = null;
   submitted = false;
 
+  // UI
   cargando = false;
   mostrarModal = false;
   cargandoFila: Record<number, boolean> = {};
 
+  // Filtros / paginación
   searchTerm = '';
-  filtroEstado = '';
+  // Reemplaza filtro select por segmentado:
+  view: 'activos' | 'inactivos' | 'todos' = 'activos';
   itemsPorPagina = 5;
   paginaActual = 0;
   inicio = 0;
@@ -37,12 +42,17 @@ export class FormasPago implements OnInit, OnDestroy {
   totalPaginas = 1;
   private searchTimer: any;
 
+  // Contadores para badges
+  get activosCount(): number   { return this.formas.filter(f =>  f.activo).length; }
+  get inactivosCount(): number { return this.formas.filter(f => !f.activo).length; }
+
   private Toast = Swal.mixin({ toast:true, position:'top-end', showConfirmButton:false, timer:2500, timerProgressBar:true });
 
   ngOnInit(): void { this.cargar(); }
   ngOnDestroy(): void { if (this.searchTimer) clearTimeout(this.searchTimer); }
   @HostListener('document:keydown.escape') onEsc(){ if (this.mostrarModal) this.cerrarModal(); }
 
+  // ===== Cargar =====
   cargar(): void {
     this.cargando = true;
     this.svc.list(false).subscribe({
@@ -51,23 +61,57 @@ export class FormasPago implements OnInit, OnDestroy {
     });
   }
 
+  // ===== Crear / Editar =====
   abrirCrear(): void {
     this.editando = null;
     this.nuevo = { nombre:'', descripcion:'', activo:true, requiereReferencia:false, afectaCaja:false, afectaBanco:false, esCredito:false };
     this.submitted = false; this.mostrarModal = true;
   }
-
   editarForma(f: FormaPagoItem): void {
     this.editando = { ...f };
     this.nuevo = { ...f };
     this.submitted = false; this.mostrarModal = true;
   }
-
   cerrarModal(): void {
     this.mostrarModal = false; this.submitted = false;
     this.nuevo = { nombre:'', descripcion:'', activo:true, requiereReferencia:false, afectaCaja:false, afectaBanco:false, esCredito:false };
     this.editando = null;
   }
+
+  // ===== Eliminar =====
+async eliminarForma(f: FormaPagoItem): Promise<void> {
+  const res = await Swal.fire({
+    title: '¿Eliminar forma de pago?',
+    text: `Se eliminará "${f.nombre}".`,
+    icon: 'warning',
+    showCancelButton: true,
+    confirmButtonText: 'Sí, eliminar',
+    cancelButtonText: 'Cancelar',
+    confirmButtonColor: '#d33'
+  });
+
+  if (!res.isConfirmed) return;
+
+  this.cargando = true;
+  this.svc.delete(f.id).subscribe({
+    next: () => {
+      // Quitar del listado base y refrescar filtros/paginación
+      this.formas = this.formas.filter(x => x.id !== f.id);
+      this.aplicarFiltros();
+
+      this.Toast.fire({ icon: 'success', title: 'Eliminado' });
+      this.cargando = false;
+
+      // Si estabas en el modal de edición, ciérralo
+      if (this.mostrarModal) this.cerrarModal();
+    },
+    error: (err) => {
+      const msg = err?.error?.message || 'No se pudo eliminar';
+      this.swalError(msg);
+      this.cargando = false;
+    }
+  });
+}
 
   guardar(): void {
     this.submitted = true;
@@ -116,18 +160,7 @@ export class FormasPago implements OnInit, OnDestroy {
     });
   }
 
-  async eliminarForma(f: FormaPagoItem): Promise<void> {
-    const res = await Swal.fire({ title:'¿Eliminar forma de pago?', text:`Se eliminará "${f.nombre}".`, icon:'warning',
-      showCancelButton:true, confirmButtonText:'Sí, eliminar', cancelButtonText:'Cancelar', confirmButtonColor:'#d33' });
-    if (!res.isConfirmed) return;
-
-    this.cargando = true;
-    this.svc.delete(f.id).subscribe({
-      next: () => { this.formas = this.formas.filter(x => x.id !== f.id); this.aplicarFiltros(); this.Toast.fire({icon:'success', title:'Eliminado'}); this.cargando = false; },
-      error: () => { this.swalError('No se pudo eliminar'); this.cargando = false; }
-    });
-  }
-
+  // ===== Estado =====
   async confirmarToggle(f: FormaPagoItem): Promise<void> {
     const activar = !f.activo;
     const res = await Swal.fire({ title: activar ? '¿Activar forma de pago?' : '¿Desactivar forma de pago?',
@@ -136,30 +169,33 @@ export class FormasPago implements OnInit, OnDestroy {
     if (!res.isConfirmed) return;
     this.cambiarEstado(f);
   }
-
   cambiarEstado(f: FormaPagoItem): void {
     this.cargandoFila[f.id] = true;
     const previo = f.activo; f.activo = !f.activo;
-
     this.svc.toggleActivo(f.id, f.activo).subscribe({
-      next: (resp) => { f.activo = resp.activo; this.Toast.fire({icon:'success', title:`Forma de pago ${resp.activo?'activada':'desactivada'}`}); this.cargandoFila[f.id] = false; },
+      next: (resp) => { f.activo = resp.activo; this.Toast.fire({icon:'success', title:`Forma de pago ${resp.activo?'activada':'desactivada'}`}); this.cargandoFila[f.id] = false; this.aplicarFiltros(); },
       error: () => { f.activo = previo; this.swalError('No se pudo cambiar el estado'); this.cargandoFila[f.id] = false; }
     });
   }
 
+  // ===== Filtros / Paginación =====
+  setView(v:'activos'|'inactivos'|'todos'){ if(this.view!==v){ this.view=v; this.paginaActual=0; this.aplicarFiltros(); } }
   onSearchInput(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.aplicarFiltros(), 250);
   }
-
   aplicarFiltros(): void {
     let list = [...this.formas];
     const term = (this.searchTerm || '').trim().toLowerCase();
     if (term) list = list.filter(f => (f.nombre || '').toLowerCase().includes(term));
-    if (this.filtroEstado) list = list.filter(f => f.activo === (this.filtroEstado === 'true'));
-    this.formasFiltradas = list; this.paginaActual = 0; this.actualizarPaginacion();
-  }
 
+    if (this.view === 'activos')       list = list.filter(f =>  f.activo);
+    else if (this.view === 'inactivos') list = list.filter(f => !f.activo);
+
+    this.formasFiltradas = list;
+    this.paginaActual = 0;
+    this.actualizarPaginacion();
+  }
   cambiarPaginacion(): void { this.paginaActual = 0; this.actualizarPaginacion(); }
   actualizarPaginacion(): void {
     this.inicio = this.paginaActual * this.itemsPorPagina;

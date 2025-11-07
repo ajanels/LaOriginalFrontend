@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { ClientesService, Cliente } from '../../../services/clientes.service';
 import Swal from 'sweetalert2';
 
+type EstadoTab = 'activos' | 'inactivos' | 'todos';
+
 @Component({
   selector: 'app-clientes',
   standalone: true,
@@ -33,15 +35,19 @@ export class Clientes implements OnInit, OnDestroy {
 
   // Filtros / paginación
   searchTerm = '';
-  filtroEstado = '';
-  itemsPorPagina = 5;
+  estadoTab: EstadoTab = 'activos';     // << segmentado por defecto
+  itemsPorPagina = 9;
   paginaActual = 0;
   inicio = 0;
-  fin = 10;
+  fin = 9;
   totalPaginas = 1;
   private searchTimer: any;
 
-  // Toast
+  // Contadores (sobre la lista completa)
+  countActivos = 0;
+  countInactivos = 0;
+  countTodos = 0;
+
   private Toast = Swal.mixin({
     toast: true,
     position: 'top-end',
@@ -54,7 +60,7 @@ export class Clientes implements OnInit, OnDestroy {
   ngOnInit(): void { this.cargarClientes(); }
   ngOnDestroy(): void { if (this.searchTimer) clearTimeout(this.searchTimer); }
 
-  // Cerrar modal con ESC
+  // ESC cierra modal
   @HostListener('document:keydown.escape')
   onEsc() { if (this.mostrarModal) this.cerrarModal(); }
 
@@ -65,6 +71,7 @@ export class Clientes implements OnInit, OnDestroy {
     this.svc.list(false).subscribe({
       next: (data) => {
         this.clientes = data ?? [];
+        this.actualizarContadores();
         this.aplicarFiltros();
         this.cargando = false;
       },
@@ -115,16 +122,14 @@ export class Clientes implements OnInit, OnDestroy {
   }
 
   sanitizarTelefono(evt: Event): void {
-  const input = evt.target as HTMLInputElement;
-  const solo = (input.value || '').replace(/\D+/g, '').slice(0, 8);
-  input.value = solo;
-  this.nuevoCliente.telefono = solo;
-}
-
+    const input = evt.target as HTMLInputElement;
+    const solo = (input.value || '').replace(/\D+/g, '').slice(0, 8);
+    input.value = solo;
+    this.nuevoCliente.telefono = solo;
+  }
 
   nitValido(): boolean {
     const nit = (this.nuevoCliente.nit || '').trim();
-    // permitido vacío; si trae valor, exactamente 9 dígitos
     return nit.length === 0 || /^[0-9]{9}$/.test(nit);
   }
 
@@ -166,6 +171,7 @@ export class Clientes implements OnInit, OnDestroy {
               notas: this.nuevoCliente.notas?.trim() || null
             } as Cliente;
           }
+          this.actualizarContadores();
           this.aplicarFiltros();
           this.Toast.fire({ icon: 'success', title: 'Cliente actualizado' });
           this.cargando = false;
@@ -197,6 +203,7 @@ export class Clientes implements OnInit, OnDestroy {
     }).subscribe({
       next: (cli) => {
         this.clientes.unshift(cli);
+        this.actualizarContadores();
         this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: 'Cliente creado' });
         this.cargando = false;
@@ -232,6 +239,7 @@ export class Clientes implements OnInit, OnDestroy {
     this.svc.delete(this.editando.id).subscribe({
       next: () => {
         this.clientes = this.clientes.filter(x => x.id !== this.editando!.id);
+        this.actualizarContadores();
         this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: 'Cliente eliminado' });
         this.cargando = false;
@@ -271,6 +279,8 @@ export class Clientes implements OnInit, OnDestroy {
     this.svc.toggleActivo(c.id, c.activo).subscribe({
       next: (resp) => {
         c.activo = resp.activo;
+        this.actualizarContadores();
+        this.aplicarFiltros();
         this.Toast.fire({ icon: 'success', title: `Cliente ${resp.activo ? 'activado' : 'desactivado'}` });
         this.cargandoFila[c.id] = false;
       },
@@ -283,6 +293,13 @@ export class Clientes implements OnInit, OnDestroy {
   }
 
   // ===== Filtros / Paginación =====
+  setTab(tab: EstadoTab): void {
+    if (this.estadoTab === tab) return;
+    this.estadoTab = tab;
+    this.paginaActual = 0;
+    this.aplicarFiltros();
+  }
+
   onSearchInput(): void {
     if (this.searchTimer) clearTimeout(this.searchTimer);
     this.searchTimer = setTimeout(() => this.aplicarFiltros(), 250);
@@ -290,6 +307,7 @@ export class Clientes implements OnInit, OnDestroy {
 
   aplicarFiltros(): void {
     let filtrados = [...this.clientes];
+
     const term = (this.searchTerm || '').trim().toLowerCase();
     if (term) {
       filtrados = filtrados.filter(c =>
@@ -298,16 +316,15 @@ export class Clientes implements OnInit, OnDestroy {
         (c.telefono || '').toLowerCase().includes(term)
       );
     }
-    if (this.filtroEstado) {
-      const activo = this.filtroEstado === 'true';
-      filtrados = filtrados.filter(c => c.activo === activo);
-    }
-    this.clientesFiltrados = filtrados;
-    this.paginaActual = 0;
-    this.actualizarPaginacion();
-  }
 
-  cambiarPaginacion(): void {
+    // estadoTab
+    if (this.estadoTab === 'activos') {
+      filtrados = filtrados.filter(c => c.activo);
+    } else if (this.estadoTab === 'inactivos') {
+      filtrados = filtrados.filter(c => !c.activo);
+    }
+
+    this.clientesFiltrados = filtrados;
     this.paginaActual = 0;
     this.actualizarPaginacion();
   }
@@ -324,12 +341,18 @@ export class Clientes implements OnInit, OnDestroy {
       this.actualizarPaginacion();
     }
   }
-
   paginaSiguiente(): void {
     if (this.paginaActual < this.totalPaginas - 1) {
       this.paginaActual++;
       this.actualizarPaginacion();
     }
+  }
+
+  // ===== Contadores =====
+  private actualizarContadores(): void {
+    this.countActivos = this.clientes.filter(c => c.activo).length;
+    this.countInactivos = this.clientes.length - this.countActivos;
+    this.countTodos = this.clientes.length;
   }
 
   // ===== Utils =====

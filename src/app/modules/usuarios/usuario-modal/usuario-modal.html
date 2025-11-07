@@ -1,4 +1,4 @@
-<!-- ====== VISTA DETALLE (drawer a la derecha) ====== -->
+<!-- ====== VISTA DETALLE (drawer) ====== -->
 <ng-container *ngIf="isView; else createEditTpl">
   <div class="modal-backdrop" (click)="cancel()"></div>
   <div class="container drawer" (click)="cancel()">
@@ -12,8 +12,8 @@
 
       <div class="view">
         <div class="avatar">
-          <img *ngIf="photoPreview; else ph" [src]="photoPreview" alt="Foto" />
-          <ng-template #ph><div class="placeholder">{{ usuario?.primerNombre?.charAt(0) }}</div></ng-template>
+          <img *ngIf="photoPreview; else ph" [src]="photoPreview" (error)="onImgError()" alt="Foto" />
+          <ng-template #ph><div class="placeholder">{{ initialLetter }}</div></ng-template>
         </div>
 
         <dl>
@@ -37,7 +37,7 @@
   </div>
 </ng-container>
 
-<!-- ====== CREAR / EDITAR (modal centrado 4 columnas) ====== -->
+<!-- ====== CREAR / EDITAR (modal) ====== -->
 <ng-template #createEditTpl>
   <div class="modal-backdrop" (click)="cancel()"></div>
 
@@ -45,6 +45,10 @@
     <div class="modal-card" (click)="$event.stopPropagation()">
       <header class="modal-head">
         <div class="modal-title-wrap">
+          <!-- Avatar pequeño en EDIT -->
+          <div *ngIf="isEdit" class="avatar tiny">
+            <ng-template #eph><div class="placeholder">{{ initialLetter }}</div></ng-template>
+          </div>
           <span class="modal-dot"></span>
           <h2 id="um-title">{{ isCreate ? 'Nuevo usuario' : 'Editar usuario' }}</h2>
         </div>
@@ -55,48 +59,157 @@
 
       <form class="form four-col" [formGroup]="form" (ngSubmit)="save()">
         <!-- 1 -->
-        <label>Primer nombre* <input formControlName="primerNombre" /></label>
-        <label>Segundo nombre <input formControlName="segundoNombre" /></label>
-        <label>Primer apellido* <input formControlName="primerApellido" /></label>
-        <label>Segundo apellido <input formControlName="segundoApellido" /></label>
+        <label>
+          Primer nombre*
+          <input formControlName="primerNombre" />
+          <small class="error" *ngIf="showCtrlError('primerNombre')">Entre 2 y 50 caracteres.</small>
+        </label>
+        <label>
+          Segundo nombre
+          <input formControlName="segundoNombre" />
+          <small class="hint">Opcional. Máx. 50.</small>
+        </label>
+        <label>
+          Primer apellido*
+          <input formControlName="primerApellido" />
+          <small class="error" *ngIf="showCtrlError('primerApellido')">Entre 2 y 50 caracteres.</small>
+        </label>
+        <label>
+          Segundo apellido
+          <input formControlName="segundoApellido" />
+          <small class="hint">Opcional. Máx. 50.</small>
+        </label>
 
         <!-- 2 -->
-        <label>NIT* <input formControlName="nit" inputmode="numeric" maxlength="9" placeholder="#########" /></label>
-        <label>CUI* <input formControlName="cui" inputmode="numeric" maxlength="13" placeholder="#############" /></label>
-        <label>Fecha nacimiento* <input type="date" formControlName="fechaNacimiento" /></label>
-        <label>Fecha ingreso* <input type="date" formControlName="fechaIngreso" /></label>
+        <label>
+          NIT*
+          <input formControlName="nit" inputmode="numeric" maxlength="9" placeholder="#########" />
+          <small class="hint">Exactamente 9 dígitos (sin guiones).</small>
+          <small class="error" *ngIf="showCtrlError('nit')">Debe contener 9 dígitos.</small>
+        </label>
+        <label>
+          CUI*
+          <input formControlName="cui" inputmode="numeric" maxlength="13" placeholder="#############" />
+          <small class="hint">Exactamente 13 dígitos.</small>
+          <small class="error" *ngIf="showCtrlError('cui')">Debe contener 13 dígitos.</small>
+        </label>
+        <label>
+          Fecha nacimiento*
+          <input type="date" formControlName="fechaNacimiento" [min]="minNac" [max]="maxNac" />
+          <small class="hint">≥ {{minNac}} y ≤ {{maxNac}} (mín. 15 años).</small>
+        </label>
+        <label>
+          Fecha ingreso*
+          <input type="date" formControlName="fechaIngreso" [min]="minIng" [max]="maxIng" />
+          <small class="hint">Entre {{minIng}} y {{maxIng}}.</small>
+        </label>
+
+        <div class="span-4"
+             *ngIf="form.hasError('fnOutOfRange') || form.hasError('fiOutOfRange') || form.hasError('fiBeforeMinAge')">
+          <small class="error" *ngIf="form.hasError('fnOutOfRange')">La fecha de nacimiento está fuera de rango.</small>
+          <small class="error" *ngIf="form.hasError('fiOutOfRange')">La fecha de ingreso está fuera de rango.</small>
+          <small class="error" *ngIf="form.hasError('fiBeforeMinAge')">La fecha de ingreso debe ser al menos 15 años posterior a la de nacimiento.</small>
+        </div>
 
         <!-- 3 -->
-        <label>Género*
+        <label>
+          Género*
           <select formControlName="genero">
             <option>Masculino</option><option>Femenino</option><option>Otro</option><option>Prefiero no decir</option>
           </select>
         </label>
-        <label>Estado*
+        <label>
+          Estado*
           <select formControlName="estado">
             <option>Activo</option><option>Inactivo</option><option>Suspendido</option>
           </select>
         </label>
-        <label>Celular* <input formControlName="celular" inputmode="numeric" maxlength="8" placeholder="########" /></label>
-        <label>Email* <input type="email" formControlName="email" /></label>
+        <label>
+          Celular*
+          <input formControlName="celular" inputmode="numeric" maxlength="8" placeholder="########" />
+          <small class="hint">8 dígitos; debe iniciar con 2–7.</small>
+          <small class="error" *ngIf="showCtrlError('celular')">Formato inválido.</small>
+        </label>
+        <label>
+          Email*
+          <input type="email" formControlName="email" />
+          <small class="hint">Debe ser un correo válido.</small>
+          <small class="error" *ngIf="showCtrlError('email')">Correo inválido.</small>
+        </label>
 
         <!-- 4 -->
-        <label class="span-4">Dirección* <input formControlName="direccion" /></label>
+        <label class="span-4">
+          Dirección*
+          <input formControlName="direccion" />
+          <small class="hint">Entre 10 y 120 caracteres.</small>
+          <small class="error" *ngIf="showCtrlError('direccion')">Longitud inválida.</small>
+        </label>
 
         <!-- 5 -->
-        <label class="span-2">Rol*
+        <label class="span-2">
+          Rol*
           <select formControlName="rolId">
             <option [ngValue]="null" disabled>Seleccione…</option>
             <option *ngFor="let r of roles" [ngValue]="r.id">{{ r.nombre }}</option>
           </select>
+          <small class="error" *ngIf="showCtrlError('rolId')">Seleccione un rol.</small>
         </label>
-        <label *ngIf="isCreate" class="span-2">Contraseña*
+
+        <!-- Contraseña en CREATE -->
+        <label *ngIf="isCreate" class="span-2">
+          Contraseña*
           <input type="password" formControlName="password" />
+          <ul class="pwd-checklist grid">
+            <li class="item" [class.ok]="pwdRules.len"><span class="material-icons status">{{ pwdRules.len ? 'check_circle' : 'radio_button_unchecked' }}</span> 8–64 caracteres</li>
+            <li class="item" [class.ok]="pwdRules.upper"><span class="material-icons status">{{ pwdRules.upper ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 mayúscula</li>
+            <li class="item" [class.ok]="pwdRules.lower"><span class="material-icons status">{{ pwdRules.lower ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 minúscula</li>
+            <li class="item" [class.ok]="pwdRules.digit"><span class="material-icons status">{{ pwdRules.digit ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 número</li>
+            <li class="item" [class.ok]="pwdRules.symbol"><span class="material-icons status">{{ pwdRules.symbol ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 símbolo</li>
+          </ul>
+          <small class="error" *ngIf="showCtrlError('password')">No cumple los requisitos.</small>
         </label>
-        <label *ngIf="!isCreate" class="span-2"></label>
+
+        <!-- En EDICIÓN: toggle + campos de cambio de contraseña -->
+        <div *ngIf="isEdit" class="span-2 change-pwd">
+          <label class="switch">
+            <input id="chgPwd" type="checkbox" [checked]="changePwd" (change)="toggleChangePwd()" />
+            <span class="track" aria-hidden="true"><span class="thumb"></span></span>
+            <span class="switch-label">Cambiar contraseña</span>
+          </label>
+          <small class="hint"></small>
+        </div>
+
+        <label *ngIf="isEdit && changePwd" class="span-2">
+          Nueva contraseña*
+          <input type="password" formControlName="password" />
+          <ul class="pwd-checklist grid">
+            <li class="item" [class.ok]="pwdRules.len"><span class="material-icons status">{{ pwdRules.len ? 'check_circle' : 'radio_button_unchecked' }}</span> 8–64 caracteres</li>
+            <li class="item" [class.ok]="pwdRules.upper"><span class="material-icons status">{{ pwdRules.upper ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 mayúscula</li>
+            <li class="item" [class.ok]="pwdRules.lower"><span class="material-icons status">{{ pwdRules.lower ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 minúscula</li>
+            <li class="item" [class.ok]="pwdRules.digit"><span class="material-icons status">{{ pwdRules.digit ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 número</li>
+            <li class="item" [class.ok]="pwdRules.symbol"><span class="material-icons status">{{ pwdRules.symbol ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 símbolo</li>
+          </ul>
+          <small class="error" *ngIf="showCtrlError('password')">No cumple los requisitos.</small>
+        </label>
+
+        <label *ngIf="isEdit && changePwd" class="span-2">
+          Confirmar contraseña*
+          <input type="password" formControlName="password2" />
+          <small class="error" *ngIf="form.hasError('pwdMismatch')">Las contraseñas no coinciden.</small>
+        </label>
 
         <!-- 6 -->
-        <label class="span-4">Foto <input type="file" (change)="onFile($event)" accept="image/*" /></label>
+        <label class="span-4">
+          Foto
+          <div class="file-row">
+            <input type="file" (change)="onFile($event)" accept="image/*" />
+            <div class="avatar preview">
+              <img *ngIf="photoPreview; else fph" [src]="photoPreview" (error)="onImgError()" alt="Foto" />
+              <ng-template #fph><div class="placeholder">{{ initialLetter }}</div></ng-template>
+            </div>
+          </div>
+          <small class="hint">JPG, PNG o WEBP.</small>
+        </label>
 
         <footer class="modal-foot">
           <div class="left">

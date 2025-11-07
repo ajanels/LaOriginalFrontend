@@ -47,8 +47,18 @@ export const routes: Routes = [
         path: 'pedidos',
         children: [
           { path: '', pathMatch: 'full', redirectTo: 'clientes' },
-          { path: 'clientes',    loadComponent: () => import('./modules/pedidos/clientes/clientes').then(m => m.PedidosClientesComponent) },
-          { path: 'proveedores', loadComponent: () => import('./modules/pedidos/proveedores/proveedores').then(m => m.PedidosProveedores) },
+          {
+            path: 'clientes',
+            loadComponent: () => import('./modules/pedidos/clientes/clientes')
+              .then(m => m.PedidosClientesComponent)
+          },
+          {
+            path: 'proveedores', // ✅ sin espacios, minúsculas
+            loadComponent: () => import('./modules/pedidos/proveedores/proveedores')
+              .then(m => m.PedidosProveedores)
+          },
+          // (opcional) alias para compatibilidad si en algún lugar quedó el path viejo:
+          { path: 'Compras a proveedores', redirectTo: 'proveedores', pathMatch: 'full' }
         ]
       },
 

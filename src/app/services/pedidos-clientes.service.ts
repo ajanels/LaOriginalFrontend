@@ -15,24 +15,8 @@ function normEnum(s: any): string {
     .replace(/[^a-zA-Z]/g, '')
     .toLowerCase();
 }
-function estadoToName(n: number): string {
-  switch (Number(n)) {
-    case 0: return 'Borrador';
-    case 1: return 'Confirmado';
-    case 2: return 'EnPreparacion';
-    case 3: return 'Listo';
-    case 4: return 'Entregado';
-    case 9: return 'Cancelado';
-    default: return 'Borrador';
-  }
-}
-function tipoToName(n: number): string {
-  switch (Number(n)) {
-    case 0: return 'Completo';
-    case 1: return 'Personalizado';
-    default: return 'Completo';
-  }
-}
+
+/** Intenta parsear número o nombre -> número (por si el backend devolviera string) */
 const parseEstado = (v: any): number => {
   if (typeof v === 'number') return v;
   const k = normEnum(v);
@@ -46,6 +30,7 @@ const parseEstado = (v: any): number => {
   const n = Number(v);
   return Number.isFinite(n) ? n : 0;
 };
+
 const parseTipo = (v: any): number => {
   if (typeof v === 'number') return v;
   const k = normEnum(v);
@@ -87,7 +72,7 @@ export interface PedidoClienteDetalleDto {
   totalLinea: number;
   notas?: string | null;
 
-  /* ===== NUEVO: datos para mostrar imagen/nombre de producto ===== */
+  /* Aux opcionales para imagen/nombre de producto */
   productoId?: number | null;
   productoNombre?: string | null;
   productoCodigo?: string | null;
@@ -112,6 +97,8 @@ export interface PedidoClienteCreateDto {
 
 export interface PedidoClienteDetailDto extends PedidoClienteCreateDto {
   id: number;
+  /** NUEVO: mapeado del backend */
+  fechaCreacionUtc?: string;
   pagos: Array<{
     id: number;
     fechaUtc: string;
@@ -141,8 +128,6 @@ export interface CatalogItemDto {
   stock?: number;
   reservado?: number;
   disponible?: number;
-
-  /* ===== NUEVO: categoría ===== */
   categoriaId?: number | null;
   categoria?: string | null;
 }
@@ -181,7 +166,7 @@ export class PedidosClientesService {
         estado: parseEstado(r.estado),
         tipo: parseTipo(r.tipo),
         total: r.total,
-        cuentaAlDia: r.cuentaAlDia
+        cuentaAlDia: !!r.cuentaAlDia
       } as PedidoClienteListDto)))
     );
   }
@@ -195,6 +180,8 @@ export class PedidosClientesService {
         telefono: r.telefono,
         direccionEntrega: r.direccionEntrega,
         fechaEntregaCompromisoUtc: r.fechaEntregaCompromisoUtc,
+        /** NUEVO: viene del backend */
+        fechaCreacionUtc: r.fechaCreacionUtc,
         estado: parseEstado(r.estado),
         tipo: parseTipo(r.tipo),
         observaciones: r.observaciones,
@@ -210,7 +197,6 @@ export class PedidosClientesService {
           descuentoUnitario: d.descuentoUnitario,
           totalLinea: d.totalLinea,
           notas: d.notas,
-
           // auxiliares si el backend los trae
           productoId: d.productoId ?? null,
           productoNombre: d.productoNombre ?? null,
@@ -244,6 +230,7 @@ export class PedidosClientesService {
     );
   }
 
+  /** ==== IMPORTANTE: ahora enviamos números para Estado/Tipo ==== */
   create(dto: PedidoClienteCreateDto): Observable<{ id: number } | { Id: number }> {
     const body: any = {
       ClienteId: dto.clienteId,
@@ -251,8 +238,8 @@ export class PedidosClientesService {
       Telefono: dto.telefono ?? null,
       DireccionEntrega: dto.direccionEntrega ?? null,
       FechaEntregaCompromisoUtc: dto.fechaEntregaCompromisoUtc ?? null,
-      Estado: estadoToName(dto.estado),
-      Tipo: tipoToName(dto.tipo),
+      Estado: dto.estado,            // <-- número
+      Tipo: dto.tipo,                // <-- número
       Observaciones: dto.observaciones ?? null,
       Subtotal: dto.subtotal,
       Descuento: dto.descuento,
@@ -288,8 +275,8 @@ export class PedidosClientesService {
       Telefono: dto.telefono ?? null,
       DireccionEntrega: dto.direccionEntrega ?? null,
       FechaEntregaCompromisoUtc: dto.fechaEntregaCompromisoUtc ?? null,
-      Estado: estadoToName(dto.estado),
-      Tipo: tipoToName(dto.tipo),
+      Estado: dto.estado,            // <-- número
+      Tipo: dto.tipo,                // <-- número
       Observaciones: dto.observaciones ?? null,
       Subtotal: dto.subtotal,
       Descuento: dto.descuento,
@@ -317,8 +304,9 @@ export class PedidosClientesService {
     return this.http.put<void>(`${this.API}/${id}`, body);
   }
 
+  /** ==== IMPORTANTE: ahora enviamos número para NuevoEstado ==== */
   cambiarEstado(id: number, nuevoEstado: number, motivo?: string) {
-    const body = { NuevoEstado: estadoToName(nuevoEstado), Motivo: motivo ?? null };
+    const body = { NuevoEstado: nuevoEstado, Motivo: motivo ?? null }; // <-- número
     return this.http.patch<any>(`${this.API}/${id}/estado`, body).pipe(
       map(r => ({
         id: r?.id ?? r?.Id,
@@ -333,10 +321,7 @@ export class PedidosClientesService {
     );
   }
 
-  /**
-   * Catálogo de presentaciones para armar pedidos.
-   * Acepta `categoriaId` para filtrar por categoría de producto en el backend.
-   */
+  /** Catálogo (con filtro opcional por categoría) */
   catalogo(params: {
     term?: string; soloActivos?: boolean; take?: number; excluirPedidoId?: number; categoriaId?: number | null
   }): Observable<CatalogItemDto[]> {
@@ -399,7 +384,7 @@ export class PedidosClientesService {
     return this.http.delete<void>(`${this.API}/${id}`);
   }
 
-  /* ===== OPCIONAL: endpoints de disponible ===== */
+  /* ===== Disponible ===== */
   getDisponible(presentacionId: number, excluirPedidoId?: number): Observable<StockDisponibleDto> {
     let hp = new HttpParams();
     if (excluirPedidoId != null) hp = hp.set('excluirPedidoId', String(excluirPedidoId));
@@ -415,7 +400,9 @@ export class PedidosClientesService {
   }
 
   getDisponibles(ids: number[], excluirPedidoId?: number): Observable<StockDisponibleDto[]> {
-    if (!ids?.length) return new Observable<StockDisponibleDto[]>(obs => { obs.next([]); obs.complete(); });
+    if (!ids?.length) {
+      return new Observable<StockDisponibleDto[]>(obs => { obs.next([]); obs.complete(); });
+    }
     let hp = new HttpParams().set('ids', ids.join(','));
     if (excluirPedidoId != null) hp = hp.set('excluirPedidoId', String(excluirPedidoId));
     return this.http.get<any[]>(`${this.API}/disponible`, { params: hp }).pipe(

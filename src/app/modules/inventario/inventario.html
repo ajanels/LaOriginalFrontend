@@ -34,7 +34,7 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let r of viewRows">
+          <tr *ngFor="let r of pagedRows">
             <td class="img-cell"><img [src]="r.fotoUrl || 'assets/noimg.svg'" alt="foto" /></td>
             <td>
               <div class="prod-name">{{ r.producto }}</div>
@@ -57,10 +57,22 @@
               <button class="icon" (click)="abrirEditarMin(r)" title="Editar mínimo"><span class="material-icons">edit</span></button>
             </td>
           </tr>
-          <tr *ngIf="!viewRows.length"><td colspan="6" class="empty">Sin resultados</td></tr>
+          <tr *ngIf="!pagedRows.length"><td colspan="6" class="empty">Sin resultados</td></tr>
         </tbody>
       </table>
     </div>
+
+    <!-- Paginador minimalista (8 por página) -->
+    <div class="pager" *ngIf="!loading && total > 0">
+      <div class="spacer"></div>
+      <button class="ghost" type="button" [disabled]="!canPrev()" (click)="prev()">
+        <span class="material-icons">chevron_left</span> Anterior
+      </button>
+      <button class="ghost" type="button" [disabled]="!canNext()" (click)="next()">
+        Siguiente <span class="material-icons">chevron_right</span>
+      </button>
+    </div>
+
     <ng-template #loadingTpl><div class="empty">Cargando…</div></ng-template>
   </div>
 

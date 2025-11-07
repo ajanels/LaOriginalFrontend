@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, OnInit, inject, signal, computed, HostListener, ViewChild, ElementRef, effect } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, NgForm } from '@angular/forms';
 import { HttpClient } from '@angular/common/http';
@@ -53,14 +53,76 @@ export class PedidosProveedores implements OnInit {
   pedidos = signal<PedidoProveedorListItem[]>([]);
   q = signal<string>('');
 
-  filtered = computed(() => {
+  // ====== Vista (activos / cerrados / cancelados) + paginación ======
+  view = signal<'activos' | 'cerrados' | 'cancelados'>('activos');
+  page = signal<number>(0);
+  pageSize = signal<number>(8);
+
+  /** Búsqueda (todas las filas) */
+  filteredAll = computed(() => {
     const term = this.q().trim().toLowerCase();
-    if (!term) return this.pedidos();
-    return this.pedidos().filter(p =>
+    const rows = this.pedidos();
+    if (!term) return rows;
+    return rows.filter(p =>
       (p.numero || '').toLowerCase().includes(term) ||
       (p.proveedorNombre || '').toLowerCase().includes(term)
     );
   });
+
+  /** Separación por estado */
+  activos = computed(() =>
+    this.filteredAll().filter(p => {
+      const k = this.estadoKeyFromValue((p as any).estado);
+      return k !== 'cerrado' && k !== 'cancelado';
+    })
+  );
+  cerrados = computed(() =>
+    this.filteredAll().filter(p => this.estadoKeyFromValue((p as any).estado) === 'cerrado')
+  );
+  cancelados = computed(() =>
+    this.filteredAll().filter(p => this.estadoKeyFromValue((p as any).estado) === 'cancelado')
+  );
+
+  /** Lista según vista actual */
+  listForView = computed(() =>
+    this.view() === 'activos'   ? this.activos()   :
+    this.view() === 'cerrados'  ? this.cerrados()  :
+                                  this.cancelados()
+  );
+
+  totalItems = computed(() => this.listForView().length);
+  totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
+
+  paged = computed(() => {
+    const list = this.listForView();
+    const size = this.pageSize();
+    const lastIndex = Math.max(0, this.totalPages() - 1);
+    const page = Math.min(this.page(), lastIndex);
+    const start = page * size;
+    return list.slice(start, start + size);
+  });
+
+  canPrev = computed(() => this.page() > 0);
+  canNext = computed(() => this.page() < this.totalPages() - 1);
+  prev(): void {
+    if (this.page() > 0) {
+      this.page.set(this.page() - 1);
+    }
+  }
+
+  next(): void {
+    const last = this.totalPages() - 1;
+    if (this.page() < last) {
+      this.page.set(this.page() + 1);
+    }
+  }
+
+  goActivos()     { if (this.view() !== 'activos')    { this.view.set('activos');    this.page.set(0); } }
+  goCerrados()    { if (this.view() !== 'cerrados')   { this.view.set('cerrados');   this.page.set(0); } }
+  goCancelados()  { if (this.view() !== 'cancelados') { this.view.set('cancelados'); this.page.set(0); } }
+
+  @ViewChild('listSearch', { static: false }) listSearch?: ElementRef<HTMLInputElement>;
+  @ViewChild('catSearch', { static: false }) catSearch?: ElementRef<HTMLInputElement>;
 
   // ====== Catálogo y combos ======
   proveedores: Opt[] = [];
@@ -68,8 +130,9 @@ export class PedidosProveedores implements OnInit {
   term = '';
   cargandoCatalogo = false;
   catalogo: CatalogoItem[] = [];
+  private catDebounce?: any;
 
-  // Placeholder inline (no requiere archivo en assets)
+  // Placeholder inline
   placeholderImg =
     'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="70" height="70"><rect width="100%" height="100%" fill="%23f5f5f5"/><text x="50%" y="55%" font-size="12" text-anchor="middle" fill="%23999">IMG</text></svg>';
 
@@ -124,7 +187,7 @@ export class PedidosProveedores implements OnInit {
   onImgError(evt: Event): void {
     const img = evt.target as HTMLImageElement | null;
     if (img) {
-      (img as any).onerror = null; // evita loop si falla el placeholder también
+      (img as any).onerror = null;
       img.src = this.placeholderImg;
     }
   }
@@ -145,10 +208,44 @@ export class PedidosProveedores implements OnInit {
     el.value = String(Math.max(0, parseInt(el.value || '0', 10) - 1));
   }
 
+  // ====== Atajos de teclado ======
+  @HostListener('document:keydown', ['$event'])
+  onKeydown(e: KeyboardEvent) {
+    const key = (e.key || '').toLowerCase();
+
+    // Ctrl+K => buscar en listado
+    if (e.ctrlKey && key === 'k') {
+      e.preventDefault();
+      this.listSearch?.nativeElement.focus();
+      this.listSearch?.nativeElement.select();
+      return;
+    }
+
+    // Ctrl+Shift+N => nueva cotización
+    if (e.ctrlKey && e.shiftKey && key === 'n') {
+      e.preventDefault();
+      if (!this.showCreate && !this.showRx && !this.showQuick) this.openCreate();
+      return;
+    }
+
+    // Esc => cierra el modal activo
+    if (key === 'escape') {
+      if (this.showQuick) { this.closeQuickAdd(); return; }
+      if (this.showRx) { this.closeRx(); return; }
+      if (this.showCreate) { this.closeCreate(); return; }
+      if (this.showView) { this.closeView(); return; }
+    }
+  }
+
   // ====== Ciclo ======
   ngOnInit(): void {
     this.reload();
     this.loadProveedores();
+
+    // Resetear página cuando cambian vista, búsqueda o lista
+    effect(() => { const _ = [this.view(), this.q(), this.pedidos()]; this.page.set(0); });
+
+    console.log('[PedidosProveedores] init OK (pp-page v4 con Activos/Cerrados/Cancelados + paginación)');
   }
 
   private loadProveedores(): void {
@@ -159,19 +256,27 @@ export class PedidosProveedores implements OnInit {
           this.proveedorId = this.proveedores[0].id;
         }
       },
-      error: () => this.Toast.fire({icon:'error', title:'No se pudieron cargar los proveedores'})
+      error: (e) => {
+        // Solo avisar si NO hay conexión
+        if (e?.status === 0) this.swalNoConn();
+      }
     });
 
     this.catSvc.list(true).subscribe({
-      next: l => this.categorias = (l || []).map(x => ({id:x.id, nombre:x.nombre}))
+      next: l => this.categorias = (l || []).map(x => ({id:x.id, nombre:x.nombre})),
+      error: () => { /* silencioso */ }
     });
   }
 
   reload(): void {
     this.loading.set(true);
     this.svc.list().subscribe({
-      next: list => { this.pedidos.set(list || []); this.loading.set(false); },
-      error: () => { this.loading.set(false); this.Toast.fire({icon:'error', title:'No se pudo cargar pedidos'}); }
+      next: list => { this.pedidos.set(list || []); this.loading.set(false); this.page.set(0); },
+      error: (e) => {
+        this.loading.set(false);
+        // Solo avisar si NO hay conexión
+        if (e?.status === 0) this.swalNoConn();
+      }
     });
   }
 
@@ -192,6 +297,8 @@ export class PedidosProveedores implements OnInit {
     this.catalogo = [];
     this.term = '';
     if (this.proveedorId) this.cargarCatalogo();
+
+    setTimeout(() => this.catSearch?.nativeElement?.focus(), 80);
   }
 
   closeCreate(): void {
@@ -207,10 +314,17 @@ export class PedidosProveedores implements OnInit {
     this.cargandoCatalogo = true;
     this.provCatSvc.list(this.proveedorId, { term: this.term, soloActivos: true }).subscribe({
       next: rows => { this.catalogo = rows || []; this.cargandoCatalogo = false; },
-      error: e => { this.cargandoCatalogo = false; this.swalErrorFrom(e, 'No se pudo cargar el catálogo'); }
+      error: e => {
+        this.cargandoCatalogo = false;
+        // Solo avisar si NO hay conexión
+        if (e?.status === 0) this.swalNoConn();
+      }
     });
   }
-  buscarCatalogo(): void { setTimeout(() => this.cargarCatalogo(), 300); }
+  buscarCatalogo(): void {
+    clearTimeout(this.catDebounce);
+    this.catDebounce = setTimeout(() => this.cargarCatalogo(), 300);
+  }
 
   addLineaFrom(it: CatalogoItem, qtyInput: HTMLInputElement): void {
     const cantidad = Number(qtyInput.value || 0);
@@ -238,14 +352,22 @@ export class PedidosProveedores implements OnInit {
   }
 
   recalcLinea(l: LineaTemp): void {
-    const qty = Number(l.cantidad || 0); const price = Number(l.precioUnitario || 0);
+    const qty = Number(l.cantidad || 0);
+    const price = Number(l.precioUnitario || 0);
     l.totalLinea = +(qty * price).toFixed(2);
   }
 
-  eliminarLinea(i: number): void { this.lineas.splice(i, 1); this.Toast.fire({ icon: 'info', title: 'Línea eliminada' }); }
+  eliminarLinea(i: number): void {
+    this.lineas.splice(i, 1);
+    this.Toast.fire({ icon: 'info', title: 'Línea eliminada' });
+  }
 
-  get subtotal(): number { return +this.lineas.reduce((s, l) => s + l.totalLinea, 0).toFixed(2); }
-  get total(): number { return this.subtotal; }
+  get subtotal(): number {
+    return +this.lineas.reduce((s, l) => s + (l.totalLinea || 0), 0).toFixed(2);
+  }
+  get total(): number {
+    return this.subtotal;
+  }
 
   guardar(ngf: NgForm): void {
     if (!this.proveedorId) { this.Toast.fire({ icon: 'warning', title: 'Selecciona un proveedor' }); return; }
@@ -352,12 +474,10 @@ export class PedidosProveedores implements OnInit {
         this.rxFormaPagoId = null;
         this.rxReferencia = null;
 
-        this.fpSvc.list(true).subscribe({
-          next: fps => {
-            this.formasPago = fps || [];
-            if (this.formasPago.length > 0) this.rxFormaPagoId = this.formasPago[0].id;
-          }
-        });
+        this.fpSvc.list(true).subscribe({ next: fps => {
+          this.formasPago = fps || [];
+          if (this.formasPago.length > 0) this.rxFormaPagoId = this.formasPago[0].id;
+        }});
 
         this.rxRows = full.detalles.map(d => ({
           detalleId: d.id,
@@ -433,10 +553,7 @@ export class PedidosProveedores implements OnInit {
   // ===================== Ver detalle (pedido cerrado) =====================
   verDetalle(p: PedidoProveedorListItem): void {
     this.svc.getById(p.id).subscribe({
-      next: (full) => {
-        this.pedidoView = full;
-        this.showView = true;
-      },
+      next: (full) => { this.pedidoView = full; this.showView = true; },
       error: e => this.swalErrorFrom(e, 'No se pudo cargar el detalle')
     });
   }
@@ -458,6 +575,10 @@ export class PedidosProveedores implements OnInit {
       fotoUrl: null
     };
     this.showQuick = true;
+    setTimeout(() => {
+      const el = document.querySelector<HTMLInputElement>('section.modal.sub-modal input');
+      el?.focus();
+    }, 60);
   }
 
   closeQuickAdd(): void { this.showQuick = false; }
@@ -525,7 +646,7 @@ export class PedidosProveedores implements OnInit {
         case 2: return 'aprobado';
         case 3: return 'parcialmenterecibido';
         case 4: return 'cerrado';
-        case 5: return 'cancelado';
+        case 5: return 'cancelado';   // ← mapeo para cancelado (proveedores)
         default: return '';
       }
     }
@@ -586,7 +707,7 @@ export class PedidosProveedores implements OnInit {
     }
   });
 
-  // ====== NUEVO: Manejo de errores enriquecido ======
+  // ====== Errores enriquecidos ======
   private fmtQ(n: any): string {
     const num = Number(n ?? 0);
     try {
@@ -600,13 +721,11 @@ export class PedidosProveedores implements OnInit {
     }
   }
 
-  // Devuelve { text?, html? } para pasar a SweetAlert
   private buildErrorView(e: any): { text?: string; html?: string } {
     if (e?.status === 0) return { text: 'No hay conexión con el servidor.' };
 
     const err = e?.error;
 
-    // 409 de caja: { error, disponible, solicitado }
     if (e?.status === 409 && err && typeof err === 'object'
         && 'error' in err && 'disponible' in err && 'solicitado' in err) {
       const disp = this.fmtQ(err.disponible);
@@ -626,13 +745,11 @@ export class PedidosProveedores implements OnInit {
       };
     }
 
-    // ProblemDetails / errores directos
     if (typeof err === 'string') return { text: err };
     if (err?.detail || err?.title || err?.message) {
       return { text: (err.detail || err.title || err.message) };
     }
 
-    // Validación { errors: { campo: [ 'msg1', ... ] } }
     if (err?.errors && typeof err.errors === 'object') {
       const items: string[] = [];
       Object.values(err.errors).forEach((v: any) => {
@@ -647,8 +764,6 @@ export class PedidosProveedores implements OnInit {
         };
       }
     }
-
-    // Fallback genérico
     return { text: `Error ${e?.status || ''} ${e?.statusText || ''}`.trim() || 'Error desconocido.' };
   }
 
@@ -660,6 +775,11 @@ export class PedidosProveedores implements OnInit {
       ...(view.html ? { html: view.html } : { text: view.text }),
       confirmButtonText: 'Entendido'
     });
+  }
+
+  /** Solo para el caso de SIN CONEXIÓN en cargas/listas */
+  private swalNoConn(): void {
+    Swal.fire({ icon: 'error', title: 'Ups…', text: 'No hay conexión con el servidor.' });
   }
 
   trackByPedidoId = (_: number, item: PedidoProveedorListItem) => item.id;
