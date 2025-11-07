@@ -62,7 +62,7 @@ export class Ventas {
     direccion: 'chicua prmero, sector ajanel',
     email: 'laoriginal@gmail.com',
     telefono: '32-16-43-55',
-    logoUrl: '/icons/a.png' 
+    logoUrl: '/icons/oficialoriginal.png' 
   };
 
   // ===== Ciclo de vida =====
