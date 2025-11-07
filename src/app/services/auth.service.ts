@@ -55,6 +55,17 @@ export class AuthService {
   isLoggedIn = computed(() => !!this._token());
   isPasswordChangeRequired = computed(() => !!this._user()?.mustChangePassword);
 
+  // ✅ Constructor: consolida mustChangePassword desde el JWT al iniciar la app
+  constructor() {
+    const t = this._token();
+    const u = this._user();
+    const fromJwt = this.readJwtFlag(t);
+    if (u && (u as any).mustChangePassword == null) {
+      (u as any).mustChangePassword = fromJwt;
+      this.setUser(u); // persiste nuevamente con el flag consolidado
+    }
+  }
+
   // === helper: leer claim del JWT ===
   private readJwtFlag(token?: string | null): boolean {
     if (!token) return false;

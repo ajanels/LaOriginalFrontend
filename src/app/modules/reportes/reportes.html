@@ -134,11 +134,7 @@
           <span class="cap">Cantidad, total, pagado neto y saldo por estado.</span>
         </button>
 
-        <button class="tile" [class.active]="pedidosView==='top'" (click)="setPedidosView('top')" title="Productos más cobrados en pedidos">
-          <span class="ic"><span class="material-icons">trending_up</span></span>
-          <span class="ttl">Top productos</span>
-          <span class="cap">Cantidad e importe por presentación (Top).</span>
-        </button>
+      
       </div>
     </div>
 
@@ -292,7 +288,9 @@
   <section *ngIf="tab==='dia' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-ventas-dia">
-        <colgroup><col style="width:140px"><col style="width:90px"><col style="width:90px"><col style="width:140px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <colgroup>
+          <col><col><col><col><col><col>
+        </colgroup>
         <thead><tr><th>Fecha</th><th class="c">Ventas</th><th class="c">Items</th><th class="r">Subtotal</th><th class="r">Descuento</th><th class="r">Total</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porDia">
@@ -313,7 +311,9 @@
   <section *ngIf="tab==='usuario' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-usuario">
-        <colgroup><col><col style="width:100px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <colgroup>
+          <col><col><col><col>
+        </colgroup>
         <thead><tr><th>Usuario</th><th class="c">Ventas</th><th class="r">Total</th><th class="r">Ticket Prom.</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porUsuario">
@@ -332,7 +332,9 @@
   <section *ngIf="tab==='clientes' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-clientes">
-        <colgroup><col style="width:60px"><col><col style="width:100px"><col style="width:140px"><col style="width:150px"></colgroup>
+        <colgroup>
+          <col><col><col><col><col>
+        </colgroup>
         <thead><tr><th class="c">#</th><th>Cliente</th><th class="c">Compras</th><th class="r">Total</th><th class="c">Última compra</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of topClienteRows; let i = index">
@@ -352,7 +354,9 @@
   <section *ngIf="tab==='producto' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-producto">
-        <colgroup><col><col><col><col style="width:120px"><col style="width:140px"></colgroup>
+        <colgroup>
+          <col><col><col><col><col>
+        </colgroup>
         <thead><tr><th>Producto</th><th>Presentación</th><th>Categoría</th><th class="r">Cant.</th><th class="r">Total</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porProducto">
@@ -370,7 +374,9 @@
   <section *ngIf="tab==='categoria' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-categoria">
-        <colgroup><col><col style="width:120px"><col style="width:140px"></colgroup>
+        <colgroup>
+          <col><col><col>
+        </colgroup>
         <thead><tr><th>Categoría</th><th class="r">Cant.</th><th class="r">Total</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porCategoria">
@@ -388,7 +394,9 @@
   <section *ngIf="tab==='fp' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-fp">
-        <colgroup><col><col style="width:100px"><col style="width:140px"><col style="width:140px"></colgroup>
+        <colgroup>
+          <col><col><col><col>
+        </colgroup>
         <thead><tr><th>Forma de pago</th><th class="c">Ventas</th><th class="r">Total</th><th class="r">Ticket Prom.</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of ventasFp">
@@ -407,7 +415,9 @@
   <section *ngIf="tab==='compras' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-compras">
-        <colgroup><col><col style="width:120px"><col style="width:140px"><col style="width:150px"></colgroup>
+        <colgroup>
+          <col><col><col><col>
+        </colgroup>
         <thead><tr><th>Proveedor</th><th class="c">Docs</th><th class="r">Total</th><th class="c">Última compra</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of comprasProv">
@@ -434,8 +444,10 @@
 
     <div class="table-wrapper">
       <table class="grid grid-usuarios zebra">
+        <colgroup>
+          <col><col><col><col><col>
+        </colgroup>
         <caption>Distribución por rol (usuarios)</caption>
-        <colgroup><col><col style="width:120px"><col style="width:120px"><col style="width:120px"><col style="width:140px"></colgroup>
         <thead><tr><th>Rol</th><th class="r">Total</th><th class="r">Activos</th><th class="r">Inactivos</th><th class="r">Suspendidos</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of usuariosRes?.porRol">
@@ -452,9 +464,11 @@
 
     <div class="grid-2 section-gap">
       <div class="table-wrapper">
-        <table class="grid zebra">
+        <table class="grid zebra grid-2col-140">
+          <colgroup>
+            <col><col>
+          </colgroup>
           <caption>Altas por mes (creación de cuentas)</caption>
-          <colgroup><col><col style="width:140px"></colgroup>
           <thead><tr><th>Periodo</th><th class="r">Cantidad</th></tr></thead>
           <tbody>
             <tr *ngFor="let a of usuariosRes?.altasPorMes">
@@ -466,9 +480,11 @@
       </div>
 
       <div class="table-wrapper">
-        <table class="grid zebra">
+        <table class="grid zebra grid-2col-140">
+          <colgroup>
+            <col><col>
+          </colgroup>
           <caption>Cumpleaños por mes (usuarios activos)</caption>
-          <colgroup><col><col style="width:140px"></colgroup>
           <thead><tr><th>Mes</th><th class="r">Cantidad</th></tr></thead>
           <tbody>
             <tr *ngFor="let c of usuariosRes?.cumplesPorMes">
@@ -485,7 +501,9 @@
   <section *ngIf="tab==='caja' && cajaView==='diario' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
       <table class="grid grid-caja-diaria">
-        <colgroup><col style="width:140px"><col style="width:160px"><col style="width:160px"><col style="width:160px"></colgroup>
+        <colgroup>
+          <col><col><col><col>
+        </colgroup>
         <thead><tr><th>Fecha</th><th class="r">Ingresos</th><th class="r">Egresos</th><th class="r">Neto</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of cajaDiaria">
@@ -513,7 +531,9 @@
     <div class="table-wrapper" *ngFor="let g of cajaSesionesAgrupadas">
       <h3 class="group-title">Cierre: {{ g.dia }}</h3>
       <table class="grid grid-caja-sesiones">
-        <colgroup><col style="width:60px"><col style="width:120px"><col><col style="width:160px"><col style="width:160px"><col style="width:140px"><col style="width:140px"><col style="width:140px"><col style="width:160px"></colgroup>
+        <colgroup>
+          <col><col><col><col><col><col><col><col><col>
+        </colgroup>
         <thead><tr><th class="c">#</th><th>Código</th><th>Cajero</th><th class="c">Apertura</th><th class="c">Cierre</th><th class="r">Inicial</th><th class="r">Ingresos</th><th class="r">Egresos</th><th class="r">Neto</th></tr></thead>
         <tbody>
           <tr *ngFor="let s of g.sesiones; let i = index">
@@ -546,8 +566,10 @@
   <!-- Pedidos -->
   <section *ngIf="tab==='pedidos' && pedidosView==='fp' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
-      <table class="grid">
-        <colgroup><col><col style="width:140px"><col style="width:140px"><col style="width:140px"><col style="width:120px"><col style="width:140px"></colgroup>
+      <table class="grid grid-ped-fp">
+        <colgroup>
+          <col><col><col><col><col><col>
+        </colgroup>
         <thead><tr><th>Forma de pago</th><th class="r">Cobros</th><th class="r">Devoluciones</th><th class="r">Neto</th><th class="c"># Cobros</th><th class="c"># Devoluciones</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of pedFp?.filas">
@@ -575,8 +597,10 @@
 
   <section *ngIf="tab==='pedidos' && pedidosView==='detalle' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
-      <table class="grid">
-        <colgroup><col style="width:160px"><col style="width:80px"><col style="width:90px"><col style="width:120px"><col style="width:110px"><col><col><col style="width:140px"></colgroup>
+      <table class="grid grid-ped-detalle">
+        <colgroup>
+          <col><col><col><col><col><col><col><col>
+        </colgroup>
         <thead><tr><th>Fecha</th><th class="c">Pago</th><th class="c">Pedido</th><th class="r">Monto</th><th class="c">Devolución</th><th>Forma de pago</th><th>Cliente</th><th class="c">Estado</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of pedDetalle">
@@ -597,8 +621,10 @@
 
   <section *ngIf="tab==='pedidos' && pedidosView==='estados' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
-      <table class="grid">
-        <colgroup><col><col style="width:120px"><col style="width:140px"><col style="width:140px"><col style="width:140px"></colgroup>
+      <table class="grid grid-ped-estados">
+        <colgroup>
+          <col><col><col><col><col>
+        </colgroup>
         <thead><tr><th>Estado</th><th class="r">Cantidad</th><th class="r">Total</th><th class="r">Pagado neto</th><th class="r">Saldo</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of pedEstados">
@@ -617,8 +643,10 @@
   <!-- Utilidad -->
   <section *ngIf="tab==='utilidad' && !cargando && modo==='tabla'" class="card">
     <div class="table-wrapper">
-      <table class="grid">
-        <colgroup><col><col><col><col style="width:120px"><col style="width:140px"><col style="width:140px"></colgroup>
+      <table class="grid grid-utilidad">
+        <colgroup>
+          <col><col><col><col><col><col>
+        </colgroup>
         <thead><tr><th>Producto</th><th>Presentación</th><th>Categoría</th><th class="r">Cant.</th><th class="r">Venta</th><th class="r">Utilidad</th></tr></thead>
         <tbody>
           <tr *ngFor="let r of porUtilidad">

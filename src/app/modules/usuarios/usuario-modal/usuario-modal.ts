@@ -15,7 +15,6 @@ import { RolesService, Rol } from '../../../services/roles.service';
 
 export type ModalMode = 'create' | 'edit' | 'view';
 type UsuarioWithRol = Usuario & { rolId?: number | null; rol?: { id: number; nombre: string } | null };
-
 type PwdRules = { len: boolean; upper: boolean; lower: boolean; digit: boolean; symbol: boolean; };
 
 @Component({
@@ -36,10 +35,14 @@ export class UsuarioModalComponent implements OnInit {
 
   form!: FormGroup;
   photoFile: File | null = null;
-  photoPreview: string | null = null;   // se usa también en EDIT
+  photoPreview: string | null = null;
   roles: Rol[] = [];
 
-  changePwd = false; // toggle para habilitar cambio de contraseña en edición
+  changePwd = false;
+
+  // toggle mostrar/ocultar
+  showPwd = false;
+  showPwd2 = false;
 
   // Rango de fechas (espejo de backend)
   minNac = '1900-01-01';
@@ -50,6 +53,26 @@ export class UsuarioModalComponent implements OnInit {
   // Checklist dinámico
   pwdRules: PwdRules = { len: false, upper: false, lower: false, digit: false, symbol: false };
 
+  // Etiquetas para mensajes de error
+  private fieldLabels: Record<string, string> = {
+    primerNombre: 'Primer nombre',
+    segundoNombre: 'Segundo nombre',
+    primerApellido: 'Primer apellido',
+    segundoApellido: 'Segundo apellido',
+    nit: 'NIT',
+    cui: 'CUI',
+    fechaNacimiento: 'Fecha de nacimiento',
+    fechaIngreso: 'Fecha de ingreso',
+    celular: 'Celular',
+    genero: 'Género',
+    estado: 'Estado',
+    direccion: 'Dirección',
+    email: 'Email',
+    rolId: 'Rol',
+    password: 'Contraseña',
+    password2: 'Confirmación de contraseña',
+  };
+
   get isView()   { return this.mode === 'view'; }
   get isCreate() { return this.mode === 'create'; }
   get isEdit()   { return this.mode === 'edit';  }
@@ -58,37 +81,60 @@ export class UsuarioModalComponent implements OnInit {
     return n ? n.charAt(0).toUpperCase() : 'U';
   }
 
-  // ===== Validadores a nivel formulario =====
-  private businessDateRulesValidator: ValidatorFn = (fg: AbstractControl): ValidationErrors | null => {
-    const fn = new Date(fg.get('fechaNacimiento')?.value || '');
-    const fi = new Date(fg.get('fechaIngreso')?.value || '');
+  // ===== Helpers =====
+  private onlyDigits(v: any, max: number) { return (String(v ?? '').replace(/\D+/g, '').slice(0, max)); }
+  private mapGeneroIn(g: string | undefined): string {
+    if (!g) return 'Masculino';
+    if (g === 'M') return 'Masculino';
+    if (g === 'F') return 'Femenino';
+    return g;
+  }
+  private addYears(d: Date, years: number) { const nd = new Date(d); nd.setFullYear(d.getFullYear() + years); return nd; }
+  private formatDate(d: Date) { const mm = String(d.getMonth() + 1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; }
+  private computePwdRules(v: string): PwdRules {
+    return { len: v.length >= 8 && v.length <= 64, upper: /[A-Z]/.test(v), lower: /[a-z]/.test(v), digit: /\d/.test(v), symbol: /[^\w\s]/.test(v) };
+  }
+  private toISO(s: string | null | undefined): string | null {
+    if (!s) return null;
+    s = s.trim();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;                           // yyyy-MM-dd
+    const m = s.replace(/\s+/g, '').match(/^(\d{2})\/(\d{2})\/(\d{4})$/);   // dd/MM/yyyy
+    return m ? `${m[3]}-${m[2]}-${m[1]}` : null;
+  }
 
-    const minFn = new Date(this.minNac);
-    const maxFn = new Date(this.maxNac);
-    const minFi = new Date(this.minIng);
-    const maxFi = new Date(this.maxIng);
+  // ===== Validadores de formulario =====
+  private businessDateRulesValidator: ValidatorFn = (fg: AbstractControl): ValidationErrors | null => {
+    const fnISO = this.toISO(fg.get('fechaNacimiento')?.value);
+    const fiISO = this.toISO(fg.get('fechaIngreso')?.value);
 
     const errors: any = {};
-    if (isNaN(fn.getTime())) errors.fnInvalid = true;
-    if (isNaN(fi.getTime())) errors.fiInvalid = true;
+    if (!fnISO) errors.fnInvalid = true;
+    if (!fiISO) errors.fiInvalid = true;
 
-    if (!errors.fnInvalid && (fn < minFn || fn > maxFn)) errors.fnOutOfRange = true;
-    if (!errors.fiInvalid && (fi < minFi || fi > maxFi)) errors.fiOutOfRange = true;
+    if (fnISO && fiISO) {
+      const fn = new Date(fnISO);
+      const fi = new Date(fiISO);
 
-    if (!errors.fnInvalid && !errors.fiInvalid) {
+      const minFn = new Date(this.minNac);
+      const maxFn = new Date(this.maxNac);
+      const minFi = new Date(this.minIng);
+      const maxFi = new Date(this.maxIng);
+
+      if (fn < minFn || fn > maxFn) errors.fnOutOfRange = true;
+      if (fi < minFi || fi > maxFi) errors.fiOutOfRange = true;
+
       const fnPlus15 = new Date(fn); fnPlus15.setFullYear(fn.getFullYear() + 15);
       if (fi < fnPlus15) errors.fiBeforeMinAge = true;
     }
     return Object.keys(errors).length ? errors : null;
   };
 
+  // Marca mismatch solo cuando ambas están llenas
   private passwordsMatchValidator: ValidatorFn = (fg: AbstractControl): ValidationErrors | null => {
-    const p = fg.get('password')?.value;
-    const p2 = fg.get('password2')?.value;
-    if ((p ?? '') !== '' || (p2 ?? '') !== '') {
-      return p === p2 ? null : { pwdMismatch: true };
-    }
-    return null;
+    const p = fg.get('password')?.value ?? '';
+    const p2 = fg.get('password2')?.value ?? '';
+    if (!p || !p2) return null;
+    return p === p2 ? null : { pwdMismatch: true };
   };
 
   ngOnInit(): void {
@@ -152,20 +198,6 @@ export class UsuarioModalComponent implements OnInit {
     if (this.isView) this.form.disable();
   }
 
-  // ===== Helpers =====
-  private onlyDigits(v: any, max: number) { return (String(v ?? '').replace(/\D+/g, '').slice(0, max)); }
-  private mapGeneroIn(g: string | undefined): string {
-    if (!g) return 'Masculino';
-    if (g === 'M') return 'Masculino';
-    if (g === 'F') return 'Femenino';
-    return g;
-  }
-  private addYears(d: Date, years: number) { const nd = new Date(d); nd.setFullYear(d.getFullYear() + years); return nd; }
-  private formatDate(d: Date) { const mm = String(d.getMonth() + 1).padStart(2,'0'); const dd = String(d.getDate()).padStart(2,'0'); return `${d.getFullYear()}-${mm}-${dd}`; }
-  private computePwdRules(v: string): PwdRules {
-    return { len: v.length >= 8 && v.length <= 64, upper: /[A-Z]/.test(v), lower: /[a-z]/.test(v), digit: /\d/.test(v), symbol: /[^\w\s]/.test(v) };
-  }
-
   onFile(e: Event) {
     const input = e.target as HTMLInputElement;
     if (input.files && input.files.length) {
@@ -181,6 +213,8 @@ export class UsuarioModalComponent implements OnInit {
     this.changePwd = !this.changePwd;
     if (this.isEdit) this.enablePasswordValidators(this.changePwd);
     this.pwdRules = this.computePwdRules(String(this.form.get('password')?.value ?? ''));
+    // por UX, ocultamos campos al (des)activar
+    this.showPwd = false; this.showPwd2 = false;
   }
 
   private enablePasswordValidators(enable: boolean) {
@@ -198,25 +232,71 @@ export class UsuarioModalComponent implements OnInit {
   showCtrlError(name: string) { const c = this.form.get(name); return !!c && c.invalid && (c.dirty || c.touched); }
   getCtrl(name: string) { return this.form.get(name)!; }
 
+  private buildErrorsHtml(): string {
+    const items: string[] = [];
+    const ctrls = this.form.controls as Record<string, AbstractControl>;
+    const push = (msg: string) => items.push(`<li>${msg}</li>`);
+
+    for (const [name, ctrl] of Object.entries(ctrls)) {
+      const label = this.fieldLabels[name] ?? name;
+      const e = ctrl.errors || {};
+      if (e['required']) push(`${label}: es obligatorio.`);
+      if (e['minlength']) push(`${label}: mínimo ${e['minlength'].requiredLength} caracteres.`);
+      if (e['maxlength']) push(`${label}: máximo ${e['maxlength'].requiredLength} caracteres.`);
+      if (e['email']) push(`${label}: formato de correo inválido.`);
+      if (e['pattern']) {
+        if (name === 'nit') push(`NIT: debe tener exactamente 9 dígitos (sin guiones).`);
+        else if (name === 'cui') push(`CUI: debe tener exactamente 13 dígitos.`);
+        else if (name === 'celular') push(`Celular: 8 dígitos y debe iniciar con 2–7.`);
+        else push(`${label}: formato inválido.`);
+      }
+    }
+
+    const fe = this.form.errors || {};
+    if (fe['fnInvalid']) push(`Fecha de nacimiento: formato inválido.`);
+    if (fe['fiInvalid']) push(`Fecha de ingreso: formato inválido.`);
+    if (fe['fnOutOfRange']) push(`Fecha de nacimiento: fuera de rango (≥ ${this.minNac} y ≤ ${this.maxNac}).`);
+    if (fe['fiOutOfRange']) push(`Fecha de ingreso: fuera de rango (entre ${this.minIng} y ${this.maxIng}).`);
+    if (fe['fiBeforeMinAge']) push(`Fecha de ingreso: debe ser al menos 15 años posterior a la de nacimiento.`);
+    if (fe['pwdMismatch']) push(`Contraseña: las contraseñas no coinciden.`);
+
+    return `<ul style="text-align:left;margin:0 0 0 18px;padding:0;">${items.join('')}</ul>`;
+  }
+
   cancel(){ this.closed.emit(false); }
 
   async save() {
     if (this.isView) { this.closed.emit(false); return; }
     this.form.markAllAsTouched();
+
     if (this.form.invalid) {
-      Swal.fire('Campos obligatorios','Revisa los campos resaltados y las notas bajo cada campo.','warning');
+      const html = this.buildErrorsHtml();
+      Swal.fire({ icon: 'warning', title: 'Corrige los siguientes campos', html });
       return;
     }
+
     try {
       if (this.isCreate) {
+        const v = this.form.value as any;
         const fd = new FormData();
-        Object.entries(this.form.value).forEach(([k, v]) => { if (v != null && k !== 'password2') fd.append(k, String(v)); });
+
+        // Fechas normalizadas a ISO
+        fd.append('fechaNacimiento', this.toISO(v.fechaNacimiento)!);
+        fd.append('fechaIngreso', this.toISO(v.fechaIngreso)!);
+
+        // Resto de campos (evitar duplicar fechas y password2)
+        Object.entries(v).forEach(([k, val]) => {
+          if (k === 'password2' || k === 'fechaNacimiento' || k === 'fechaIngreso') return;
+          if (val != null) fd.append(k, String(val));
+        });
+
         if (this.photoFile) fd.append('Foto', this.photoFile);
         await this.api.create(fd).toPromise();
         Swal.fire('Creado','Usuario creado correctamente','success');
         this.closed.emit(true);
+
       } else if (this.usuario) {
-        const v = this.form.value;
+        const v = this.form.value as any;
         const payload: UsuarioUpdatePayload = {
           id: this.usuario.id,
           primerNombre: v.primerNombre,
@@ -224,7 +304,7 @@ export class UsuarioModalComponent implements OnInit {
           primerApellido: v.primerApellido,
           segundoApellido: v.segundoApellido,
           nit: v.nit, cui: v.cui,
-          fechaNacimiento: v.fechaNacimiento, fechaIngreso: v.fechaIngreso,
+          fechaNacimiento: this.toISO(v.fechaNacimiento)!, fechaIngreso: this.toISO(v.fechaIngreso)!,
           celular: v.celular, genero: v.genero, estado: v.estado,
           direccion: v.direccion, email: v.email, rolId: v.rolId
         };
@@ -244,11 +324,25 @@ export class UsuarioModalComponent implements OnInit {
 
   async removeInside() {
     if (!this.usuario) return;
-    const res = await Swal.fire({ icon: 'warning', title: '¿Eliminar usuario?', text: `${this.usuario.primerNombre} ${this.usuario.primerApellido}`, showCancelButton: true, confirmButtonText: 'Sí, eliminar', cancelButtonText: 'Cancelar' });
+
+    const res = await Swal.fire({
+      icon: 'warning',
+      title: '¿Eliminar usuario?',
+      text: `${this.usuario.primerNombre} ${this.usuario.primerApellido ?? ''}`.trim(),
+      showCancelButton: true,
+      confirmButtonText: 'Sí, eliminar',
+      cancelButtonText: 'Cancelar'
+    });
     if (!res.isConfirmed) return;
-    try { await this.api.remove(this.usuario.id).toPromise(); Swal.fire('Eliminado','', 'success'); this.closed.emit(true); }
-    catch (e: any) {
-      const msg = typeof e?.error === 'string' ? e.error : e?.error?.message || e?.error?.title || e?.message || 'No se pudo eliminar';
+
+    try {
+      await this.api.remove(this.usuario.id).toPromise();
+      await Swal.fire('Eliminado', 'Usuario eliminado correctamente', 'success');
+      this.closed.emit(true);
+    } catch (e: any) {
+      const msg =
+        typeof e?.error === 'string' ? e.error :
+        e?.error?.message || e?.error?.title || e?.message || 'No se pudo eliminar';
       Swal.fire('Error', String(msg), 'error');
     }
   }

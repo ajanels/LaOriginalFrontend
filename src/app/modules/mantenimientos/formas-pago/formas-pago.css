@@ -286,12 +286,20 @@ input.invalid{ border-color:#f6c7cd; background:#fff6f7; }
 /* Toggle (switch) bonito y accesible */
 .switch{ display:inline-flex; align-items:center; }
 .switch input{
-  appearance:none; -webkit-appearance:none;
-  width:38px; height:22px; border-radius:999px;
-  background:#e9e7ef; border:1px solid #dcd6ea; position:relative;
-  box-shadow:inset 0 1px 2px rgba(0,0,0,.06);
-  transition:background .18s ease, border-color .18s ease;
+  -webkit-appearance: none;
+  -moz-appearance: none;   /* opcional para Firefox */
+  appearance: none;
+
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: #e9e7ef;
+  border: 1px solid #dcd6ea;
+  position: relative;
+  box-shadow: inset 0 1px 2px rgba(0,0,0,.06);
+  transition: background .18s ease, border-color .18s ease;
 }
+
 .switch input::after{
   content:""; position:absolute; top:2px; left:2px;
   width:18px; height:18px; border-radius:50%;

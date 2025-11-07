@@ -250,3 +250,95 @@
 .page.rep-page button.icon:not([disabled]):hover { background:#ede8ef; transform:translateY(-1px); }
 .page.rep-page button.primary[disabled]{ background:#cbb6e2; color:#fff; opacity:.85; cursor:not-allowed; }
 .page.rep-page button.ghost[disabled]{ background:#f6f6f6; color:#9aa0a6; border-color:#e6e6e6; cursor:not-allowed; }
+
+/* ============================================================
+   COLUMN WIDTHS (moved from inline styles in <col>)
+   ============================================================ */
+
+/* Ventas por día (6 cols) */
+.page.rep-page .grid-ventas-dia col:nth-child(1){ width:140px; }
+.page.rep-page .grid-ventas-dia col:nth-child(2){ width:90px; }
+.page.rep-page .grid-ventas-dia col:nth-child(3){ width:90px; }
+.page.rep-page .grid-ventas-dia col:nth-child(4){ width:140px; }
+.page.rep-page .grid-ventas-dia col:nth-child(5){ width:140px; }
+.page.rep-page .grid-ventas-dia col:nth-child(6){ width:140px; }
+
+/* Por usuario (4 cols) */
+.page.rep-page .grid-usuario col:nth-child(2){ width:100px; }
+.page.rep-page .grid-usuario col:nth-child(3){ width:140px; }
+.page.rep-page .grid-usuario col:nth-child(4){ width:140px; }
+
+/* Clientes top (5 cols) */
+.page.rep-page .grid-clientes col:nth-child(1){ width:60px; }
+.page.rep-page .grid-clientes col:nth-child(3){ width:100px; }
+.page.rep-page .grid-clientes col:nth-child(4){ width:140px; }
+.page.rep-page .grid-clientes col:nth-child(5){ width:150px; }
+
+/* Por producto (5 cols) */
+.page.rep-page .grid-producto col:nth-child(4){ width:120px; }
+.page.rep-page .grid-producto col:nth-child(5){ width:140px; }
+
+/* Por categoría (3 cols) */
+.page.rep-page .grid-categoria col:nth-child(2){ width:120px; }
+.page.rep-page .grid-categoria col:nth-child(3){ width:140px; }
+
+/* Forma de pago (4 cols) */
+.page.rep-page .grid-fp col:nth-child(2){ width:100px; }
+.page.rep-page .grid-fp col:nth-child(3){ width:140px; }
+.page.rep-page .grid-fp col:nth-child(4){ width:140px; }
+
+/* Compras por proveedor (4 cols) */
+.page.rep-page .grid-compras col:nth-child(2){ width:120px; }
+.page.rep-page .grid-compras col:nth-child(3){ width:140px; }
+.page.rep-page .grid-compras col:nth-child(4){ width:150px; }
+
+/* Usuarios — por rol (5 cols) */
+.page.rep-page .grid-usuarios col:nth-child(2){ width:120px; }
+.page.rep-page .grid-usuarios col:nth-child(3){ width:120px; }
+.page.rep-page .grid-usuarios col:nth-child(4){ width:120px; }
+.page.rep-page .grid-usuarios col:nth-child(5){ width:140px; }
+
+/* Tablas 2 columnas (Altas/Cumples) -> 2ª col 140px */
+.page.rep-page .grid-2col-140 col:nth-child(2){ width:140px; }
+
+/* Caja diaria (4 cols) */
+.page.rep-page .grid-caja-diaria col:nth-child(1){ width:140px; }
+.page.rep-page .grid-caja-diaria col:nth-child(2){ width:160px; }
+.page.rep-page .grid-caja-diaria col:nth-child(3){ width:160px; }
+.page.rep-page .grid-caja-diaria col:nth-child(4){ width:160px; }
+
+/* Caja sesiones (9 cols) */
+.page.rep-page .grid-caja-sesiones col:nth-child(1){ width:60px; }
+.page.rep-page .grid-caja-sesiones col:nth-child(2){ width:120px; }
+.page.rep-page .grid-caja-sesiones col:nth-child(4){ width:160px; }
+.page.rep-page .grid-caja-sesiones col:nth-child(5){ width:160px; }
+.page.rep-page .grid-caja-sesiones col:nth-child(6){ width:140px; }
+.page.rep-page .grid-caja-sesiones col:nth-child(7){ width:140px; }
+.page.rep-page .grid-caja-sesiones col:nth-child(8){ width:140px; }
+.page.rep-page .grid-caja-sesiones col:nth-child(9){ width:160px; }
+
+/* Pedidos — FP (6 cols) */
+.page.rep-page .grid-ped-fp col:nth-child(2){ width:140px; }
+.page.rep-page .grid-ped-fp col:nth-child(3){ width:140px; }
+.page.rep-page .grid-ped-fp col:nth-child(4){ width:140px; }
+.page.rep-page .grid-ped-fp col:nth-child(5){ width:120px; }
+.page.rep-page .grid-ped-fp col:nth-child(6){ width:140px; }
+
+/* Pedidos — Detalle (8 cols) */
+.page.rep-page .grid-ped-detalle col:nth-child(1){ width:160px; }
+.page.rep-page .grid-ped-detalle col:nth-child(2){ width:80px; }
+.page.rep-page .grid-ped-detalle col:nth-child(3){ width:90px; }
+.page.rep-page .grid-ped-detalle col:nth-child(4){ width:120px; }
+.page.rep-page .grid-ped-detalle col:nth-child(5){ width:110px; }
+.page.rep-page .grid-ped-detalle col:nth-child(8){ width:140px; }
+
+/* Pedidos — Estados (5 cols) */
+.page.rep-page .grid-ped-estados col:nth-child(2){ width:120px; }
+.page.rep-page .grid-ped-estados col:nth-child(3){ width:140px; }
+.page.rep-page .grid-ped-estados col:nth-child(4){ width:140px; }
+.page.rep-page .grid-ped-estados col:nth-child(5){ width:140px; }
+
+/* Utilidad (6 cols) */
+.page.rep-page .grid-utilidad col:nth-child(4){ width:120px; }
+.page.rep-page .grid-utilidad col:nth-child(5){ width:140px; }
+.page.rep-page .grid-utilidad col:nth-child(6){ width:140px; }

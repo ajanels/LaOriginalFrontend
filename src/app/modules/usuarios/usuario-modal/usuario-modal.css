@@ -59,7 +59,7 @@
 }
 .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
 
-/* ===== Avatar — base (view y modal) ===== */
+/* ===== Avatar ===== */
 .avatar{ display:inline-flex; align-items:center; gap:10px; }
 .avatar img, .avatar .placeholder{
   width:44px; height:44px;
@@ -73,7 +73,7 @@
   display:grid; place-items:center; background:#eee; color:#665; font-weight:800; font-size:14px;
 }
 
-/* ===== Modal centrado (crear/editar) ===== */
+/* ===== Modal centrado ===== */
 .modal{
   position: fixed;
   top: var(--topbar-h, 97px);
@@ -148,36 +148,34 @@
 .form.four-col .span-2{ grid-column: span 2; }
 .form.four-col .span-4{ grid-column: 1 / -1; }
 
-/* ===== Toggle tipo switch para cambiar contraseña ===== */
-/* ===== Toggle tipo switch para cambiar contraseña ===== */
+/* ===== Par de contraseñas en una sola línea ===== */
+.pwd-pair{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--gap);
+}
+.pwd-pair .inline{ display:flex; flex-direction:column; gap:4px; }
+
+/* input con icono de mostrar/ocultar */
+.input-wrap{ position:relative; }
+.input-wrap input{ padding-right:34px; }
+.input-wrap .icon-btn{
+  position:absolute; top:50%; right:6px; transform:translateY(-50%);
+  width:28px; height:28px; border:0; background:transparent; border-radius:6px;
+  display:grid; place-items:center; cursor:pointer; color:#6b7280;
+}
+.input-wrap .icon-btn:hover{ background:#f4f4f5; }
+.input-wrap .material-icons{ font-size:18px; line-height:1; }
+
+/* ===== Toggle tipo switch ===== */
 .change-pwd{ display:flex; flex-direction:column; gap:6px; }
-
-.switch{
-  display:inline-flex; align-items:center; gap:10px; cursor:pointer;
-
-  /* Compatibilidad */
-  -webkit-user-select: none;  /* Safari / iOS */
-  -moz-user-select: none;     /* Firefox antiguo */
-  -ms-user-select: none;      /* IE/Edge legacy */
-  user-select: none;          /* Estándar */
-
-  /* iOS: evita menú por long-press y el flash al tocar */
-  -webkit-touch-callout: none;
-  -webkit-tap-highlight-color: transparent;
+.switch{ display:inline-flex; align-items:center; gap:10px; cursor:pointer;
+  -webkit-user-select:none; -moz-user-select:none; -ms-user-select:none; user-select:none;
+  -webkit-touch-callout:none; -webkit-tap-highlight-color:transparent;
 }
-
 .switch input{ position:absolute; opacity:0; width:0; height:0; }
-
-.switch .track{
-  width:42px; height:24px; border-radius:999px;
-  background:#e5e7eb; border:1px solid #e5e7eb;
-  position:relative; transition:.2s;
-}
-
-.switch .thumb{
-  position:absolute; top:2px; left:2px; width:20px; height:20px;
-  border-radius:999px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.16); transition:.2s;
-}
+.switch .track{ width:42px; height:24px; border-radius:999px; background:#e5e7eb; border:1px solid #e5e7eb; position:relative; transition:.2s; }
+.switch .thumb{ position:absolute; top:2px; left:2px; width:20px; height:20px; border-radius:999px; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,.16); transition:.2s; }
 .switch input:checked + .track{ background:#7a2ea8; border-color:#7a2ea8; }
 .switch input:checked + .track .thumb{ transform:translateX(18px); }
 .switch input:focus-visible + .track{ box-shadow:0 0 0 3px rgba(122,46,168,.25); }
@@ -195,9 +193,7 @@
 .pwd-checklist .item.ok .status{ color: var(--ok); }
 
 /* ===== Fila input de archivo + preview ===== */
-.file-row{
-  display:grid; grid-template-columns: 1fr auto; align-items:center; gap:12px;
-}
+.file-row{ display:grid; grid-template-columns: 1fr auto; align-items:center; gap:12px; }
 .avatar.preview{ overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,.08); }
 .avatar.preview img, .avatar.preview .placeholder{
   width:96px; height:96px; border-radius:12px; flex-basis:96px; object-fit:cover;
@@ -236,6 +232,7 @@ button.danger:hover{ background:#d20000; }
 @media (max-width: 720px){
   .container.drawer .panel{ width:100%; border-radius:0; }
   .form.four-col{ grid-template-columns: 1fr; }
+  .pwd-pair{ grid-template-columns: 1fr; } /* apila en móvil */
   .modal{ padding-top:20px; }
   .modal-card{ max-width:95vw; }
 }
@@ -245,6 +242,5 @@ button.danger:hover{ background:#d20000; }
   .modal, .modal-backdrop{ background: rgba(26, 161, 37, 0.7); }
 }
 
-/* Seguridad extra: evita desbordes de imágenes sueltas dentro del modal */
+/* Seguridad extra */
 .modal img{ max-width:100%; height:auto; }
-

@@ -45,7 +45,6 @@
     <div class="modal-card" (click)="$event.stopPropagation()">
       <header class="modal-head">
         <div class="modal-title-wrap">
-          <!-- Avatar pequeño en EDIT -->
           <div *ngIf="isEdit" class="avatar tiny">
             <ng-template #eph><div class="placeholder">{{ initialLetter }}</div></ng-template>
           </div>
@@ -97,19 +96,18 @@
           Fecha nacimiento*
           <input type="date" formControlName="fechaNacimiento" [min]="minNac" [max]="maxNac" />
           <small class="hint">≥ {{minNac}} y ≤ {{maxNac}} (mín. 15 años).</small>
+          <small class="error" *ngIf="form.hasError('fnOutOfRange') && (getCtrl('fechaNacimiento').touched || getCtrl('fechaNacimiento').dirty)">
+            La fecha de nacimiento está fuera de rango.
+          </small>
         </label>
         <label>
           Fecha ingreso*
           <input type="date" formControlName="fechaIngreso" [min]="minIng" [max]="maxIng" />
           <small class="hint">Entre {{minIng}} y {{maxIng}}.</small>
+          <small class="error" *ngIf="(form.hasError('fiOutOfRange') || form.hasError('fiBeforeMinAge')) && (getCtrl('fechaIngreso').touched || getCtrl('fechaIngreso').dirty)">
+            {{ form.hasError('fiOutOfRange') ? 'La fecha de ingreso está fuera de rango.' : 'La fecha de ingreso debe ser al menos 15 años posterior a la de nacimiento.' }}
+          </small>
         </label>
-
-        <div class="span-4"
-             *ngIf="form.hasError('fnOutOfRange') || form.hasError('fiOutOfRange') || form.hasError('fiBeforeMinAge')">
-          <small class="error" *ngIf="form.hasError('fnOutOfRange')">La fecha de nacimiento está fuera de rango.</small>
-          <small class="error" *ngIf="form.hasError('fiOutOfRange')">La fecha de ingreso está fuera de rango.</small>
-          <small class="error" *ngIf="form.hasError('fiBeforeMinAge')">La fecha de ingreso debe ser al menos 15 años posterior a la de nacimiento.</small>
-        </div>
 
         <!-- 3 -->
         <label>
@@ -145,7 +143,7 @@
           <small class="error" *ngIf="showCtrlError('direccion')">Longitud inválida.</small>
         </label>
 
-        <!-- 5 -->
+        <!-- 5: Rol + (Contraseña y Confirmación en la MISMA línea) -->
         <label class="span-2">
           Rol*
           <select formControlName="rolId">
@@ -155,48 +153,83 @@
           <small class="error" *ngIf="showCtrlError('rolId')">Seleccione un rol.</small>
         </label>
 
-        <!-- Contraseña en CREATE -->
-        <label *ngIf="isCreate" class="span-2">
-          Contraseña*
-          <input type="password" formControlName="password" />
-          <ul class="pwd-checklist grid">
-            <li class="item" [class.ok]="pwdRules.len"><span class="material-icons status">{{ pwdRules.len ? 'check_circle' : 'radio_button_unchecked' }}</span> 8–64 caracteres</li>
-            <li class="item" [class.ok]="pwdRules.upper"><span class="material-icons status">{{ pwdRules.upper ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 mayúscula</li>
-            <li class="item" [class.ok]="pwdRules.lower"><span class="material-icons status">{{ pwdRules.lower ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 minúscula</li>
-            <li class="item" [class.ok]="pwdRules.digit"><span class="material-icons status">{{ pwdRules.digit ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 número</li>
-            <li class="item" [class.ok]="pwdRules.symbol"><span class="material-icons status">{{ pwdRules.symbol ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 símbolo</li>
-          </ul>
-          <small class="error" *ngIf="showCtrlError('password')">No cumple los requisitos.</small>
-        </label>
+        <!-- CREATE: par de contraseñas lado a lado -->
+        <div *ngIf="isCreate" class="span-2 pwd-pair">
+          <label class="inline">
+            Contraseña*
+            <div class="input-wrap">
+              <input [type]="showPwd ? 'text' : 'password'" formControlName="password" />
+              <button type="button" class="icon-btn" (click)="showPwd=!showPwd" aria-label="Mostrar/ocultar contraseña">
+                <span class="material-icons">{{ showPwd ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            <ul class="pwd-checklist grid">
+              <li class="item" [class.ok]="pwdRules.len"><span class="material-icons status">{{ pwdRules.len ? 'check_circle' : 'radio_button_unchecked' }}</span> 8–64 caracteres</li>
+              <li class="item" [class.ok]="pwdRules.upper"><span class="material-icons status">{{ pwdRules.upper ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 mayúscula</li>
+              <li class="item" [class.ok]="pwdRules.lower"><span class="material-icons status">{{ pwdRules.lower ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 minúscula</li>
+              <li class="item" [class.ok]="pwdRules.digit"><span class="material-icons status">{{ pwdRules.digit ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 número</li>
+              <li class="item" [class.ok]="pwdRules.symbol"><span class="material-icons status">{{ pwdRules.symbol ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 símbolo</li>
+            </ul>
+            <small class="error" *ngIf="showCtrlError('password')">No cumple los requisitos.</small>
+          </label>
 
-        <!-- En EDICIÓN: toggle + campos de cambio de contraseña -->
+          <label class="inline">
+            Confirmar contraseña*
+            <div class="input-wrap">
+              <input [type]="showPwd2 ? 'text' : 'password'" formControlName="password2" />
+              <button type="button" class="icon-btn" (click)="showPwd2=!showPwd2" aria-label="Mostrar/ocultar confirmación">
+                <span class="material-icons">{{ showPwd2 ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            <small class="error" *ngIf="showCtrlError('password2')">Confirmación de contraseña obligatoria.</small>
+            <small class="error" *ngIf="form.hasError('pwdMismatch') && (getCtrl('password2').dirty || getCtrl('password2').touched)">
+              Las contraseñas no coinciden.
+            </small>
+          </label>
+        </div>
+
+        <!-- EDIT: switch + par de contraseñas lado a lado -->
         <div *ngIf="isEdit" class="span-2 change-pwd">
           <label class="switch">
             <input id="chgPwd" type="checkbox" [checked]="changePwd" (change)="toggleChangePwd()" />
             <span class="track" aria-hidden="true"><span class="thumb"></span></span>
             <span class="switch-label">Cambiar contraseña</span>
           </label>
-          <small class="hint"></small>
         </div>
 
-        <label *ngIf="isEdit && changePwd" class="span-2">
-          Nueva contraseña*
-          <input type="password" formControlName="password" />
-          <ul class="pwd-checklist grid">
-            <li class="item" [class.ok]="pwdRules.len"><span class="material-icons status">{{ pwdRules.len ? 'check_circle' : 'radio_button_unchecked' }}</span> 8–64 caracteres</li>
-            <li class="item" [class.ok]="pwdRules.upper"><span class="material-icons status">{{ pwdRules.upper ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 mayúscula</li>
-            <li class="item" [class.ok]="pwdRules.lower"><span class="material-icons status">{{ pwdRules.lower ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 minúscula</li>
-            <li class="item" [class.ok]="pwdRules.digit"><span class="material-icons status">{{ pwdRules.digit ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 número</li>
-            <li class="item" [class.ok]="pwdRules.symbol"><span class="material-icons status">{{ pwdRules.symbol ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 símbolo</li>
-          </ul>
-          <small class="error" *ngIf="showCtrlError('password')">No cumple los requisitos.</small>
-        </label>
+        <div *ngIf="isEdit && changePwd" class="span-2 pwd-pair">
+          <label class="inline">
+            Nueva contraseña*
+            <div class="input-wrap">
+              <input [type]="showPwd ? 'text' : 'password'" formControlName="password" />
+              <button type="button" class="icon-btn" (click)="showPwd=!showPwd" aria-label="Mostrar/ocultar contraseña">
+                <span class="material-icons">{{ showPwd ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            <ul class="pwd-checklist grid">
+              <li class="item" [class.ok]="pwdRules.len"><span class="material-icons status">{{ pwdRules.len ? 'check_circle' : 'radio_button_unchecked' }}</span> 8–64 caracteres</li>
+              <li class="item" [class.ok]="pwdRules.upper"><span class="material-icons status">{{ pwdRules.upper ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 mayúscula</li>
+              <li class="item" [class.ok]="pwdRules.lower"><span class="material-icons status">{{ pwdRules.lower ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 minúscula</li>
+              <li class="item" [class.ok]="pwdRules.digit"><span class="material-icons status">{{ pwdRules.digit ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 número</li>
+              <li class="item" [class.ok]="pwdRules.symbol"><span class="material-icons status">{{ pwdRules.symbol ? 'check_circle' : 'radio_button_unchecked' }}</span> 1 símbolo</li>
+            </ul>
+            <small class="error" *ngIf="showCtrlError('password')">No cumple los requisitos.</small>
+          </label>
 
-        <label *ngIf="isEdit && changePwd" class="span-2">
-          Confirmar contraseña*
-          <input type="password" formControlName="password2" />
-          <small class="error" *ngIf="form.hasError('pwdMismatch')">Las contraseñas no coinciden.</small>
-        </label>
+          <label class="inline">
+            Confirmar contraseña*
+            <div class="input-wrap">
+              <input [type]="showPwd2 ? 'text' : 'password'" formControlName="password2" />
+              <button type="button" class="icon-btn" (click)="showPwd2=!showPwd2" aria-label="Mostrar/ocultar confirmación">
+                <span class="material-icons">{{ showPwd2 ? 'visibility_off' : 'visibility' }}</span>
+              </button>
+            </div>
+            <small class="error" *ngIf="showCtrlError('password2')">Confirmación de contraseña obligatoria.</small>
+            <small class="error" *ngIf="form.hasError('pwdMismatch') && (getCtrl('password2').dirty || getCtrl('password2').touched)">
+              Las contraseñas no coinciden.
+            </small>
+          </label>
+        </div>
 
         <!-- 6 -->
         <label class="span-4">
